@@ -36,7 +36,7 @@ parser.add_argument(
     help="Make diagnostic plots.",
 )
 parser.add_argument(
-    "--do_phot",
+    "--do-phot",
     dest="do_phot",
     action="store_true",
     default=False,
