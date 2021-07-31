@@ -1,3 +1,4 @@
 .DS_Store
 data
 notebooks/.*
+kepler_workflow/.python-version
