@@ -35,15 +35,21 @@ def main():
     tpfs = np.sort(glob.glob("%s/%s/*/*fits.gz" % (args.path, args.folder)))
     print("Total numebr of TPFs: ", tpfs.shape[0])
 
-    channels, quarters = np.array(
+    channels, quarters, ra, dec = np.array(
         [
-            [fitsio.read_header(f)["CHANNEL"], fitsio.read_header(f)["QUARTER"]]
+            [
+                fitsio.read_header(f)["CHANNEL"],
+                fitsio.read_header(f)["QUARTER"],
+                fitsio.read_header(f)["RA_OBJ"],
+                fitsio.read_header(f)["DEC_OBJ"],
+            ]
             for f in tpfs
         ]
     ).T
 
     df = pd.DataFrame(
-        [tpfs, quarters, channels], index=["file_name", "quarter", "channel"]
+        [tpfs, quarters, channels, ra, dec],
+        index=["file_name", "quarter", "channel", "ra", "dec"],
     ).T
 
     dir_name = "../data/support/"
