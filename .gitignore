@@ -2,3 +2,4 @@
 data
 notebooks/.*
 kepler_workflow/.python-version
+kepler_workflow/__pycache__
