@@ -1,11 +1,12 @@
 import os
+import sys
 import argparse
 import yaml
 import numpy as np
 import pandas as pd
 import psfmachine as pm
 import lightkurve as lk
-from tqdm.auto import tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 
@@ -19,52 +20,10 @@ from scipy import sparse
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
-parser = argparse.ArgumentParser(description="AutoEncoder")
-parser.add_argument(
-    "--quarter",
-    dest="quarter",
-    type=int,
-    default=None,
-    help="Quarter number.",
-)
-parser.add_argument(
-    "--channel",
-    dest="channel",
-    type=int,
-    default=1,
-    help="Channel number",
-)
-parser.add_argument(
-    "--batch-size",
-    dest="batch_size",
-    type=int,
-    default=200,
-    help="Batch size",
-)
-parser.add_argument(
-    "--batch-number",
-    dest="batch_number",
-    type=int,
-    default=1,
-    help="Batch number",
-)
-parser.add_argument(
-    "--plot",
-    dest="plot",
-    action="store_true",
-    default=False,
-    help="Make diagnostic plots.",
-)
-parser.add_argument(
-    "--sap",
-    dest="sap",
-    action="store_true",
-    default=False,
-    help="Do aperture photometry.",
-)
-args = parser.parse_args()
+PACKAGEDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
+# @profile
 def get_KICs(catalog):
     """
     Query KIC (<2") and return the Kepler IDs for result sources.
@@ -76,27 +35,32 @@ def get_KICs(catalog):
         ra=kic["RAJ2000"], dec=kic["DEJ2000"], frame="icrs", unit=(u.deg, u.deg)
     )
     midx, mdist = match_coordinates_3d(gaia, kicc, nthneighbor=1)[:2]
-    catalog.loc[:, "kic"] = None
+    catalog.loc[:, "kic"] = ""
     catalog.loc[mdist.arcsec < 2, "kic"] = kic[midx[mdist.arcsec < 2]]["KIC"].data.data
     return catalog.kic.values
 
 
-def get_file_list():
+# @profile
+def get_file_list(quarter, channel, batch_size, batch_number):
 
-    lookup_table = pd.read_csv("../data/support/kepler_tpf_map_all.csv", index_col=0)
-    files_in = lookup_table.query(
-        "channel == %i and quarter == %i" % (args.channel, args.quarter)
+    lookup_table = pd.read_csv(
+        "%s/data/support/kepler_tpf_map_all_q%02i.csv" % (PACKAGEDIR, quarter),
+        index_col=0,
     )
+    files_in = lookup_table.query(
+        "channel == %i and quarter == %i" % (channel, quarter)
+    )
+    if files_in.shape[0] == 0:
+        raise IndexError("Channel does not contain TPFs.")
     files_in = files_in.iloc[
-        args.batch_size
-        * (args.batch_number - 1) : args.batch_size
-        * (args.batch_number)
+        batch_size * (batch_number - 1) : batch_size * (batch_number)
     ]
     if files_in.shape[0] == 0:
-        raise IndexError("Batch does not contain files.")
+        raise IndexError("Batch does not contain TPFs.")
     return files_in.file_name.tolist()
 
 
+# @profile
 def make_hdul(lc, catalog, extra_meta):
     meta = {
         "ORIGIN": lc.meta["ORIGIN"],
@@ -112,29 +76,32 @@ def make_hdul(lc, catalog, extra_meta):
         "MODULE": lc.meta["MODULE"],
         "OUTPUT": extra_meta["OUTPUT"],
         "QUARTER": lc.meta["QUARTER"],
-        "CAMPAIGN": lc.meta["CAMPAIGN"],
+        # "CAMPAIGN": lc.meta["CAMPAIGN"],
         # objct info
-        "LABEL": lc.meta["LABEL"],
+        "LABEL": "KIC %s" % (extra_meta["KEPLERID"])
+        if extra_meta["KEPLERID"] != ""
+        else catalog.designation,
         "TARGETID": lc.meta["TARGETID"],
         "RA_OBJ": lc.meta["RA"],
         "DEC_OBJ": lc.meta["DEC"],
         "EQUINOX": extra_meta["EQUINOX"],
         # KIC info
         "KEPLERID": extra_meta["KEPLERID"],
+        "TPFORG": extra_meta["TPFORG"],
         # gaia catalog info
         "GAIAID": catalog.designation,
-        "PMRA": lc.meta["PMRA"] if np.isfinite(lc.meta["PMRA"]) else None,
-        "PMDEC": lc.meta["PMDEC"] if np.isfinite(lc.meta["PMDEC"]) else None,
-        "PARALLAX": lc.meta["PARALLAX"] if np.isfinite(lc.meta["PARALLAX"]) else None,
-        "GMAG": lc.meta["GMAG"] if np.isfinite(lc.meta["GMAG"]) else None,
-        "RPMAG": lc.meta["RPMAG"] if np.isfinite(lc.meta["RPMAG"]) else None,
-        "BPMAG": lc.meta["BPMAG"] if np.isfinite(lc.meta["BPMAG"]) else None,
+        "PMRA": lc.meta["PMRA"] if np.isfinite(lc.meta["PMRA"]) else "",
+        "PMDEC": lc.meta["PMDEC"] if np.isfinite(lc.meta["PMDEC"]) else "",
+        "PARALLAX": lc.meta["PARALLAX"] if np.isfinite(lc.meta["PARALLAX"]) else "",
+        "GMAG": lc.meta["GMAG"] if np.isfinite(lc.meta["GMAG"]) else "",
+        "RPMAG": lc.meta["RPMAG"] if np.isfinite(lc.meta["RPMAG"]) else "",
+        "BPMAG": lc.meta["BPMAG"] if np.isfinite(lc.meta["BPMAG"]) else "",
         # extraction info
         "SAP": lc.meta["SAP"],
         "ROW": lc.meta["ROW"],
         "COLUMN": lc.meta["COLUMN"],
-        "FLFRCSAP": lc.meta["FLFRCSAP"],
-        "CROWDSAP": lc.meta["CROWDSAP"],
+        "FLFRCSAP": lc.meta["FLFRCSAP"] if np.isfinite(lc.meta["FLFRCSAP"]) else "",
+        "CROWDSAP": lc.meta["CROWDSAP"] if np.isfinite(lc.meta["CROWDSAP"]) else "",
     }
     lc_dct = {
         "cadenceno": extra_meta["cadenceno"],
@@ -155,43 +122,78 @@ def make_hdul(lc, catalog, extra_meta):
     return hdul
 
 
-def main():
+# @profile
+def run_code(
+    quarter=5, channel=1, batch_size=50, batch_number=1, plot=True, dry_run=False
+):
 
     # load config file for TPFs
-    with open("./tpfmachine_keplerTPFs_config.yaml", "r") as f:
+    with open(
+        "%s/kepler_workflow/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR), "r"
+    ) as f:
         config = yaml.safe_load(f)
     # get TPF file name list
-    fname_list = get_file_list()
+    fname_list = get_file_list(quarter, channel, batch_size, batch_number)
+    if len(fname_list) < batch_size:
+        print(
+            "Warning: Actual batch size (%i) is smaller than asked (%i)."
+            % (len(fname_list), batch_number)
+        )
+    if len(fname_list) < 50:
+        print("Warning: Actual batch size (%i) is less than 50." % (len(fname_list)))
+    if dry_run:
+        print("Dry run!")
+        sys.exit()
     # load TPFs
     tpfs = lk.collections.TargetPixelFileCollection([lk.read(f) for f in fname_list])
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
+    del tpfs
+    print(machine)
     # load shape model from FFI and fit light curves
     shape_model_path = (
-        "../data/shape_models/ffi/ch%02i/%s_ffi_shape_model_ch%02i_q%02i.fits"
-        % (args.channel, machine.tpf_meta["mission"][0], args.channel, args.quarter)
+        "%s/data/shape_models/ffi/ch%02i/%s_ffi_shape_model_ch%02i_q%02i.fits"
+        % (
+            PACKAGEDIR,
+            channel,
+            machine.tpf_meta["mission"][0],
+            channel,
+            quarter,
+        )
     )
-    machine.fit_lightcurves(
-        iter_negative=True,
-        sap=True,
-        fit_va=True,
-        load_shape_model=True,
-        shape_model_file=shape_model_path,
-        plot=False,
-    )
+    if os.path.isfile(shape_model_path):
+        machine.fit_lightcurves(
+            iter_negative=True,
+            sap=True,
+            fit_va=True,
+            load_shape_model=True,
+            shape_model_file=shape_model_path,
+            plot=False,
+        )
+    else:
+        print("No shape model for this Q/Ch, fitting PRF from data...")
+        machine.fit_lightcurves(
+            iter_negative=True,
+            sap=True,
+            fit_va=True,
+            load_shape_model=False,
+            plot=False,
+        )
     # compute source centroids
-    machine.get_source_centroids()
+    centroid_method = "scene"
+    machine.get_source_centroids(method=centroid_method)
     # save plot if asked
-    if args.plot:
-        dir_name = "../data/figures/tpf/ch%02i" % args.channel
+    if plot:
+        dir_name = "%s/data/figures/tpf/ch%02i" % (PACKAGEDIR, channel)
         print("Saving diagnostic plots into: ", dir_name)
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        file_name = "%s/models_ch%02i_q%02i_bno%02i.pdf" % (
+        file_name = "%s/models_ch%02i_q%02i_bno%02i_%03i.pdf" % (
             dir_name,
-            args.channel,
-            args.quarter,
-            args.batch_number,
+            channel,
+            quarter,
+            batch_number,
+            batch_size,
         )
         shape_fig = machine.plot_shape_model()
         time_fig = machine.plot_time_model()
@@ -211,38 +213,91 @@ def main():
             [k for k, ss in enumerate(machine.tpf_meta["sources"]) if i in ss]
         )
     # save lcs
-    if True:
-        dir_name = "../data/lcs/tpf/ch%02i/q%02i" % (args.channel, args.quarter)
-        print("Saving light curves into: ", dir_name)
-        if not os.path.isdir(dir_name):
-            os.makedirs(dir_name)
-        for i, lc in tqdm(
-            enumerate(machine.lcs), total=machine.nsources, desc="Saving LCFs"
-        ):
-            if np.isnan(lc.flux).all():
-                continue
-            meta = {
-                "KEPLERID": kics[i],
-                "TELESCOP": machine.tpfs[0].meta["TELESCOP"],
-                "INSTRUME": machine.tpfs[0].meta["INSTRUME"],
-                "OBSMODE": machine.tpfs[0].meta["OBSMODE"],
-                "OUTPUT": machine.tpfs[0].meta["OUTPUT"],
-                "SEASON": machine.tpfs[0].meta["SEASON"],
-                "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
-                "cadenceno": machine.tpfs[tpf_idx[i][0]].cadenceno[cadno_mask],
-                "quality": machine.tpfs[tpf_idx[i][0]].quality[cadno_mask],
-                "centroid_col": machine.source_centroids_column[i],
-                "centroid_row": machine.source_centroids_row[i],
-            }
-            hdul = make_hdul(lc, machine.sources.loc[i], meta)
+    dir_name = "%s/data/lcs/tpf/ch%02i/q%02i" % (
+        PACKAGEDIR,
+        channel,
+        quarter,
+    )
+    print("Saving light curves into: ", dir_name)
+    if not os.path.isdir(dir_name):
+        os.makedirs(dir_name)
+    for i, lc in tqdm(
+        enumerate(machine.lcs), total=machine.nsources, desc="Saving LCFs"
+    ):
+        if np.isnan(lc.flux).all() and np.isnan(lc.sap_flux).all():
+            continue
+        meta = {
+            "KEPLERID": kics[i],
+            "TPFORG": machine.tpfs[tpf_idx[i][0]].meta["KEPLERID"],
+            "TELESCOP": machine.tpfs[0].meta["TELESCOP"],
+            "INSTRUME": machine.tpfs[0].meta["INSTRUME"],
+            "OBSMODE": machine.tpfs[0].meta["OBSMODE"],
+            "OUTPUT": machine.tpfs[0].meta["OUTPUT"],
+            "SEASON": machine.tpfs[0].meta["SEASON"],
+            "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
+            "cadenceno": machine.tpfs[tpf_idx[i][0]].cadenceno[cadno_mask],
+            "quality": machine.tpfs[tpf_idx[i][0]].quality[cadno_mask],
+            "centroid_col": vars(machine)[
+                "source_centroids_column_%s" % (centroid_method)
+            ][i],
+            "centroid_row": vars(machine)[
+                "source_centroids_row_%s" % (centroid_method)
+            ][i],
+        }
+        hdul = make_hdul(lc, machine.sources.loc[i], meta)
 
-            fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc.fits.gz" % (
-                machine.sources.designation[i].replace(" ", "-"),
-                args.quarter,
-                "1.0",
-            )
-            hdul.writeto("%s/%s" % (dir_name, fname), overwrite=True, checksum=True)
+        target_name = (
+            "KIC-%s" % (str(kics[i]))
+            if kics[i] != ""
+            else machine.sources.designation[i].replace(" ", "-")
+        )
+        fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc_%03i.fits.gz" % (
+            target_name,
+            quarter,
+            "1.0",
+            batch_size,
+        )
+        hdul.writeto("%s/%s" % (dir_name, fname), overwrite=True, checksum=True)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="AutoEncoder")
+    parser.add_argument(
+        "--quarter",
+        dest="quarter",
+        type=int,
+        default=5,
+        help="Quarter number.",
+    )
+    parser.add_argument(
+        "--channel",
+        dest="channel",
+        type=int,
+        default=31,
+        help="Channel number",
+    )
+    parser.add_argument(
+        "--batch-size",
+        dest="batch_size",
+        type=int,
+        default=50,
+        help="Batch size",
+    )
+    parser.add_argument(
+        "--batch-number",
+        dest="batch_number",
+        type=int,
+        default=1,
+        help="Batch number",
+    )
+    parser.add_argument(
+        "--plot",
+        dest="plot",
+        action="store_true",
+        default=False,
+        help="Make diagnostic plots.",
+    )
+    args = parser.parse_args()
+    print(vars(args))
+
+    run_code(**vars(args))
