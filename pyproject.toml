@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "kepler-pipeline"
+name = "kepler-workflow"
 version = "0.1.0"
 description = ""
 authors = ["Jorge Martinez-Palomera <jorgemarpa@ug.uchile.cl>"]
