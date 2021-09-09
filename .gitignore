@@ -1,5 +1,8 @@
 .DS_Store
-data
+data/catalogs
+data/figures
+data/lcs
+data/support
 notebooks/.*
 notebooks/<ipython*
 kepler_workflow/.python-version
