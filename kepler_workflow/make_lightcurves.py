@@ -137,7 +137,7 @@ def run_code(
     if len(fname_list) < batch_size:
         print(
             "Warning: Actual batch size (%i) is smaller than asked (%i)."
-            % (len(fname_list), batch_number)
+            % (len(fname_list), batch_size)
         )
     if len(fname_list) < 50:
         print("Warning: Actual batch size (%i) is less than 50." % (len(fname_list)))
