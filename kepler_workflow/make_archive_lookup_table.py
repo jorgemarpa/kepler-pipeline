@@ -99,6 +99,8 @@ def main():
         [tpfs, quarters, channels, ra, dec],
         index=["file_name", "quarter", "channel", "ra", "dec"],
     ).T
+    df.channel = df.channel.astype(np.int8)
+    df.quarter = df.quarter.astype(np.int8)
 
     dir_name = "../data/support/"
     if not os.path.isdir(dir_name):
