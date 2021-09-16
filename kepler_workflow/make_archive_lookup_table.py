@@ -79,7 +79,7 @@ def main():
             % (args.path, args.folder, str(qd_map[args.quarter]))
         )
     )
-    print("Total numebr of TPFs: ", tpfs.shape[0])
+    print("Total numebr of TPFs in %s: " % (args.folder), tpfs.shape[0])
     if len(tpfs) == 0:
         raise ValueError("No TPFs for selected quarter %i" % args.quarter)
 

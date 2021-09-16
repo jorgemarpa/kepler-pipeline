@@ -257,6 +257,7 @@ def run_code(
             "1.0",
             batch_size,
         )
+        # i need to tarball all these FITS file to meet inode quota
         hdul.writeto("%s/%s" % (dir_name, fname), overwrite=True, checksum=True)
 
 
