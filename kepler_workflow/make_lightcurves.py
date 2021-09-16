@@ -251,11 +251,11 @@ def run_code(
             if kics[i] != ""
             else machine.sources.designation[i].replace(" ", "-")
         )
-        fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc_%03i.fits.gz" % (
+        fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc.fits.gz" % (
             target_name,
             quarter,
             "1.0",
-            batch_size,
+            # batch_size,
         )
         # i need to tarball all these FITS file to meet inode quota
         hdul.writeto("%s/%s" % (dir_name, fname), overwrite=True, checksum=True)
