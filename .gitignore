@@ -3,6 +3,7 @@ data/catalogs
 data/figures
 data/lcs
 data/support
+data/shape_models/ffi/*/K2*
 notebooks/.*
 notebooks/<ipython*
 kepler_workflow/.python-version
