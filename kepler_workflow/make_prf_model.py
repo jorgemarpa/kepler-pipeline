@@ -15,11 +15,25 @@ warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 parser = argparse.ArgumentParser(description="AutoEncoder")
 parser.add_argument(
+    "--mission",
+    dest="mission",
+    type=str,
+    default="kepler",
+    help="Mission Kepler or K2.",
+)
+parser.add_argument(
     "--quarter",
     dest="quarter",
     type=int,
     default=None,
-    help="Quarter number.",
+    help="Kepler quarter number.",
+)
+parser.add_argument(
+    "--campaign",
+    dest="quarter",
+    type=int,
+    default=None,
+    help="K2 campaign number.",
 )
 parser.add_argument(
     "--channel",
@@ -31,6 +45,13 @@ parser.add_argument(
 parser.add_argument(
     "--plot",
     dest="plot",
+    action="store_true",
+    default=False,
+    help="Make diagnostic plots.",
+)
+parser.add_argument(
+    "--plot-img",
+    dest="plot_img",
     action="store_true",
     default=False,
     help="Make diagnostic plots.",
@@ -54,11 +75,18 @@ args = parser.parse_args()
 
 def main():
 
-    ffi_files = np.sort(glob.glob("../../data/kepler/ffi/kplr*_ffi-cal.fits"))
+    if args.mission in ["Kepler", "kepler"]:
+        ffi_files = np.sort(glob.glob("../../data/kepler/ffi/kplr*_ffi-cal.fits"))
+        epoch_kw = "QUARTER"
+    elif args.mission in ["ktwo", "K2", "k2"]:
+        ffi_files = np.sort(glob.glob("../../data/k2/ffi/ktwo*_ffi-cal.fits"))
+        epoch_kw = "CAMPAIGN"
+    else:
+        raise ValueError("Worng mission name, choose one of [Kepler, K2]")
     ffi_q_fnames = [
         ffi_f
         for ffi_f in ffi_files
-        if fitsio.read_header(ffi_f)["QUARTER"] == args.quarter
+        if fitsio.read_header(ffi_f)[epoch_kw] == args.quarter
     ]
     ffi_q_fnames = [f for f in ffi_q_fnames if not "kplr2009170043915" in f]
     print("Using FFI files: ", ffi_q_fnames)
@@ -70,6 +98,7 @@ def main():
         cutout_origin=[300, 300],
         correct_offsets=False,
     )
+    print(ffi)
 
     print("Building shape model...")
     ax_shape = ffi.build_shape_model(plot=args.plot)
@@ -78,19 +107,23 @@ def main():
         print("Saving diagnostic plots into: ", dir_name)
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        file_name = "%s/shape_model_ch%02i_q%02i.pdf" % (
+        file_name = "%s/%s_shape_model_ch%02i_%s%02i.pdf" % (
             dir_name,
+            ffi.meta["MISSION"],
             args.channel,
+            epoch_kw.lower()[0],
             args.quarter,
         )
         plt.savefig(file_name, bbox_inches="tight")
         plt.close()
 
-        if args.cut_out:
+        if args.plot_img:
             ax_img = ffi.plot_image(sources=True)
-            file_name = "%s/ffi_image_ch%02i_q%02i.pdf" % (
+            file_name = "%s/%s_ffi_image_ch%02i_%s%02i.pdf" % (
                 dir_name,
+                ffi.meta["MISSION"],
                 args.channel,
+                epoch_kw.lower()[0],
                 args.quarter,
             )
             plt.savefig(file_name, bbox_inches="tight")
@@ -99,10 +132,11 @@ def main():
     dir_name = "../data/shape_models/ffi/ch%02i" % args.channel
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
-    file_name = "%s/%s_ffi_shape_model_ch%02i_q%02i.fits" % (
+    file_name = "%s/%s_ffi_shape_model_ch%02i_%s%02i.fits" % (
         dir_name,
         ffi.meta["MISSION"],
         args.channel,
+        epoch_kw.lower()[0],
         args.quarter,
     )
     ffi.save_shape_model(file_name)
@@ -112,10 +146,11 @@ def main():
         dir_name = "../data/catalogs/ffi/ch%02i" % args.channel
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        file_name = "%s/%s_ffi_catalog_ch%02i_q%02i.fits" % (
+        file_name = "%s/%s_ffi_catalog_ch%02i_%s%02i.fits" % (
             dir_name,
             ffi.meta["MISSION"],
             args.channel,
+            epoch_kw.lower()[0],
             args.quarter,
         )
         print("Doing PSF photometry...")
