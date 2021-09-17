@@ -2,6 +2,8 @@ import os
 import sys
 import argparse
 import yaml
+import tarfile
+import tempfile
 import numpy as np
 import pandas as pd
 import psfmachine as pm
@@ -21,6 +23,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 PACKAGEDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+lc_version = "1.0"
 
 
 # @profile
@@ -124,7 +127,13 @@ def make_hdul(lc, catalog, extra_meta):
 
 # @profile
 def run_code(
-    quarter=5, channel=1, batch_size=50, batch_number=1, plot=True, dry_run=False
+    quarter=5,
+    channel=1,
+    batch_size=50,
+    batch_number=1,
+    plot=True,
+    dry_run=False,
+    tarball=False,
 ):
 
     # load config file for TPFs
@@ -221,6 +230,13 @@ def run_code(
     print("Saving light curves into: ", dir_name)
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
+    if tarball:
+        print("LCFs will be tar.gz")
+        tar = tarfile.open(
+            "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%02i.tar.gz"
+            % (dir_name, channel, quarter, lc_version, batch_number + 1),
+            mode="w:gz",
+        )
     for i, lc in tqdm(
         enumerate(machine.lcs), total=machine.nsources, desc="Saving LCFs"
     ):
@@ -251,14 +267,21 @@ def run_code(
             if kics[i] != ""
             else machine.sources.designation[i].replace(" ", "-")
         )
-        fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc.fits.gz" % (
+        fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc.fits" % (
             target_name,
             quarter,
-            "1.0",
+            lc_version,
             # batch_size,
         )
         # i need to tarball all these FITS file to meet inode quota
-        hdul.writeto("%s/%s" % (dir_name, fname), overwrite=True, checksum=True)
+        if tarball:
+            with tempfile.NamedTemporaryFile(mode="wb") as tmp:
+                hdul.writeto(tmp)
+                tar.add(tmp.name, arcname=fname)
+        else:
+            hdul.writeto("%s/%s.gz" % (dir_name, fname), overwrite=True, checksum=True)
+    if tarball:
+        tar.close()
 
 
 if __name__ == "__main__":
@@ -297,6 +320,13 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Make diagnostic plots.",
+    )
+    parser.add_argument(
+        "--tarball",
+        dest="tarball",
+        action="store_true",
+        default=False,
+        help="Create a tar.gz file with light curves.",
     )
     args = parser.parse_args()
     print(vars(args))
