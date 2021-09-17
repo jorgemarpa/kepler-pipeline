@@ -116,6 +116,8 @@ def concatenate():
         glob.glob("../data/support/kepler_tpf_map_*_q%02i.csv" % (args.quarter))
     )
     dfs = pd.concat([pd.read_csv(f, index_col=0) for f in f_list], axis=0)
+    for f in f_list:
+        os.remove(f)
 
     file_name = "../data/support/kepler_tpf_map_all_q%02i.csv" % (args.quarter)
     dfs.reset_index(drop=True).to_csv(file_name)
