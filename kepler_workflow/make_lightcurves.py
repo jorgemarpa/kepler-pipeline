@@ -197,7 +197,8 @@ def run_code(
         print("Saving diagnostic plots into: ", dir_name)
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        file_name = "%s/models_ch%02i_q%02i_bno%02i_%03i.pdf" % (
+        file_name = "%s/%s_models_ch%02i_q%02i_bno%02i_%03i.pdf" % (
+            machine.tpf_meta["mission"][0],
             dir_name,
             channel,
             quarter,
@@ -222,11 +223,19 @@ def run_code(
             [k for k, ss in enumerate(machine.tpf_meta["sources"]) if i in ss]
         )
     # save lcs
-    dir_name = "%s/data/lcs/tpf/ch%02i/q%02i" % (
-        PACKAGEDIR,
-        channel,
-        quarter,
-    )
+    if socket.gethostname() == "NASAs-MacBook-Pro.local":
+        dir_name = "%s/data/lcs/%s/ch%02i/q%02i" % (
+            PACKAGEDIR,
+            machine.tpf_meta["mission"][0].lower(),
+            channel,
+            quarter,
+        )
+    else:
+        dir_name = "/nobackup12/jimartin/ADAP/data/lcs/%s/ch%02i/q%02i" % (
+            machine.tpf_meta["mission"][0].lower(),
+            channel,
+            quarter,
+        )
     print("Saving light curves into: ", dir_name)
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
@@ -234,7 +243,7 @@ def run_code(
         print("LCFs will be tar.gz")
         tar = tarfile.open(
             "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%02i.tar.gz"
-            % (dir_name, channel, quarter, lc_version, batch_number + 1),
+            % (dir_name, channel, quarter, lc_version, batch_number),
             mode="w:gz",
         )
     for i, lc in tqdm(
