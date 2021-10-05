@@ -6,5 +6,6 @@ data/support
 data/shape_models/ffi/*/K2*
 notebooks/.*
 notebooks/<ipython*
+notebooks/lcs
 kepler_workflow/.python-version
 kepler_workflow/__pycache__
