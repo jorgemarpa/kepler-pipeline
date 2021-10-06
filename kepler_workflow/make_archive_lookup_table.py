@@ -110,6 +110,11 @@ def main():
         tarlist = np.sort(
             glob.glob("%s/%s/%s_*.tar" % (args.path, args.folder, args.folder))
         )
+        if len(tarlist) == 0:
+            raise ValueError(
+                "No TPFs for selected folder/quarter %s/%i"
+                % (args.folder, args.quarter)
+            )
         tpfs, channels, quarters, ras, decs = [], [], [], [], []
         with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
             for tarf in tqdm(tarlist):
@@ -136,10 +141,11 @@ def main():
     dir_name = "../data/support/"
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
-    file_name = "%s/kepler_tpf_map_%s_q%02i_tar.csv" % (
+    file_name = "%s/kepler_tpf_map_%s_q%02i%s.csv" % (
         dir_name,
         args.folder,
         args.quarter,
+        "_tar" if args.tar_archive else "",
     )
     df.to_csv(file_name)
 
@@ -148,13 +154,20 @@ def concatenate():
 
     print("Concatenating all lookup tables...")
     f_list = np.sort(
-        glob.glob("../data/support/kepler_tpf_map_*_q%02i.csv" % (args.quarter))
+        glob.glob(
+            "../data/support/kepler_tpf_map_*_q%02i%s.csv"
+            % (args.quarter, "_tar" if args.tar_archive else "")
+        )
     )
     dfs = pd.concat([pd.read_csv(f, index_col=0) for f in f_list], axis=0)
     for f in f_list:
         os.remove(f)
 
-    file_name = "../data/support/kepler_tpf_map_all_q%02i.csv" % (args.quarter)
+    file_name = "../data/support/kepler_tpf_map_all_q%02i%s.csv" % (
+        args.quarter,
+        "_tar" if args.tar_archive else "",
+    )
+    print(file_name)
     dfs.reset_index(drop=True).to_csv(file_name)
 
 

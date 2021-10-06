@@ -4,6 +4,7 @@ import argparse
 import yaml
 import tarfile
 import tempfile
+import socket
 import numpy as np
 import pandas as pd
 import psfmachine as pm
@@ -25,6 +26,10 @@ warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 PACKAGEDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 lc_version = "1.0"
 
+if socket.gethostname() == "NASAs-MacBook-Pro.local":
+    KEP_ARCHIVE_DIR = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler/tpf/Kepler"
+else:
+    KEP_ARCHIVE_DIR = "/nobackup12/jimartin/ADAP/data/kepler/tpfs"
 
 # @profile
 def get_KICs(catalog):
@@ -40,14 +45,19 @@ def get_KICs(catalog):
     midx, mdist = match_coordinates_3d(gaia, kicc, nthneighbor=1)[:2]
     catalog.loc[:, "kic"] = ""
     catalog.loc[mdist.arcsec < 2, "kic"] = kic[midx[mdist.arcsec < 2]]["KIC"].data.data
-    return catalog.kic.values
+    catalog.loc[:, "kepmag"] = None
+    catalog.loc[mdist.arcsec < 2, "kepmag"] = kic[midx[mdist.arcsec < 2]][
+        "kepmag"
+    ].data.data
+    return catalog
 
 
 # @profile
-def get_file_list(quarter, channel, batch_size, batch_number):
+def get_file_list(quarter, channel, batch_size, batch_number, tar_archive=True):
 
     lookup_table = pd.read_csv(
-        "%s/data/support/kepler_tpf_map_all_q%02i.csv" % (PACKAGEDIR, quarter),
+        "%s/data/support/kepler_tpf_map_all_q%02i%s.csv"
+        % (PACKAGEDIR, quarter, "_tar" if tar_archive else ""),
         index_col=0,
     )
     files_in = lookup_table.query(
@@ -64,7 +74,7 @@ def get_file_list(quarter, channel, batch_size, batch_number):
 
 
 # @profile
-def make_hdul(lc, catalog, extra_meta):
+def make_hdul(lc, catalog, extra_meta, fit_va=True):
     meta = {
         "ORIGIN": lc.meta["ORIGIN"],
         "VERSION": pm.__version__,
@@ -106,23 +116,54 @@ def make_hdul(lc, catalog, extra_meta):
         "FLFRCSAP": lc.meta["FLFRCSAP"] if np.isfinite(lc.meta["FLFRCSAP"]) else "",
         "CROWDSAP": lc.meta["CROWDSAP"] if np.isfinite(lc.meta["CROWDSAP"]) else "",
     }
-    lc_dct = {
-        "cadenceno": extra_meta["cadenceno"],
-        "time": lc.time,
-        "flux": lc.flux,
-        "flux_err": lc.flux_err,
-        "sap_flux": lc.sap_flux,
-        "sap_flux_err": lc.sap_flux_err,
-        "psf_flux_nvs": lc.psf_flux_NVA,
-        "psf_flux_err_nvs": lc.psf_flux_err_NVA,
-        "quality": extra_meta["quality"],
-        "centroid_column": extra_meta["centroid_col"],
-        "centroid_row": extra_meta["centroid_row"],
-    }
+    if fit_va:
+        lc_dct = {
+            "cadenceno": extra_meta["cadenceno"],
+            "time": lc.time - 2454833,
+            "flux": lc.flux.value * (u.electron / u.second),
+            "flux_err": lc.flux_err.value * (u.electron / u.second),
+            "sap_flux": lc.sap_flux.value * (u.electron / u.second),
+            "sap_flux_err": lc.sap_flux_err.value * (u.electron / u.second),
+            "psf_flux_nvs": lc.psf_flux_NVA.value * (u.electron / u.second),
+            "psf_flux_err_nvs": lc.psf_flux_err_NVA.value * (u.electron / u.second),
+            "quality": extra_meta["quality"],
+            "centroid_column": extra_meta["centroid_col"] * u.pixel,
+            "centroid_row": extra_meta["centroid_row"] * u.pixel,
+        }
+    else:
+        lc_dct = {
+            "cadenceno": extra_meta["cadenceno"],
+            "time": lc.time - 2454833,
+            "flux": lc.flux.value * (u.electron / u.second),
+            "flux_err": lc.flux_err.value * (u.electron / u.second),
+            "sap_flux": lc.sap_flux.value * (u.electron / u.second),
+            "sap_flux_err": lc.sap_flux_err.value * (u.electron / u.second),
+            "quality": extra_meta["quality"],
+            "centroid_column": extra_meta["centroid_col"] * u.pixel,
+            "centroid_row": extra_meta["centroid_row"] * u.pixel,
+        }
     lc_ = lk.LightCurve(lc_dct, meta=meta)
     del lc_dct["time"], lc_dct["flux_err"]
     hdul = lc_.to_fits(**lc_dct, **lc_.meta)
     return hdul
+
+
+# @profile
+def get_tpfs(fname_list, tar_archive=True):
+    if not tar_archive:
+        return lk.collections.TargetPixelFileCollection(
+            [lk.read(f) for f in fname_list]
+        )
+    else:
+        tpfs = []
+        with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
+            for k, fname in enumerate(fname_list):
+                tarf = f"{fname.split('/')[0]}_{fname.split('/')[1]}.tar"
+                tarf = f"{KEP_ARCHIVE_DIR}/{fname.split('/')[0]}/{tarf}"
+                tarfile.open(tarf, mode="r").extract(fname, tmpdir)
+                tpfs.append(lk.read(f"{tmpdir}/{fname}"))
+
+        return lk.collections.TargetPixelFileCollection(tpfs)
 
 
 # @profile
@@ -134,6 +175,8 @@ def run_code(
     plot=True,
     dry_run=False,
     tarball=False,
+    tar_archive=True,
+    fit_va=True,
 ):
 
     # load config file for TPFs
@@ -142,7 +185,9 @@ def run_code(
     ) as f:
         config = yaml.safe_load(f)
     # get TPF file name list
-    fname_list = get_file_list(quarter, channel, batch_size, batch_number)
+    fname_list = get_file_list(
+        quarter, channel, batch_size, batch_number, tar_archive=tar_archive
+    )
     if len(fname_list) < batch_size:
         print(
             "Warning: Actual batch size (%i) is smaller than asked (%i)."
@@ -154,7 +199,7 @@ def run_code(
         print("Dry run!")
         sys.exit()
     # load TPFs
-    tpfs = lk.collections.TargetPixelFileCollection([lk.read(f) for f in fname_list])
+    tpfs = get_tpfs(fname_list, tar_archive=tar_archive)
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
     del tpfs
@@ -172,9 +217,9 @@ def run_code(
     )
     if os.path.isfile(shape_model_path):
         machine.fit_lightcurves(
-            iter_negative=True,
+            iter_negative=fit_va,
             sap=True,
-            fit_va=True,
+            fit_va=fit_va,
             load_shape_model=True,
             shape_model_file=shape_model_path,
             plot=False,
@@ -182,9 +227,9 @@ def run_code(
     else:
         print("No shape model for this Q/Ch, fitting PRF from data...")
         machine.fit_lightcurves(
-            iter_negative=True,
+            iter_negative=fit_va,
             sap=True,
-            fit_va=True,
+            fit_va=fit_va,
             load_shape_model=False,
             plot=False,
         )
@@ -216,6 +261,7 @@ def run_code(
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
     kics = get_KICs(machine.sources)
+
     # get the TPF index for each lc, a sources could fall in more than 1 tpf
     tpf_idx = []
     for i in range(len(machine.sources)):
@@ -252,7 +298,8 @@ def run_code(
         if np.isnan(lc.flux).all() and np.isnan(lc.sap_flux).all():
             continue
         meta = {
-            "KEPLERID": kics[i],
+            "KEPLERID": kics["kic"][i],
+            "KEPMAG": kics["kepmag"][i],
             "TPFORG": machine.tpfs[tpf_idx[i][0]].meta["KEPLERID"],
             "TELESCOP": machine.tpfs[0].meta["TELESCOP"],
             "INSTRUME": machine.tpfs[0].meta["INSTRUME"],
@@ -269,11 +316,11 @@ def run_code(
                 "source_centroids_row_%s" % (centroid_method)
             ][i],
         }
-        hdul = make_hdul(lc, machine.sources.loc[i], meta)
+        hdul = make_hdul(lc, machine.sources.loc[i], meta, fit_va=fit_va)
 
         target_name = (
-            "KIC-%s" % (str(kics[i]))
-            if kics[i] != ""
+            "KIC-%s" % (str(meta["KEPLERID"]))
+            if meta["KEPLERID"] != ""
             else machine.sources.designation[i].replace(" ", "-")
         )
         fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc.fits" % (
@@ -336,6 +383,20 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Create a tar.gz file with light curves.",
+    )
+    parser.add_argument(
+        "--fit-va",
+        dest="fit_va",
+        action="store_true",
+        default=False,
+        help="Fit Velocity aberration.",
+    )
+    parser.add_argument(
+        "--tar-archive",
+        dest="tar_archive",
+        action="store_true",
+        default=False,
+        help="Is archive in tarball files.",
     )
     args = parser.parse_args()
     print(vars(args))
