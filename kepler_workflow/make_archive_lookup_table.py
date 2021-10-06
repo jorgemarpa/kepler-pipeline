@@ -2,8 +2,11 @@ import os
 import glob
 import argparse
 import fitsio
+import tarfile
+import tempfile
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description="AutoEncoder")
 parser.add_argument(
@@ -48,6 +51,13 @@ parser.add_argument(
     default=False,
     help="Computen umber of batches per channel.",
 )
+parser.add_argument(
+    "--tar-archive",
+    dest="tar_archive",
+    action="store_true",
+    default=False,
+    help="Is archive in tarball files.",
+)
 args = parser.parse_args()
 
 qd_map = {
@@ -73,30 +83,51 @@ qd_map = {
 
 def main():
 
-    tpfs = np.sort(
-        glob.glob(
-            "%s/%s/*/kplr*-%s_lpd-targ.fits.gz"
-            % (args.path, args.folder, str(qd_map[args.quarter]))
+    if not args.tar_archive:
+        tpfs = np.sort(
+            glob.glob(
+                "%s/%s/*/kplr*-%s_lpd-targ.fits.gz"
+                % (args.path, args.folder, str(qd_map[args.quarter]))
+            )
         )
-    )
-    print("Total numebr of TPFs in %s: " % (args.folder), tpfs.shape[0])
-    if len(tpfs) == 0:
-        raise ValueError("No TPFs for selected quarter %i" % args.quarter)
+        print("Total numebr of TPFs in %s: " % (args.folder), tpfs.shape[0])
+        if len(tpfs) == 0:
+            raise ValueError("No TPFs for selected quarter %i" % args.quarter)
 
-    channels, quarters, ra, dec = np.array(
-        [
+        channels, quarters, ras, decs = np.array(
             [
-                fitsio.read_header(f)["CHANNEL"],
-                fitsio.read_header(f)["QUARTER"],
-                fitsio.read_header(f)["RA_OBJ"],
-                fitsio.read_header(f)["DEC_OBJ"],
+                [
+                    fitsio.read_header(f)["CHANNEL"],
+                    fitsio.read_header(f)["QUARTER"],
+                    fitsio.read_header(f)["RA_OBJ"],
+                    fitsio.read_header(f)["DEC_OBJ"],
+                ]
+                for f in tpfs
             ]
-            for f in tpfs
-        ]
-    ).T
+        ).T
+    else:
+        # pass
+        tarlist = np.sort(
+            glob.glob("%s/%s/%s_*.tar" % (args.path, args.folder, args.folder))
+        )
+        tpfs, channels, quarters, ras, decs = [], [], [], [], []
+        with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
+            for tarf in tqdm(tarlist):
+                kic = tarf.split(".")[0].split("_")[-1]
+                fname = f"{kic[:4]}/{kic}/kplr{kic}-{qd_map[5]}_lpd-targ.fits.gz"
+                try:
+                    tarfile.open(tarf, mode="r").extract(fname, tmpdir)
+                except KeyError:
+                    continue
+                tpfs.append(fname)
+                header = fitsio.read_header(f"{tmpdir}/{fname}")
+                channels.append(header["CHANNEL"])
+                quarters.append(header["QUARTER"])
+                ras.append(header["RA_OBJ"])
+                decs.append(header["DEC_OBJ"])
 
     df = pd.DataFrame(
-        [tpfs, quarters, channels, ra, dec],
+        [tpfs, quarters, channels, ras, decs],
         index=["file_name", "quarter", "channel", "ra", "dec"],
     ).T
     df.channel = df.channel.astype(np.int8)
@@ -105,7 +136,11 @@ def main():
     dir_name = "../data/support/"
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
-    file_name = "%s/kepler_tpf_map_%s_q%02i.csv" % (dir_name, args.folder, args.quarter)
+    file_name = "%s/kepler_tpf_map_%s_q%02i_tar.csv" % (
+        dir_name,
+        args.folder,
+        args.quarter,
+    )
     df.to_csv(file_name)
 
 
@@ -144,6 +179,31 @@ def how_many_batches():
         args.quarter,
     )
     df_nb.set_index("channel").to_csv(file_name)
+
+
+def do_tpf_batch_files():
+    file_name = "../data/support/kepler_tpf_map_all_q%02i.csv" % (args.quarter)
+    df = pd.read_csv(file_name, index_col=0)
+
+    channels = np.arange(1, 85)
+    channels_batch_dict = {}
+    for k, ch in enumerate(channels):
+        in_channel = df.query("channel == %i" % ch)
+        if files_in.shape[0] == 0:
+            print("Channel %02s does not contain TPFs." % ch)
+            continue
+
+        n_batches = int(np.ceil(in_channel.shape[0] / args.batch_size))
+        batch_dict = {}
+        for nb in range(1, n_batches + 1):
+            files_in_batch = in_channel.iloc[
+                batch_size * (batch_number - 1) : batch_size * (batch_number)
+            ]
+            if files_in_batch.shape[0] < batch_size / 4:
+                batch_dict[nb - 1].extend(files_in_batch.file_name.tolist())
+            else:
+                batch_dict[nb] = files_in_batch.file_name.tolist()
+        channels_batch_dict[ch] = batch_dict
 
 
 if __name__ == "__main__":
