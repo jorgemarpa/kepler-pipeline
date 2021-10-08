@@ -6,3 +6,9 @@ Workflow to extract light curves of background target from Kepler's TPFs using
 This workflow produces PSF and Aperture photometry of +120,000 sources. Light curves are
 saved as FITS Light Curve files that can be read and analyzed using
 [`lightkurve`](https://github.com/lightkurve/lightkurve) library.
+
+# TODO
+
+* Use python logger
+* Fix directories
+* automatize file batch creation

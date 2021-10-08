@@ -29,7 +29,7 @@ lc_version = "1.0"
 if socket.gethostname() == "NASAs-MacBook-Pro.local":
     KEP_ARCHIVE_DIR = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler/tpf/Kepler"
 else:
-    KEP_ARCHIVE_DIR = "/nobackup12/jimartin/ADAP/data/kepler/tpfs"
+    KEP_ARCHIVE_DIR = "/nobackupp12/jimartin/ADAP/data/kepler/tpfs"
 
 # @profile
 def get_KICs(catalog):
@@ -277,7 +277,7 @@ def run_code(
             quarter,
         )
     else:
-        dir_name = "/nobackup12/jimartin/ADAP/data/lcs/%s/ch%02i/q%02i" % (
+        dir_name = "/nobackupp12/jimartin/ADAP/data/lcs/%s/ch%02i/q%02i" % (
             machine.tpf_meta["mission"][0].lower(),
             channel,
             quarter,
