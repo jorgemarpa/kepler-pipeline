@@ -40,6 +40,7 @@ def do_lookup_table(
     quarter=5,
     fits_path=f"{ARCHIVE_PATH}/data/kepler/tpf",
     tar_archive=True,
+    quiet=False,
 ):
 
     if not tar_archive:
@@ -71,7 +72,7 @@ def do_lookup_table(
             raise ValueError(f"No TPFs for selected folder {folder}")
         tpfs, channels, quarters, ras, decs = [], [], [], [], []
         with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
-            for tarf in tqdm(tarlist, desc="Reading headers"):
+            for tarf in tqdm(tarlist, desc="Reading headers", disable=quiet):
                 kic = tarf.split(".")[0].split("_")[-1]
                 fname = f"{kic[:4]}/{kic}/kplr{kic}-{qd_map[quarter]}_lpd-targ.fits.gz"
                 try:
@@ -231,16 +232,19 @@ if __name__ == "__main__":
         default=False,
         help="Is archive in tarball files.",
     )
-    parser.add_argument(
-        "--log", dest="log", default=None, type=int, help="Logging level"
-    )
+    parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
     # set verbose level for logger
+    try:
+        args.log = int(args.log)
+    except:
+        args.log = str(args.log.upper())
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
-    logging.basicConfig(stream=sys.stdout, level=args.log, format=FORMAT)
-
+    h2 = logging.StreamHandler(sys.stderr)
+    h2.setFormatter(logging.Formatter(FORMAT))
+    log.addHandler(h2)
+    log.setLevel(args.log)
     log.info(vars(args))
-    # kwargs = vars(args)
 
     if args.concat:
         concatenate(args.quarter, tar_archive=args.tar_archive)
@@ -252,5 +256,6 @@ if __name__ == "__main__":
             quarter=args.quarter,
             fits_path=args.path,
             tar_archive=args.tar_archive,
+            quiet=True if args.log in [0, "0", "NOTSET"] else False,
         )
     log.info("Done!")

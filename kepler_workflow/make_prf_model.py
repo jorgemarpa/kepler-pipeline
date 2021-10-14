@@ -26,6 +26,7 @@ def do_FFI(
     plot_img=False,
     do_phot=False,
     cut_out=False,
+    quiet=False,
 ):
 
     if mission in ["Kepler", "kepler"]:
@@ -51,6 +52,7 @@ def do_FFI(
         cutout_origin=[300, 300],
         correct_offsets=False,
     )
+    ffi.quiet = quiet
     log.info(ffi)
 
     log.info("Building shape model...")
@@ -109,7 +111,6 @@ def do_FFI(
         log.info("Doing PSF photometry...")
         ffi.save_flux_values(output=file_name)
         log.info(f"Catalog was saved to: {file_name}")
-    log.info("Done!")
 
 
 if __name__ == "__main__":
@@ -172,15 +173,21 @@ if __name__ == "__main__":
         default=False,
         help="Use a cutout of the FFI for testing.",
     )
-    parser.add_argument(
-        "--log", dest="log", default=None, type=int, help="Logging level"
-    )
+    parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
     # set verbose level for logger
+    try:
+        args.log = int(args.log)
+    except:
+        args.log = str(args.log.upper())
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
-    logging.basicConfig(stream=sys.stdout, level=args.log, format=FORMAT)
+    h2 = logging.StreamHandler(sys.stderr)
+    h2.setFormatter(logging.Formatter(FORMAT))
+    log.addHandler(h2)
+    log.setLevel(args.log)
     log.info(vars(args))
     kwargs = vars(args)
-    del kwargs["log"]
+    kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
     do_FFI(**kwargs)
+    log.info("Done!")

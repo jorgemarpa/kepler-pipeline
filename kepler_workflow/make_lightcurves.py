@@ -174,6 +174,7 @@ def do_lcs(
     tar_lcs=False,
     tar_tpfs=True,
     fit_va=True,
+    quiet=False,
 ):
 
     # load config file for TPFs
@@ -199,6 +200,7 @@ def do_lcs(
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
+    machine.quiet = quiet
     del tpfs
     log.info(machine)
     # load shape model from FFI and fit light curves
@@ -283,7 +285,10 @@ def do_lcs(
             mode="w:gz",
         )
     for i, lc in tqdm(
-        enumerate(machine.lcs), total=machine.nsources, desc="Saving LCFs"
+        enumerate(machine.lcs),
+        total=machine.nsources,
+        desc="Saving LCFs",
+        disable=quiet,
     ):
         if np.isnan(lc.flux).all() and np.isnan(lc.sap_flux).all():
             continue
@@ -389,21 +394,21 @@ if __name__ == "__main__":
         default=False,
         help="Is archive in tarball files.",
     )
-    parser.add_argument(
-        "--log", dest="log", default=None, type=int, help="Logging level"
-    )
+    parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
     # set verbose level for logger
+    try:
+        args.log = int(args.log)
+    except:
+        args.log = str(args.log.upper())
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
-    # logging.basicConfig(stream=sys.stdout, level=args.log, format=FORMAT)
     h2 = logging.StreamHandler(sys.stderr)
     h2.setFormatter(logging.Formatter(FORMAT))
     log.addHandler(h2)
     log.setLevel(args.log)
     log.info(vars(args))
     kwargs = vars(args)
-    del kwargs["log"]
+    kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
     do_lcs(**kwargs)
-
     log.info("Done!")
