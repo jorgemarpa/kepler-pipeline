@@ -177,7 +177,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     # set verbose level for logger
-    FORMAT = "%(filename)s:%(lineno)s - %(funcName)10s(): %(message)s"
+    FORMAT = "%(filename)s:%(lineno)s : %(message)s"
     logging.basicConfig(stream=sys.stdout, level=args.log, format=FORMAT)
     log.info(vars(args))
     kwargs = vars(args)

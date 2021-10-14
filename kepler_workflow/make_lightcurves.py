@@ -4,11 +4,13 @@ import argparse
 import yaml
 import tarfile
 import tempfile
-import socket
+import warnings
+import logging
 import numpy as np
 import pandas as pd
 import psfmachine as pm
 import lightkurve as lk
+from scipy import sparse
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
@@ -17,19 +19,13 @@ from astropy.coordinates import SkyCoord, match_coordinates_3d
 import astropy.units as u
 from astroquery.vizier import Vizier
 
-import warnings
-from scipy import sparse
+from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
-PACKAGEDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+log = logging.getLogger(__name__)
 lc_version = "1.0"
-
-if socket.gethostname() == "NASAs-MacBook-Pro.local":
-    KEP_ARCHIVE_DIR = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler/tpf/Kepler"
-else:
-    KEP_ARCHIVE_DIR = "/nobackupp12/jimartin/ADAP/data/kepler/tpfs"
 
 # @profile
 def get_KICs(catalog):
@@ -53,11 +49,11 @@ def get_KICs(catalog):
 
 
 # @profile
-def get_file_list(quarter, channel, batch_size, batch_number, tar_archive=True):
+def get_file_list(quarter, channel, batch_size, batch_number, tar_tpfs=True):
 
     lookup_table = pd.read_csv(
-        "%s/data/support/kepler_tpf_map_all_q%02i%s.csv"
-        % (PACKAGEDIR, quarter, "_tar" if tar_archive else ""),
+        "%s/data/support/kepler_tpf_map_q%02i%s.csv"
+        % (PACKAGEDIR, quarter, "_tar" if tar_tpfs else ""),
         index_col=0,
     )
     files_in = lookup_table.query(
@@ -115,6 +111,7 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
         "COLUMN": lc.meta["COLUMN"],
         "FLFRCSAP": lc.meta["FLFRCSAP"] if np.isfinite(lc.meta["FLFRCSAP"]) else "",
         "CROWDSAP": lc.meta["CROWDSAP"] if np.isfinite(lc.meta["CROWDSAP"]) else "",
+        "NPIXSAP": extra_meta["PIXINAP"],
     }
     if fit_va:
         lc_dct = {
@@ -149,8 +146,8 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
 
 
 # @profile
-def get_tpfs(fname_list, tar_archive=True):
-    if not tar_archive:
+def get_tpfs(fname_list, tar_tpfs=True):
+    if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
             [lk.read(f) for f in fname_list]
         )
@@ -159,7 +156,7 @@ def get_tpfs(fname_list, tar_archive=True):
         with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
             for k, fname in enumerate(fname_list):
                 tarf = f"{fname.split('/')[0]}_{fname.split('/')[1]}.tar"
-                tarf = f"{KEP_ARCHIVE_DIR}/{fname.split('/')[0]}/{tarf}"
+                tarf = f"{ARCHIVE_PATH}/data/kepler/tpf/{fname.split('/')[0]}/{tarf}"
                 tarfile.open(tarf, mode="r").extract(fname, tmpdir)
                 tpfs.append(lk.read(f"{tmpdir}/{fname}"))
 
@@ -167,15 +164,15 @@ def get_tpfs(fname_list, tar_archive=True):
 
 
 # @profile
-def run_code(
+def do_lcs(
     quarter=5,
     channel=1,
     batch_size=50,
     batch_number=1,
     plot=True,
     dry_run=False,
-    tarball=False,
-    tar_archive=True,
+    tar_lcs=False,
+    tar_tpfs=True,
     fit_va=True,
 ):
 
@@ -186,24 +183,24 @@ def run_code(
         config = yaml.safe_load(f)
     # get TPF file name list
     fname_list = get_file_list(
-        quarter, channel, batch_size, batch_number, tar_archive=tar_archive
+        quarter, channel, batch_size, batch_number, tar_tpfs=tar_tpfs
     )
     if len(fname_list) < batch_size:
-        print(
-            "Warning: Actual batch size (%i) is smaller than asked (%i)."
-            % (len(fname_list), batch_size)
+        log.info(
+            f"Warning: Actual batch size ({len(fname_list)}) "
+            f"is smaller than asked ({batch_size})."
         )
     if len(fname_list) < 50:
-        print("Warning: Actual batch size (%i) is less than 50." % (len(fname_list)))
+        log.info(f"Warning: Actual batch size ({len(fname_list)}) is less than 50.")
     if dry_run:
-        print("Dry run!")
+        log.info("Dry run!")
         sys.exit()
     # load TPFs
-    tpfs = get_tpfs(fname_list, tar_archive=tar_archive)
+    tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
     del tpfs
-    print(machine)
+    log.info(machine)
     # load shape model from FFI and fit light curves
     shape_model_path = (
         "%s/data/shape_models/ffi/ch%02i/%s_ffi_shape_model_ch%02i_q%02i.fits"
@@ -225,7 +222,7 @@ def run_code(
             plot=False,
         )
     else:
-        print("No shape model for this Q/Ch, fitting PRF from data...")
+        log.info("No shape model for this Q/Ch, fitting PRF from data...")
         machine.fit_lightcurves(
             iter_negative=fit_va,
             sap=True,
@@ -238,13 +235,13 @@ def run_code(
     machine.get_source_centroids(method=centroid_method)
     # save plot if asked
     if plot:
-        dir_name = "%s/data/figures/tpf/ch%02i" % (PACKAGEDIR, channel)
-        print("Saving diagnostic plots into: ", dir_name)
+        dir_name = "%s/figures/tpf/ch%02i" % (OUTPUT_PATH, channel)
+        log.info(f"Saving diagnostic plots into: {dir_name}")
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         file_name = "%s/%s_models_ch%02i_q%02i_bno%02i_%03i.pdf" % (
-            machine.tpf_meta["mission"][0],
             dir_name,
+            machine.tpf_meta["mission"][0],
             channel,
             quarter,
             batch_number,
@@ -269,24 +266,17 @@ def run_code(
             [k for k, ss in enumerate(machine.tpf_meta["sources"]) if i in ss]
         )
     # save lcs
-    if socket.gethostname() == "NASAs-MacBook-Pro.local":
-        dir_name = "%s/data/lcs/%s/ch%02i/q%02i" % (
-            PACKAGEDIR,
-            machine.tpf_meta["mission"][0].lower(),
-            channel,
-            quarter,
-        )
-    else:
-        dir_name = "/nobackupp12/jimartin/ADAP/data/lcs/%s/ch%02i/q%02i" % (
-            machine.tpf_meta["mission"][0].lower(),
-            channel,
-            quarter,
-        )
-    print("Saving light curves into: ", dir_name)
+    dir_name = "%s/%s/ch%02i/q%02i" % (
+        LCS_PATH,
+        machine.tpf_meta["mission"][0].lower(),
+        channel,
+        quarter,
+    )
+    log.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
-    if tarball:
-        print("LCFs will be tar.gz")
+    if tar_lcs:
+        log.info("LCFs will be tar.gz")
         tar = tarfile.open(
             "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%02i.tar.gz"
             % (dir_name, channel, quarter, lc_version, batch_number),
@@ -298,6 +288,7 @@ def run_code(
         if np.isnan(lc.flux).all() and np.isnan(lc.sap_flux).all():
             continue
         meta = {
+            "PIXINAP": machine.aperture_mask[i].sum(),
             "KEPLERID": kics["kic"][i],
             "KEPMAG": kics["kepmag"][i],
             "TPFORG": machine.tpfs[tpf_idx[i][0]].meta["KEPLERID"],
@@ -330,13 +321,13 @@ def run_code(
             # batch_size,
         )
         # i need to tarball all these FITS file to meet inode quota
-        if tarball:
+        if tar_lcs:
             with tempfile.NamedTemporaryFile(mode="wb") as tmp:
                 hdul.writeto(tmp)
                 tar.add(tmp.name, arcname=fname)
         else:
             hdul.writeto("%s/%s.gz" % (dir_name, fname), overwrite=True, checksum=True)
-    if tarball:
+    if tar_lcs:
         tar.close()
 
 
@@ -378,13 +369,6 @@ if __name__ == "__main__":
         help="Make diagnostic plots.",
     )
     parser.add_argument(
-        "--tarball",
-        dest="tarball",
-        action="store_true",
-        default=False,
-        help="Create a tar.gz file with light curves.",
-    )
-    parser.add_argument(
         "--fit-va",
         dest="fit_va",
         action="store_true",
@@ -392,13 +376,34 @@ if __name__ == "__main__":
         help="Fit Velocity aberration.",
     )
     parser.add_argument(
-        "--tar-archive",
-        dest="tar_archive",
+        "--tar-lcs",
+        dest="tar_lcs",
+        action="store_true",
+        default=False,
+        help="Create a tar.gz file with light curves.",
+    )
+    parser.add_argument(
+        "--tar-tpfs",
+        dest="tar_tpfs",
         action="store_true",
         default=False,
         help="Is archive in tarball files.",
     )
+    parser.add_argument(
+        "--log", dest="log", default=None, type=int, help="Logging level"
+    )
     args = parser.parse_args()
-    print(vars(args))
+    # set verbose level for logger
+    FORMAT = "%(filename)s:%(lineno)s : %(message)s"
+    # logging.basicConfig(stream=sys.stdout, level=args.log, format=FORMAT)
+    h2 = logging.StreamHandler(sys.stderr)
+    h2.setFormatter(logging.Formatter(FORMAT))
+    log.addHandler(h2)
+    log.setLevel(args.log)
+    log.info(vars(args))
+    kwargs = vars(args)
+    del kwargs["log"]
 
-    run_code(**vars(args))
+    do_lcs(**kwargs)
+
+    log.info("Done!")
