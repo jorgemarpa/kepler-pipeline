@@ -225,7 +225,7 @@ if __name__ == "__main__":
         help="Computen number of batches per channel/quarter.",
     )
     parser.add_argument(
-        "--tar-archive",
+        "--tar-tpfs",
         dest="tar_archive",
         action="store_true",
         default=False,
