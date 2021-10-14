@@ -9,6 +9,6 @@ if socket.gethostname() == "NASAs-MacBook-Pro.local":
     LCS_PATH = f"{PACKAGEDIR}/data/lcs"
 
 else:
-    ARCHIVE_PATH = "/nobackupp12/jimartin/ADAP"
+    ARCHIVE_PATH = "/nobackupp19/jimartin/ADAP"
     OUTPUT_PATH = f"{PACKAGEDIR}/data"
-    LCS_PATH = "/nobackupp12/jimartin/ADAP/data/lcs"
+    LCS_PATH = "/nobackupp19/jimartin/ADAP/kbonus/lcs"
