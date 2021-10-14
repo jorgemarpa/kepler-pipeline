@@ -37,7 +37,7 @@ def do_FFI(
         ffi_files = np.sort(glob.glob(f"{ARCHIVE_PATH}/data/k2/ffi/ktwo*_ffi-cal.fits"))
         epoch_kw = "CAMPAIGN"
     else:
-        raise ValueError("Worng mission name, choose one of [Kepler, K2]")
+        raise ValueError("Wrong mission name, choose one of [Kepler, K2]")
     ffi_q_fnames = [
         ffi_f for ffi_f in ffi_files if fitsio.read_header(ffi_f)[epoch_kw] == quarter
     ]
@@ -177,7 +177,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     # set verbose level for logger
-    logging.basicConfig(stream=sys.stdout, level=args.log)
+    FORMAT = "%(filename)s:%(lineno)s - %(funcName)10s(): %(message)s"
+    logging.basicConfig(stream=sys.stdout, level=args.log, format=FORMAT)
     log.info(vars(args))
     kwargs = vars(args)
     del kwargs["log"]
