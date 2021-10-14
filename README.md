@@ -9,6 +9,5 @@ saved as FITS Light Curve files that can be read and analyzed using
 
 # TODO
 
-* Use python logger
-* Fix directories
+* Fix directories (need to check NAS)
 * automatize file batch creation
