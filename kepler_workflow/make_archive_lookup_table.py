@@ -82,6 +82,7 @@ def do_lookup_table(
                     continue
                 except tarfile.ReadError:
                     log.info(f"tar file fail {tarf}")
+                    continue
                 tpfs.append(fname)
                 header = fitsio.read_header(f"{tmpdir}/{fname}")
                 channels.append(header["CHANNEL"])
