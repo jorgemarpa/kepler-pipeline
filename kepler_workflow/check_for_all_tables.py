@@ -4,7 +4,8 @@ import numpy as np
 from paths import ARCHIVE_PATH, PACKAGEDIR
 
 def run():
-    folder_list = np.sort(glob.glob(f"{ARCHIVE_PATH}/kepler/tpfs/*"))
+
+    folder_list = np.sort(glob.glob(f"{ARCHIVE_PATH}/data/kepler/tpf/*"))
     print(len(folder_list))
 
     for folder in folder_list:
