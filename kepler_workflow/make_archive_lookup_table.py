@@ -80,6 +80,8 @@ def do_lookup_table(
                     tarfile.open(tarf, mode="r").extract(fname, tmpdir)
                 except KeyError:
                     continue
+                except tarfile.ReadError:
+                    log.info(f"tar file fail {tarf}")
                 tpfs.append(fname)
                 header = fitsio.read_header(f"{tmpdir}/{fname}")
                 channels.append(header["CHANNEL"])
