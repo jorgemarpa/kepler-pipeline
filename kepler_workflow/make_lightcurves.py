@@ -2,10 +2,12 @@ import os
 import sys
 import argparse
 import yaml
+import copy
 import tarfile
 import tempfile
 import warnings
 import logging
+import datetime
 import numpy as np
 import pandas as pd
 import psfmachine as pm
@@ -14,7 +16,7 @@ from scipy import sparse
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
-
+from astropy.io import fits
 from astropy.coordinates import SkyCoord, match_coordinates_3d
 import astropy.units as u
 from astroquery.vizier import Vizier
@@ -26,6 +28,17 @@ warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 log = logging.getLogger(__name__)
 lc_version = "1.0"
+
+typedir = {
+    int: "J",
+    str: "A",
+    float: "D",
+    bool: "L",
+    np.int32: "J",
+    np.int32: "K",
+    np.float32: "E",
+    np.float64: "D",
+}
 
 # @profile
 def get_KICs(catalog):
@@ -41,7 +54,7 @@ def get_KICs(catalog):
     midx, mdist = match_coordinates_3d(gaia, kicc, nthneighbor=1)[:2]
     catalog.loc[:, "kic"] = ""
     catalog.loc[mdist.arcsec < 2, "kic"] = kic[midx[mdist.arcsec < 2]]["KIC"].data.data
-    catalog.loc[:, "kepmag"] = None
+    catalog.loc[:, "kepmag"] = np.nan
     catalog.loc[mdist.arcsec < 2, "kepmag"] = kic[midx[mdist.arcsec < 2]][
         "kepmag"
     ].data.data
@@ -80,7 +93,7 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
         "TELESCOP": extra_meta["TELESCOP"],
         "INSTRUME": extra_meta["INSTRUME"],
         "OBSMODE": extra_meta["OBSMODE"],
-        "SEASON": extra_meta["OBSMODE"],
+        "SEASON": extra_meta["SEASON"],
         "CHANNEL": lc.meta["CHANNEL"],
         "MODULE": lc.meta["MODULE"],
         "OUTPUT": extra_meta["OUTPUT"],
@@ -96,6 +109,7 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
         "EQUINOX": extra_meta["EQUINOX"],
         # KIC info
         "KEPLERID": extra_meta["KEPLERID"],
+        "KEPMAG": extra_meta["KEPMAG"] if np.isfinite(extra_meta["KEPMAG"]) else "",
         "TPFORG": extra_meta["TPFORG"],
         # gaia catalog info
         "GAIAID": catalog.designation,
@@ -107,41 +121,57 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
         "BPMAG": lc.meta["BPMAG"] if np.isfinite(lc.meta["BPMAG"]) else "",
         # extraction info
         "SAP": lc.meta["SAP"],
-        "ROW": lc.meta["ROW"],
-        "COLUMN": lc.meta["COLUMN"],
+        "ROW": np.nanmean(extra_meta["centroid_row"]).value,
+        "COLUMN": np.nanmean(extra_meta["centroid_col"]).value,
         "FLFRCSAP": lc.meta["FLFRCSAP"] if np.isfinite(lc.meta["FLFRCSAP"]) else "",
         "CROWDSAP": lc.meta["CROWDSAP"] if np.isfinite(lc.meta["CROWDSAP"]) else "",
         "NPIXSAP": extra_meta["PIXINAP"],
     }
+    lc_dct = {
+        "cadenceno": extra_meta["cadenceno"],
+        "time": lc.time.value - 2454833,
+        "flux": lc.flux.value,
+        "flux_err": lc.flux_err.value,
+        "sap_flux": lc.sap_flux.value,
+        "sap_flux_err": lc.sap_flux_err.value,
+        "centroid_column": extra_meta["centroid_col"].value,
+        "centroid_row": extra_meta["centroid_row"].value,
+        "sap_quality": extra_meta["quality"],
+    }
+    print(extra_meta["quality"].dtype)
     if fit_va:
-        lc_dct = {
-            "cadenceno": extra_meta["cadenceno"],
-            "time": lc.time - 2454833,
-            "flux": lc.flux.value * (u.electron / u.second),
-            "flux_err": lc.flux_err.value * (u.electron / u.second),
-            "sap_flux": lc.sap_flux.value * (u.electron / u.second),
-            "sap_flux_err": lc.sap_flux_err.value * (u.electron / u.second),
-            "psf_flux_nvs": lc.psf_flux_NVA.value * (u.electron / u.second),
-            "psf_flux_err_nvs": lc.psf_flux_err_NVA.value * (u.electron / u.second),
-            "quality": extra_meta["quality"],
-            "centroid_column": extra_meta["centroid_col"] * u.pixel,
-            "centroid_row": extra_meta["centroid_row"] * u.pixel,
-        }
-    else:
-        lc_dct = {
-            "cadenceno": extra_meta["cadenceno"],
-            "time": lc.time - 2454833,
-            "flux": lc.flux.value * (u.electron / u.second),
-            "flux_err": lc.flux_err.value * (u.electron / u.second),
-            "sap_flux": lc.sap_flux.value * (u.electron / u.second),
-            "sap_flux_err": lc.sap_flux_err.value * (u.electron / u.second),
-            "quality": extra_meta["quality"],
-            "centroid_column": extra_meta["centroid_col"] * u.pixel,
-            "centroid_row": extra_meta["centroid_row"] * u.pixel,
-        }
+        lc_dct["psf_flux_nvs"] = lc.psf_flux_NVA.value
+        lc_dct["psf_flux_err_nvs"] = lc.psf_flux_err_NVA.value
+
+    lc_dict_ = lc_dct.copy()
+
     lc_ = lk.LightCurve(lc_dct, meta=meta)
-    del lc_dct["time"], lc_dct["flux_err"]
+    del lc_dct["time"], lc_dct["flux_err"], lc_dct["sap_quality"]
     hdul = lc_.to_fits(**lc_dct, **lc_.meta)
+
+    # make Lightcurve header
+    coldefs = []
+    for key, data in lc_dict_.items():
+        arr = data
+        arr_unit = ""
+        arr_type = typedir[data.dtype.type]
+        if "flux" in key:
+            arr_unit = "e-/s"
+        elif "time" == key:
+            arr_unit = "jd"
+        elif "centroid" in key:
+            arr_unit = "pix"
+        coldefs.append(
+            fits.Column(
+                name=key.upper(),
+                array=arr,
+                unit=arr_unit,
+                format=arr_type,
+            )
+        )
+    hdul[1] = fits.BinTableHDU.from_columns(coldefs)
+    hdul[1].header["EXTNAME"] = "LIGHTCURVE"
+
     return hdul
 
 
@@ -315,11 +345,11 @@ def do_lcs(
         hdul = make_hdul(lc, machine.sources.loc[i], meta, fit_va=fit_va)
 
         target_name = (
-            "KIC-%s" % (str(meta["KEPLERID"]))
+            "KIC-%09i" % (meta["KEPLERID"])
             if meta["KEPLERID"] != ""
             else machine.sources.designation[i].replace(" ", "-")
         )
-        fname = "hlsp_kbonus-bkgd_%s-q%02i_v%s_lc.fits" % (
+        fname = "hlsp_kbonus-kbkgd_kepler_kepler_%s-q%02i_kepler_v%s_lc.fits" % (
             target_name,
             quarter,
             lc_version,
@@ -332,6 +362,10 @@ def do_lcs(
                 tar.add(tmp.name, arcname=fname)
         else:
             hdul.writeto("%s/%s.gz" % (dir_name, fname), overwrite=True, checksum=True)
+
+        if i == 10:
+            sys.exit()
+
     if tar_lcs:
         tar.close()
 
