@@ -40,6 +40,12 @@ typedir = {
     np.float64: "D",
 }
 
+
+def print_dict(dictionary):
+    for k, v in dictionary.items():
+        print(f"{k:<22}: {v}")
+
+
 # @profile
 def get_KICs(catalog):
     """
@@ -138,7 +144,6 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
         "centroid_row": extra_meta["centroid_row"].value,
         "sap_quality": extra_meta["quality"],
     }
-    print(extra_meta["quality"].dtype)
     if fit_va:
         lc_dct["psf_flux_nvs"] = lc.psf_flux_NVA.value
         lc_dct["psf_flux_err_nvs"] = lc.psf_flux_err_NVA.value
@@ -172,6 +177,9 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
     hdul[1] = fits.BinTableHDU.from_columns(coldefs)
     hdul[1].header["EXTNAME"] = "LIGHTCURVE"
 
+    for key, val in meta.items():
+        hdul[0].header[key] = val
+
     return hdul
 
 
@@ -191,6 +199,53 @@ def get_tpfs(fname_list, tar_tpfs=True):
                 tpfs.append(lk.read(f"{tmpdir}/{fname}"))
 
         return lk.collections.TargetPixelFileCollection(tpfs)
+
+
+def do_poscorr_plot(machine):
+    (
+        time_original,
+        time_binned,
+        flux_binned_raw,
+        flux_binned,
+        flux_err_binned,
+        poscorr1_binned,
+        poscorr2_binned,
+    ) = machine._time_bin(npoints=200)
+
+    fig, ax = plt.subplots(2, 2, figsize=(12, 6))
+    ax[0, 0].set_title("pos_corrs 1")
+    cbar = ax[0, 0].imshow(
+        machine.pos_corr1, aspect="auto", origin="lower", interpolation=None
+    )
+    ax[0, 0].set_xlabel("Time index")
+    ax[0, 0].set_ylabel("Source")
+    fig.colorbar(cbar, ax=ax[0, 0])
+
+    ax[0, 1].set_title("pos_corrs 2")
+    cbar = ax[0, 1].imshow(
+        machine.pos_corr2, aspect="auto", origin="lower", interpolation=None
+    )
+    ax[0, 1].set_xlabel("Time index")
+    ax[0, 1].set_ylabel("Source")
+
+    fig.colorbar(cbar, ax=ax[0, 1])
+
+    for k in range(machine.pos_corr1.shape[0]):
+        ax[1, 0].plot(time_original, machine.pos_corr1[k], alpha=0.2, lw=1)
+        ax[1, 1].plot(time_original, machine.pos_corr2[k], alpha=0.2, lw=1)
+
+    ax[1, 0].plot(time_original, np.nanmedian(machine.pos_corr1, axis=0), c="k", lw=1)
+    ax[1, 0].plot(time_binned, poscorr1_binned, c="r", marker=".", lw=0.2, ms=6)
+    ax[1, 0].set_xlabel("Time (whitened)")
+    ax[1, 0].set_ylabel("Mean")
+
+    ax[1, 1].plot(time_original, np.nanmedian(machine.pos_corr2, axis=0), c="k", lw=1)
+    ax[1, 1].plot(time_binned, poscorr2_binned, c="r", marker=".", lw=0.2, ms=6)
+    ax[1, 1].set_xlabel("Time (whitened)")
+    ax[1, 1].set_ylabel("Mean")
+    fig.tight_layout()
+
+    return fig
 
 
 # @profile
@@ -231,6 +286,9 @@ def do_lcs(
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
     machine.quiet = quiet
+    log.info("Runing PSFMachine with:")
+    log.info(print_dict(config))
+
     del tpfs
     log.info(machine)
     # load shape model from FFI and fit light curves
@@ -271,19 +329,43 @@ def do_lcs(
         log.info(f"Saving diagnostic plots into: {dir_name}")
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        file_name = "%s/%s_models_ch%02i_q%02i_bno%02i_%03i.pdf" % (
+        file_name = "%s/%s_models_ch%02i_q%02i_b%03i-%02i_poscor%s_%s_tk%i_tp%i.pdf" % (
             dir_name,
             machine.tpf_meta["mission"][0],
             channel,
             quarter,
-            batch_number,
             batch_size,
+            batch_number,
+            str(machine.use_poscorr)[0],
+            machine.cartesian_knot_spacing,
+            machine.n_time_knots,
+            machine.n_time_points,
         )
+
+        # SHAPE FIGURE
         shape_fig = machine.plot_shape_model()
+
+        # TIME FIGURE
         time_fig = machine.plot_time_model()
+        xknots = np.linspace(
+            -np.sqrt(machine.time_radius),
+            np.sqrt(machine.time_radius),
+            machine.n_time_knots,
+        )
+        xknots = np.sign(xknots) * xknots ** 2
+        # xknots = np.linspace(-machine.time_radius, machine.time_radius, machine.n_time_knots)
+        xknots, yknots = np.meshgrid(xknots, xknots)
+        time_fig.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
+        if machine.use_poscorr:
+            time_fig.suptitle("Time model: pos_corr")
+        else:
+            time_fig.suptitle("Time model: time polinomial")
+
         with PdfPages(file_name) as pages:
             FigureCanvasPdf(shape_fig).print_figure(pages)
             FigureCanvasPdf(time_fig).print_figure(pages)
+            if machine.use_poscorr:
+                FigureCanvasPdf(do_poscorr_plot(machine)).print_figure(pages)
         plt.close()
 
     # get an index array to match the TPF cadenceno
@@ -310,8 +392,19 @@ def do_lcs(
     if tar_lcs:
         log.info("LCFs will be tar.gz")
         tar = tarfile.open(
-            "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%02i.tar.gz"
-            % (dir_name, channel, quarter, lc_version, batch_number),
+            "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_poscor%s_%s_tk%i_tp%i.tar.gz"
+            % (
+                dir_name,
+                channel,
+                quarter,
+                lc_version,
+                batch_size,
+                batch_number,
+                str(machine.use_poscorr)[0],
+                machine.cartesian_knot_spacing,
+                machine.n_time_knots,
+                machine.n_time_points,
+            ),
             mode="w:gz",
         )
     for i, lc in tqdm(
@@ -362,9 +455,6 @@ def do_lcs(
                 tar.add(tmp.name, arcname=fname)
         else:
             hdul.writeto("%s/%s.gz" % (dir_name, fname), overwrite=True, checksum=True)
-
-        if i == 10:
-            sys.exit()
 
     if tar_lcs:
         tar.close()
@@ -440,7 +530,7 @@ if __name__ == "__main__":
     h2.setFormatter(logging.Formatter(FORMAT))
     log.addHandler(h2)
     log.setLevel(args.log)
-    log.info(vars(args))
+    log.info(print_dict(vars(args)))
     kwargs = vars(args)
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
