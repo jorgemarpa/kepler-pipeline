@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import socket
 import yaml
 import copy
 import tarfile
@@ -43,7 +44,7 @@ typedir = {
 
 def print_dict(dictionary):
     for k, v in dictionary.items():
-        print(f"{k:<22}: {v}")
+        log.info(f"{k:<22}: {v}")
 
 
 # @profile
@@ -215,7 +216,11 @@ def do_poscorr_plot(machine):
     fig, ax = plt.subplots(2, 2, figsize=(12, 6))
     ax[0, 0].set_title("pos_corrs 1")
     cbar = ax[0, 0].imshow(
-        machine.pos_corr1, aspect="auto", origin="lower", interpolation=None
+        machine.pos_corr1,
+        aspect="auto",
+        origin="lower",
+        interpolation=None,
+        rasterized=True,
     )
     ax[0, 0].set_xlabel("Time index")
     ax[0, 0].set_ylabel("Source")
@@ -223,7 +228,11 @@ def do_poscorr_plot(machine):
 
     ax[0, 1].set_title("pos_corrs 2")
     cbar = ax[0, 1].imshow(
-        machine.pos_corr2, aspect="auto", origin="lower", interpolation=None
+        machine.pos_corr2,
+        aspect="auto",
+        origin="lower",
+        interpolation=None,
+        rasterized=True,
     )
     ax[0, 1].set_xlabel("Time index")
     ax[0, 1].set_ylabel("Source")
@@ -231,16 +240,36 @@ def do_poscorr_plot(machine):
     fig.colorbar(cbar, ax=ax[0, 1])
 
     for k in range(machine.pos_corr1.shape[0]):
-        ax[1, 0].plot(time_original, machine.pos_corr1[k], alpha=0.2, lw=1)
-        ax[1, 1].plot(time_original, machine.pos_corr2[k], alpha=0.2, lw=1)
+        ax[1, 0].plot(
+            time_original, machine.pos_corr1[k], alpha=0.2, lw=1, rasterized=True
+        )
+        ax[1, 1].plot(
+            time_original, machine.pos_corr2[k], alpha=0.2, lw=1, rasterized=True
+        )
 
-    ax[1, 0].plot(time_original, np.nanmedian(machine.pos_corr1, axis=0), c="k", lw=1)
-    ax[1, 0].plot(time_binned, poscorr1_binned, c="r", marker=".", lw=0.2, ms=6)
+    ax[1, 0].plot(
+        time_original,
+        np.nanmedian(machine.pos_corr1, axis=0),
+        c="k",
+        lw=1,
+        rasterized=True,
+    )
+    ax[1, 0].plot(
+        time_binned, poscorr1_binned, c="r", marker=".", lw=0.2, ms=6, rasterized=True
+    )
     ax[1, 0].set_xlabel("Time (whitened)")
     ax[1, 0].set_ylabel("Mean")
 
-    ax[1, 1].plot(time_original, np.nanmedian(machine.pos_corr2, axis=0), c="k", lw=1)
-    ax[1, 1].plot(time_binned, poscorr2_binned, c="r", marker=".", lw=0.2, ms=6)
+    ax[1, 1].plot(
+        time_original,
+        np.nanmedian(machine.pos_corr2, axis=0),
+        c="k",
+        lw=1,
+        rasterized=True,
+    )
+    ax[1, 1].plot(
+        time_binned, poscorr2_binned, c="r", marker=".", lw=0.2, ms=6, rasterized=True
+    )
     ax[1, 1].set_xlabel("Time (whitened)")
     ax[1, 1].set_ylabel("Mean")
     fig.tight_layout()
@@ -264,7 +293,8 @@ def do_lcs(
 
     # load config file for TPFs
     with open(
-        "%s/kepler_workflow/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR), "r"
+        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR),
+        "r",
     ) as f:
         config = yaml.safe_load(f)
     # get TPF file name list
@@ -285,9 +315,15 @@ def do_lcs(
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
-    machine.quiet = quiet
+    if (socket.gethostname() == "NASAs-MacBook-Pro.local") or (
+        socket.gethostname()[:3] == "pfe"
+    ):
+        machine.quiet = quiet
+    else:
+        machine.quiet = True
+        quiet = True
     log.info("Runing PSFMachine with:")
-    log.info(print_dict(config))
+    print_dict(config)
 
     del tpfs
     log.info(machine)
@@ -346,25 +382,31 @@ def do_lcs(
         shape_fig = machine.plot_shape_model()
 
         # TIME FIGURE
-        time_fig = machine.plot_time_model()
-        xknots = np.linspace(
-            -np.sqrt(machine.time_radius),
-            np.sqrt(machine.time_radius),
-            machine.n_time_knots,
-        )
-        xknots = np.sign(xknots) * xknots ** 2
-        # xknots = np.linspace(-machine.time_radius, machine.time_radius, machine.n_time_knots)
-        xknots, yknots = np.meshgrid(xknots, xknots)
-        time_fig.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
-        if machine.use_poscorr:
-            time_fig.suptitle("Time model: pos_corr")
-        else:
-            time_fig.suptitle("Time model: time polinomial")
+        if fit_va:
+            time_fig = machine.plot_time_model()
+            if machine.cartesian_knot_spacing == "sqrt":
+                xknots = np.linspace(
+                    -np.sqrt(machine.time_radius),
+                    np.sqrt(machine.time_radius),
+                    machine.n_time_knots,
+                )
+                xknots = np.sign(xknots) * xknots ** 2
+            else:
+                xknots = np.linspace(
+                    -machine.time_radius, machine.time_radius, machine.n_time_knots
+                )
+            xknots, yknots = np.meshgrid(xknots, xknots)
+            time_fig.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
+            if machine.use_poscorr:
+                time_fig.suptitle("Time model: pos_corr")
+            else:
+                time_fig.suptitle("Time model: time polinomial")
 
         with PdfPages(file_name) as pages:
             FigureCanvasPdf(shape_fig).print_figure(pages)
-            FigureCanvasPdf(time_fig).print_figure(pages)
-            if machine.use_poscorr:
+            if fit_va:
+                FigureCanvasPdf(time_fig).print_figure(pages)
+            if fit_va and machine.use_poscorr and False:
                 FigureCanvasPdf(do_poscorr_plot(machine)).print_figure(pages)
         plt.close()
 
@@ -525,12 +567,25 @@ if __name__ == "__main__":
         args.log = int(args.log)
     except:
         args.log = str(args.log.upper())
+
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
-    h2 = logging.StreamHandler(sys.stderr)
-    h2.setFormatter(logging.Formatter(FORMAT))
-    log.addHandler(h2)
+    # send to log file when running in compute nodes
+    if (socket.gethostname() == "NASAs-MacBook-Pro.local") or (
+        socket.gethostname()[:3] == "pfe"
+    ):
+        hand = logging.StreamHandler(sys.stdout)
+        hand.setFormatter(logging.Formatter(FORMAT))
+    else:
+        hand = logging.FileHandler(
+            f"{PACKAGEDIR}/logs/make_lightcurve_{os.getpid()}.info"
+        )
+        hand.setLevel(logging.INFO)
+    hand.setFormatter(logging.Formatter(FORMAT))
+    log.addHandler(hand)
     log.setLevel(args.log)
-    log.info(print_dict(vars(args)))
+
+    print_dict(vars(args))
+
     kwargs = vars(args)
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 

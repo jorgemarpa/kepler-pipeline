@@ -15,6 +15,8 @@ from tqdm.auto import tqdm
 import astropy.units as u
 from astropy.stats import sigma_clip
 from sklearn import linear_model
+from astropy.coordinates import SkyCoord, match_coordinates_3d
+import astropy.units as u
 from paths import *
 
 kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler"
@@ -408,7 +410,7 @@ def get_features(lcs, flux_col="flux"):
     return results
 
 
-def find_lc_examples(jm_stats):
+def find_lc_examples(jm_stats, lcs):
     bright_goods = np.where(
         (jm_stats["lc_mean_psf_zp"] > 1e5)
         & (jm_stats["lc_mean_psf_zp"] < 1e6)
@@ -437,12 +439,49 @@ def find_lc_examples(jm_stats):
         & (jm_stats["lc_cdpp_psf"] < 2e3)
     )[0]
 
+    # find neighbors
+    sources = SkyCoord(
+        ra=jm_stats["ra"],
+        dec=jm_stats["dec"],
+        frame="icrs",
+        unit=(u.deg, u.deg),
+    )
+    midx, mdist = match_coordinates_3d(sources, sources, nthneighbor=2)[:2]
+    dist_mask = mdist.arcsec < 4
+    # ged delta mag between close neighbors
+    neighbors_dm = np.abs(
+        jm_stats["g_mag"][np.arange(len(sources))[dist_mask]]
+        - jm_stats["g_mag"][midx[dist_mask]]
+    )
+    mag_mask = neighbors_dm < 0.5
+    # finf pair of LC index that correspond to neighbors of similar birghtness
+    idx_cont1 = np.arange(len(sources))[dist_mask][mag_mask]
+    # idx_cont1 = [i for i in idx_cont1 if np.isfinite(lcs[i].flux).all()]
+    idx_cont2 = midx[dist_mask][mag_mask]
+    # idx_cont2 = [i for i in idx_cont2 if np.isfinite(lcs[i].flux).all()]
+    drop = []
+    for k in range(len(idx_cont1)):
+        if (
+            np.isfinite(lcs[idx_cont1[k]].flux).all()
+            or np.isfinite(lcs[idx_cont2[k]].flux).all()
+        ):
+            continue
+        else:
+            drop.append(k)
+    idx_cont1 = np.delete(idx_cont1, drop)
+    idx_cont2 = np.delete(idx_cont2, drop)
+
+    rnd_cont = np.random.randint(0, len(idx_cont1))
+
     lc_ex_idx = [
         np.random.choice(bright_goods),
         np.random.choice(faint_goods),
         np.random.choice(bright_bads),
         np.random.choice(faint_bads),
+        idx_cont1[rnd_cont],
+        idx_cont2[rnd_cont],
     ]
+    print(lc_ex_idx)
 
     return lc_ex_idx
 
@@ -466,11 +505,11 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     kp_stats = stats["kp_stats"]
     jm_stats = stats["jm_stats"]
 
-    lc_ex_idx = find_lc_examples(jm_stats)
+    lc_ex_idx = find_lc_examples(jm_stats, lcs)
 
-    fig = plt.figure(figsize=(24, 30))
+    fig = plt.figure(figsize=(24, 35))
     fig.suptitle(f"Kepler Q{quarter} Ch{channel}", x=0.5, y=0.895, fontsize=20)
-    G = gridspec.GridSpec(6, 4, figure=fig)
+    G = gridspec.GridSpec(8, 4, figure=fig)
 
     fontsize = 10
     markerscale = 5
@@ -614,15 +653,34 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
             cadence="long",
         ).download()
         tpf.plot(
+            frame=100,
             ax=ax_20,
             title="",
             scale="log",
         )
+        # add background sources
+        col, row = tpf.wcs.all_world2pix(
+            np.array([jm_stats["ra"], jm_stats["dec"]]).T, 0
+        ).T
+        col += tpf.column
+        row += tpf.row
+        ax_20.scatter(col, row, marker="x", c="tab:red")
+
+        # add target
         ax_20.scatter(
-            np.nanmean(lc.centroid_column),
-            np.nanmean(lc.centroid_row),
+            col[k],
+            row[k],
             marker="o",
             c="tab:red",
+        )
+
+        ax_20.set_xlim(
+            np.minimum(tpf.column, col[k]) - 1,
+            np.maximum(tpf.column + tpf.shape[-1], col[k] + 0.5),
+        )
+        ax_20.set_ylim(
+            np.minimum(tpf.row, row[k]) - 1,
+            np.maximum(tpf.row + tpf.shape[-2], row[k] + 0.5),
         )
 
         ax_21 = fig.add_subplot(G[2 + i, 1:])
@@ -648,16 +706,16 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
 
         txt = (
             f"{lc.GAIAID} / KIC {lc.KEPLERID}\n"
-            f"G MAG         : {lc.GMAG:.3f}\n"
-            f"FLFRCSAP    : {lc.FLFRCSAP:.3f}\n"
-            f"CROWDSAP : {lc.CROWDSAP:.3f}\n"
+            f"G MAG         : {jm_stats['g_mag'][k]:.3f}\n"
+            f"FLFRCSAP    : {jm_stats['FLFRCSAP'][k]:.3f}\n"
+            f"CROWDSAP : {jm_stats['CROWDSAP'][k]:.3f}\n"
             f"CDPP (PSF)  : {jm_stats['lc_cdpp_psf'][k]:.3f}\n"
             f"CDPP (SAP)  : {jm_stats['lc_cdpp_sap'][k]:.3f}\n"
             f"CDPP (PDC)  : {kp_stats['lc_cdpp_pdc'][k]:.3f}"
         )
         ax_21.text(
             0.3,
-            0.80,
+            0.79,
             txt,
             horizontalalignment="left",
             verticalalignment="center",
