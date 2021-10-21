@@ -4,8 +4,10 @@ apply_focus_mask: True
 limit_radius: 24.0
 n_r_knots: 10
 n_phi_knots: 15
-n_time_knots: 10
+n_time_knots: 6
 n_time_points: 200
 time_radius: 8
 rmin: 1
 rmax: 16
+use_poscorr: True
+cartesian_knot_spacing: linear
