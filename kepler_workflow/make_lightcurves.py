@@ -594,8 +594,8 @@ if __name__ == "__main__":
 
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
     # send to log file when running in compute nodes
-    if (socket.gethostname() == "NASAs-MacBook-Pro.local") or (
-        socket.gethostname()[:3] == "pfe"
+    if (socket.gethostname() in ["NASAs-MacBook-Pro.local" "r445i2n13"]) or (
+        (socket.gethostname()[:3] == "pfe")
     ):
         hand = logging.StreamHandler(sys.stdout)
         hand.setFormatter(logging.Formatter(FORMAT))
