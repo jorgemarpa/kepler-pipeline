@@ -3,7 +3,6 @@ import sys
 import argparse
 import socket
 import yaml
-import copy
 import tarfile
 import tempfile
 import warnings
@@ -202,6 +201,7 @@ def get_tpfs(fname_list, tar_tpfs=True):
         return lk.collections.TargetPixelFileCollection(tpfs)
 
 
+# @profile
 def do_poscorr_plot(machine):
     (
         time_original,
