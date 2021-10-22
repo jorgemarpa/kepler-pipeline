@@ -413,7 +413,12 @@ def do_lcs(
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
-    kics = get_KICs(machine.sources)
+    if (socket.gethostname() == "NASAs-MacBook-Pro.local") or (
+        socket.gethostname()[:3] == "pfe"
+    ):
+        kics = get_KICs(machine.sources)
+    else:
+        kics = machine.sources
 
     # get the TPF index for each lc, a sources could fall in more than 1 tpf
     tpf_idx = []
@@ -428,6 +433,25 @@ def do_lcs(
         channel,
         quarter,
     )
+
+    # save weight matrices
+    if fit_va:
+        weights_file = (
+            "%s/weights_va_ch%02i_q%02i_b%03i-%02i_poscor%s_%s_tk%i_tp%i.npy"
+            % (
+                dir_name,
+                channel,
+                quarter,
+                batch_size,
+                batch_number,
+                str(machine.use_poscorr)[0],
+                machine.cartesian_knot_spacing,
+                machine.n_time_knots,
+                machine.n_time_points,
+            )
+        )
+        np.save(weights_file, machine.ws_va)
+
     log.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
