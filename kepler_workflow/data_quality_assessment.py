@@ -334,17 +334,20 @@ def plot_joint(kp_stats, jm_stats, meta):
     ax_histx = fig.add_subplot(gs[0, 0], sharex=ax)
     ax_histy = fig.add_subplot(gs[1, 1], sharey=ax)
 
-    mask = np.isfinite(kp_stats["lc_cdpp_pdc"]) & np.isfinite(kp_stats["lc_mean_pdc"])
-    scatter_hist(
-        np.log10(kp_stats["lc_mean_pdc"][mask]),
-        kp_stats["lc_cdpp_pdc"][mask],
-        ax,
-        ax_histx,
-        ax_histy,
-        c="k",
-        label="KepPipe",
-        ylim=ylim,
-    )
+    if isinstance(kp_stats, dict):
+        mask = np.isfinite(kp_stats["lc_cdpp_pdc"]) & np.isfinite(
+            kp_stats["lc_mean_pdc"]
+        )
+        scatter_hist(
+            np.log10(kp_stats["lc_mean_pdc"][mask]),
+            kp_stats["lc_cdpp_pdc"][mask],
+            ax,
+            ax_histx,
+            ax_histy,
+            c="k",
+            label="KepPipe",
+            ylim=ylim,
+        )
 
     mask = np.isfinite(jm_stats["lc_cdpp_sap"]) & np.isfinite(jm_stats["lc_mean_sap"])
     scatter_hist(
@@ -486,7 +489,6 @@ def find_lc_examples(jm_stats, lcs):
         idx_cont1[rnd_cont],
         idx_cont2[rnd_cont],
     ]
-    print(lc_ex_idx)
 
     return lc_ex_idx
 
@@ -526,29 +528,45 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
 
     ax_00 = fig.add_subplot(G[0, 0])
 
-    ax_00.scatter(
-        kp_stats["lc_mean_pdc"],
-        kp_stats["lc_mean_pdc"] / jm_stats["lc_mean_psf"],
-        s=ms,
-        label=f"KP/psf = {psf_zp:0.4f}",
-        alpha=0.7,
-        c="tab:orange",
-    )
-    ax_00.axhline(psf_zp, c="tab:orange", ls="-")
-    ax_00.scatter(
-        kp_stats["lc_mean_pdc"],
-        kp_stats["lc_mean_pdc"] / jm_stats["lc_mean_sap"],
-        s=ms,
-        label=f"KP/sap = {sap_zp:0.4f}",
-        alpha=0.7,
-        c="tab:blue",
-    )
-    ax_00.axhline(sap_zp, c="tab:blue", ls="-")
-    ax_00.set_xscale("log")
-    ax_00.set_xlabel("log(<flux>) Kepler Pipeline")
-    ax_00.set_ylabel("Kepler Pipeline / KBonus")
-    ax_00.set_ylim(0, 3)
-    ax_00.legend(loc="upper right", markerscale=markerscale, fontsize=fontsize)
+    if isinstance(kp_stats, dict):
+        ax_00.scatter(
+            kp_stats["lc_mean_pdc"],
+            kp_stats["lc_mean_pdc"] / jm_stats["lc_mean_psf"],
+            s=ms,
+            label=f"KP/psf = {psf_zp:0.4f}",
+            alpha=0.7,
+            c="tab:orange",
+        )
+        ax_00.axhline(psf_zp, c="tab:orange", ls="-")
+        ax_00.scatter(
+            kp_stats["lc_mean_pdc"],
+            kp_stats["lc_mean_pdc"] / jm_stats["lc_mean_sap"],
+            s=ms,
+            label=f"KP/sap = {sap_zp:0.4f}",
+            alpha=0.7,
+            c="tab:blue",
+        )
+        ax_00.axhline(sap_zp, c="tab:blue", ls="-")
+        ax_00.set_xscale("log")
+        ax_00.set_xlabel("log(<flux>) Kepler Pipeline")
+        ax_00.set_ylabel("Kepler Pipeline / KBonus")
+        ax_00.set_ylim(0, 2.5)
+        ax_00.legend(loc="upper right", markerscale=markerscale, fontsize=fontsize)
+    else:
+        ax_00.plot([1e3, 1e7], [1e3, 1e7], c="tab:red", ls="-")
+        ax_00.scatter(
+            jm_stats["lc_mean_sap"],
+            jm_stats["lc_mean_psf"],
+            s=ms,
+            alpha=0.7,
+            c="k",
+        )
+        ax_00.set_xscale("log")
+        ax_00.set_yscale("log")
+        ax_00.set_xlabel("log(<flux>) SAP")
+        ax_00.set_ylabel("log(<flux>) PSF")
+        ax_00.set_xlim(1e3, 1e7)
+        ax_00.set_ylim(1e3, 1e7)
 
     ##################################################################################
     ##################################################################################
@@ -566,38 +584,54 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     ax_10 = fig.add_subplot(G[1, 0])
     ax_11 = fig.add_subplot(G[1, 1])
 
-    colors = ["k", "tab:blue", "tab:orange"]
-    labels = ["Kepler Pipeline", "KBonus SAP", "KBonus PSF"]
-    Xs = [kp_stats["lc_mean_pdc"], jm_stats["lc_mean_sap"], jm_stats["lc_mean_psf_zp"]]
-    Ys = [kp_stats["lc_cdpp_pdc"], jm_stats["lc_cdpp_sap"], jm_stats["lc_cdpp_psf"]]
+    if isinstance(kp_stats, dict):
+        colors = ["k", "tab:blue", "tab:orange"]
+        labels = ["Kepler Pipeline", "KBonus SAP", "KBonus PSF"]
+        Xs = [
+            kp_stats["lc_mean_pdc"],
+            jm_stats["lc_mean_sap"],
+            jm_stats["lc_mean_psf_zp"],
+        ]
+        Ys = [kp_stats["lc_cdpp_pdc"], jm_stats["lc_cdpp_sap"], jm_stats["lc_cdpp_psf"]]
+    else:
+        colors = ["k", "tab:blue", "tab:orange"]
+        labels = ["Kepler Pipeline", "KBonus SAP", "KBonus PSF"]
+        Xs = [None, jm_stats["lc_mean_sap"], jm_stats["lc_mean_psf_zp"]]
+        Ys = [None, jm_stats["lc_cdpp_sap"], jm_stats["lc_cdpp_psf"]]
+
     for k in range(len(Xs)):
         x = Xs[k]
         y = Ys[k]
-        mask = (y >= ylim[0]) & (y <= ylim[1]) & (x < 1e6)
-        x = np.log10(x[mask])
-        y = y[mask]
+        if isinstance(x, np.ndarray):
+            mask = (y >= ylim[0]) & (y <= ylim[1]) & (x < 1e6)
+            x = np.log10(x[mask])
+            y = y[mask]
 
-        mask = np.isfinite(x) & np.isfinite(y)
-        # ax_01.scatter(np.log10(x[mask]), y[mask],
-        #               c=colors[k], label=labels[k], s=ms)
-        kde_axis[k].scatter(x, y, c=colors[k], marker=".", s=ms, label=labels[k])
-        sb.histplot(
-            x=x, y=y, color=colors[k], pthresh=0.05, bins="auto", ax=kde_axis[k]
-        )
-        # sb.kdeplot(
-        #     x=x, y=y, fill=True, levels=10, color=colors[k], thresh=0.1, ax=kde_axis[k]
-        # )
-
-        sb.kdeplot(
-            x[mask], color=colors[k], lw=lw, alpha=0.8, ax=ax_10, label=labels[k]
-        )
-        sb.kdeplot(y[mask], color=colors[k], lw=lw, alpha=0.8, ax=ax_11)
+            mask = np.isfinite(x) & np.isfinite(y)
+            kde_axis[k].scatter(x, y, c=colors[k], marker=".", s=ms, label=labels[k])
+            sb.histplot(
+                x=x,
+                y=y,
+                color=colors[k],
+                pthresh=0.05,
+                bins="auto",
+                ax=kde_axis[k],
+                cbar=True,
+            )
+            sb.kdeplot(
+                x[mask], color=colors[k], lw=lw, alpha=0.8, ax=ax_10, label=labels[k]
+            )
+            sb.kdeplot(y[mask], color=colors[k], lw=lw, alpha=0.8, ax=ax_11)
+            kde_axis[k].legend(
+                loc="lower left", fontsize=fontsize, markerscale=markerscale
+            )
+        else:
+            pass
 
         kde_axis[k].set_xlim(xlim)
         kde_axis[k].set_ylim(ylim)
         kde_axis[k].set_xlabel("log(<Flux>)", fontsize=fontsize)
         kde_axis[k].set_ylabel("6.5h-CDPP [ppm]", fontsize=fontsize)
-        kde_axis[k].legend(loc="lower left", fontsize=fontsize, markerscale=markerscale)
 
     ax_10.set_xlabel("log(<Flux>)", fontsize=fontsize)
     ax_11.set_xlabel("6.5h-CDPP [ppm]", fontsize=fontsize)
@@ -606,32 +640,20 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     ##################################################################################
 
     ax_11 = fig.add_subplot(G[1, 2])
-    (1000 * feat_kp_pdc["LinearTrend"]).plot(
-        kind="kde", ax=ax_11, label="KepPipe_PDC", color="k"
-    )
-    (1000 * feat_kp_sap["LinearTrend"]).plot(
-        kind="kde", ax=ax_11, label="KepPipe_SAP", color="gray", ls="--"
-    )
-    (1000 * feat_jm_sap["LinearTrend"]).plot(
+    (feat_jm_sap["LinearTrend"]).plot(
         kind="kde", ax=ax_11, label="KBonus_SAP", color="tab:blue"
     )
-    (1000 * feat_jm_psfnv["LinearTrend"]).plot(
+    (feat_jm_psfnv["LinearTrend"]).plot(
         kind="kde", ax=ax_11, label="KBonus_PSFNV", color="tab:green"
     )
-    (1000 * feat_jm_psf["LinearTrend"]).plot(
+    (feat_jm_psf["LinearTrend"]).plot(
         kind="kde", ax=ax_11, label="KBonus_PSF", color="tab:orange"
     )
-    ax_11.set_xlim(-1e0, 1e0)
+    ax_11.set_xlim(-0.5e-1, 0.5e-1)
     ax_11.set_xlabel("LinearTrend")
     ax_11.legend(loc="upper left")
 
     ax_12 = fig.add_subplot(G[1, 3])
-    (feat_kp_pdc["FluxPercentileRatioMid20"]).plot(
-        kind="kde", ax=ax_12, label="_nolegend_", color="k"
-    )
-    (feat_kp_sap["FluxPercentileRatioMid20"]).plot(
-        kind="kde", ax=ax_12, label="_nolegend_", color="gray", ls="--"
-    )
     (feat_jm_sap["FluxPercentileRatioMid20"]).plot(
         kind="kde", ax=ax_12, label="_nolegend_", color="tab:blue"
     )
@@ -645,6 +667,24 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     # ax_12.set_xlim(-1.5, 0.5)
     ax_12.set_xlabel(r"$(F_{60} - F_{40}) / (F_{95} - F_{5})$")
     ax_12.legend(loc="upper right")
+
+    if isinstance(feat_kp_pdc, pd.DataFrame):
+        (feat_kp_pdc["LinearTrend"]).plot(
+            kind="kde", ax=ax_11, label="KepPipe_PDC", color="k"
+        )
+        (feat_kp_sap["LinearTrend"]).plot(
+            kind="kde", ax=ax_11, label="KepPipe_SAP", color="gray", ls="--"
+        )
+        (feat_kp_pdc["FluxPercentileRatioMid20"]).plot(
+            kind="kde", ax=ax_12, label="_nolegend_", color="k"
+        )
+        (feat_kp_sap["FluxPercentileRatioMid20"]).plot(
+            kind="kde", ax=ax_12, label="_nolegend_", color="gray", ls="--"
+        )
+
+        ax_11.set_xlim(-1e-2, 1e-2)
+        ax_11.set_ylim(-10, ax_11.get_ylim()[1] / 20)
+        ax_11.xaxis.set_major_locator(plt.MaxNLocator(5))
 
     for i, k in enumerate(lc_ex_idx):
         lc = lcs[k].copy()
@@ -690,7 +730,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
 
         ax_21 = fig.add_subplot(G[2 + i, 1:])
 
-        if kplcs[k] is not None:
+        if isinstance(kplcs, list) and kplcs[k] is not None:
             klc = kplcs[k].copy()
             klc.normalize().plot(label="Kepler Pipeline PDC", c="k", ax=ax_21)
             klc.flux = klc.sap_flux
@@ -715,9 +755,10 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
             f"FLFRCSAP    : {jm_stats['FLFRCSAP'][k]:.3f}\n"
             f"CROWDSAP : {jm_stats['CROWDSAP'][k]:.3f}\n"
             f"CDPP (PSF)  : {jm_stats['lc_cdpp_psf'][k]:.3f}\n"
-            f"CDPP (SAP)  : {jm_stats['lc_cdpp_sap'][k]:.3f}\n"
-            f"CDPP (PDC)  : {kp_stats['lc_cdpp_pdc'][k]:.3f}"
+            f"CDPP (SAP)  : {jm_stats['lc_cdpp_sap'][k]:.3f}"
         )
+        if isinstance(kp_stats, dict):
+            txt = f"{txt}\n" f"CDPP (PDC)  : {kp_stats['lc_cdpp_pdc'][k]:.3f}"
         ax_21.text(
             0.3,
             0.79,
@@ -750,12 +791,6 @@ def plot_features(
 
     fig.suptitle("Feature Distribution for LCs", x=0.5, y=0.92)
 
-    np.log10(feat_kp_pdc["Amplitude"]).plot(
-        kind="kde", ax=ax[0, 0], label="KepPipe_PDC", color="k"
-    )
-    np.log10(feat_kp_sap["Amplitude"]).plot(
-        kind="kde", ax=ax[0, 0], label="KepPipe_SAP", color="k", ls="--"
-    )
     np.log10(feat_jm_sap["Amplitude"]).plot(
         kind="kde", ax=ax[0, 0], label="KBonus_SAP", color="tab:blue"
     )
@@ -769,10 +804,6 @@ def plot_features(
     ax[0, 0].set_xlabel("Amplitude")
     ax[0, 0].legend(loc="upper right")
 
-    (feat_kp_pdc["Rcs"]).plot(kind="kde", ax=ax[0, 1], label="_nolegend_", color="k")
-    (feat_kp_sap["Rcs"]).plot(
-        kind="kde", ax=ax[0, 1], label="_nolegend_", color="k", ls="--"
-    )
     (feat_jm_sap["Rcs"]).plot(
         kind="kde", ax=ax[0, 1], label="_nolegend_", color="tab:blue"
     )
@@ -787,31 +818,19 @@ def plot_features(
     ax[0, 1].set_xlabel("Rcs")
     ax[0, 1].legend(loc="upper left")
 
-    (1000 * feat_kp_pdc["LinearTrend"]).plot(
-        kind="kde", ax=ax[0, 2], label="KepPipe_PDC", color="k"
-    )
-    (1000 * feat_kp_sap["LinearTrend"]).plot(
-        kind="kde", ax=ax[0, 2], label="KepPipe_SAP", color="k", ls="--"
-    )
-    (1000 * feat_jm_sap["LinearTrend"]).plot(
+    (feat_jm_sap["LinearTrend"]).plot(
         kind="kde", ax=ax[0, 2], label="KBonus_SAP", color="tab:blue"
     )
-    (1000 * feat_jm_psfnv["LinearTrend"]).plot(
+    (feat_jm_psfnv["LinearTrend"]).plot(
         kind="kde", ax=ax[0, 2], label="KBonus_PSFNV", color="tab:green"
     )
-    (1000 * feat_jm_psf["LinearTrend"]).plot(
+    (feat_jm_psf["LinearTrend"]).plot(
         kind="kde", ax=ax[0, 2], label="KBonus_PSF", color="tab:orange"
     )
-    ax[0, 2].set_xlim(-1e0, 1e0)
     ax[0, 2].set_xlabel("LinearTrend")
+    ax[0, 2].set_xlim(-0.5e-1, 0.5e-1)
     # ax[0,2].legend(loc="upper right")
 
-    (feat_kp_pdc["PercentDifferenceFluxPercentile"]).plot(
-        kind="kde", ax=ax[1, 0], label="KepPipe_PDC", color="k"
-    )
-    (feat_kp_sap["PercentDifferenceFluxPercentile"]).plot(
-        kind="kde", ax=ax[1, 0], label="KepPipe_SAP", color="k", ls="--"
-    )
     (feat_jm_sap["PercentDifferenceFluxPercentile"]).plot(
         kind="kde", ax=ax[1, 0], label="KBonus_SAP", color="tab:blue"
     )
@@ -821,16 +840,10 @@ def plot_features(
     (feat_jm_psf["PercentDifferenceFluxPercentile"]).plot(
         kind="kde", ax=ax[1, 0], label="KBonus_PSF", color="tab:orange"
     )
-    ax[1, 0].set_xlim(-0.2, 0.2)
-    ax[1, 0].set_xlabel(r"$F_{5,95} / median(F)$")
+    ax[1, 0].set_xlabel(r"$(F_{95} - F_{5}) / median(F)$")
+    ax[1, 0].set_xlim(-1, 1)
     # ax[1,0].legend(loc="upper right")
 
-    (feat_kp_pdc["FluxPercentileRatioMid20"]).plot(
-        kind="kde", ax=ax[1, 1], label="_nolegend_", color="k"
-    )
-    (feat_kp_sap["FluxPercentileRatioMid20"]).plot(
-        kind="kde", ax=ax[1, 1], label="_nolegend_", color="k", ls="--"
-    )
     (feat_jm_sap["FluxPercentileRatioMid20"]).plot(
         kind="kde", ax=ax[1, 1], label="_nolegend_", color="tab:blue"
     )
@@ -842,15 +855,9 @@ def plot_features(
     )
     ax[1, 1].axvline(0.154, c="tab:red", lw=1, label="Expected for Flux ~ N(0,1)")
     # ax[1,1].set_xlim(-1.5, 0.5)
-    ax[1, 1].set_xlabel(r"$F_{40,60} / F_{5,95}$")
+    ax[1, 1].set_xlabel(r"$(F_{60} - F_{40}) / (F_{95} - F_{5})$")
     ax[1, 1].legend(loc="upper right")
 
-    (feat_kp_pdc["FluxPercentileRatioMid80"]).plot(
-        kind="kde", ax=ax[1, 2], label="_nolegend_", color="k"
-    )
-    (feat_kp_sap["FluxPercentileRatioMid80"]).plot(
-        kind="kde", ax=ax[1, 2], label="_nolegend_", color="k", ls="--"
-    )
     (feat_jm_sap["FluxPercentileRatioMid80"]).plot(
         kind="kde", ax=ax[1, 2], label="_nolegend_", color="tab:blue"
     )
@@ -861,23 +868,77 @@ def plot_features(
         kind="kde", ax=ax[1, 2], label="_nolegend_", color="tab:orange"
     )
     ax[1, 2].axvline(0.779, c="tab:red", lw=1, label="Expected for Flux ~ N(0,1)")
-    ax[1, 2].set_xlim(0.4, 1.2)
-    ax[1, 2].set_xlabel(r"$F_{10,90} / F_{5,95}$")
+    ax[1, 2].set_xlabel(r"$(F_{90} - F_{10}) / (F_{95} - F_{5})$")
     ax[1, 2].legend(loc="upper left")
+
+    if isinstance(feat_kp_pdc, pd.DataFrame):
+        np.log10(feat_kp_pdc["Amplitude"]).plot(
+            kind="kde", ax=ax[0, 0], label="KepPipe_PDC", color="k"
+        )
+        np.log10(feat_kp_sap["Amplitude"]).plot(
+            kind="kde", ax=ax[0, 0], label="KepPipe_SAP", color="k", ls="--"
+        )
+        (feat_kp_pdc["Rcs"]).plot(
+            kind="kde", ax=ax[0, 1], label="_nolegend_", color="k"
+        )
+        (feat_kp_sap["Rcs"]).plot(
+            kind="kde", ax=ax[0, 1], label="_nolegend_", color="k", ls="--"
+        )
+        (feat_kp_pdc["LinearTrend"]).plot(
+            kind="kde", ax=ax[0, 2], label="KepPipe_PDC", color="k"
+        )
+        (feat_kp_sap["LinearTrend"]).plot(
+            kind="kde", ax=ax[0, 2], label="KepPipe_SAP", color="k", ls="--"
+        )
+        (feat_kp_pdc["PercentDifferenceFluxPercentile"]).plot(
+            kind="kde", ax=ax[1, 0], label="KepPipe_PDC", color="k"
+        )
+        (feat_kp_sap["PercentDifferenceFluxPercentile"]).plot(
+            kind="kde", ax=ax[1, 0], label="KepPipe_SAP", color="k", ls="--"
+        )
+        (feat_kp_pdc["FluxPercentileRatioMid20"]).plot(
+            kind="kde", ax=ax[1, 1], label="_nolegend_", color="k"
+        )
+        (feat_kp_sap["FluxPercentileRatioMid20"]).plot(
+            kind="kde", ax=ax[1, 1], label="_nolegend_", color="k", ls="--"
+        )
+        (feat_kp_pdc["FluxPercentileRatioMid80"]).plot(
+            kind="kde", ax=ax[1, 2], label="_nolegend_", color="k"
+        )
+        (feat_kp_sap["FluxPercentileRatioMid80"]).plot(
+            kind="kde", ax=ax[1, 2], label="_nolegend_", color="k", ls="--"
+        )
+
+        ax[0, 2].set_xlim(-1e-3, 1e-3)
+        ax[0, 2].set_ylim(-0.1, 5e3)
+        # ax[0, 2].set_xlim(-0.5e-1, 0.5e-1)
+        ax[1, 0].set_xlim(-0.5, 0.5)
+        # ax[1, 2].set_xlim(0.4, 1.2)
 
     plt.show()
 
-    concat = pd.concat(
-        [
-            feat_jm_sap.query("Amplitude < .1").assign(dataset="SAP"),
-            feat_jm_psf.query("Amplitude < .1").assign(dataset="PSF"),
-            feat_kp_pdc.query("Amplitude < .1").assign(dataset="PDC"),
-        ]
-    )
+    if isinstance(feat_kp_pdc, pd.DataFrame):
+        concat = pd.concat(
+            [
+                feat_jm_sap.query("Amplitude < .1").assign(dataset="SAP"),
+                feat_jm_psf.query("Amplitude < .1").assign(dataset="PSF"),
+                feat_kp_pdc.query("Amplitude < .1").assign(dataset="PDC"),
+            ]
+        )
+        palette = {"PDC": "k", "SAP": "tab:blue", "PSF": "tab:orange"}
+    else:
+        concat = pd.concat(
+            [
+                feat_jm_sap.query("Amplitude < .1").assign(dataset="SAP"),
+                feat_jm_psf.query("Amplitude < .1").assign(dataset="PSF"),
+            ]
+        )
+        palette = {"SAP": "tab:blue", "PSF": "tab:orange"}
+
     sb.pairplot(
         concat,
         hue="dataset",
-        palette={"PDC": "k", "SAP": "tab:blue", "PSF": "tab:orange"},
+        palette=palette,
         vars=use_features,
         plot_kws={"s": 4, "alpha": 0.5},
     )
