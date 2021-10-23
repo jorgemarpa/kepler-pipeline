@@ -169,7 +169,7 @@ def compute_stats_from_lcs(lcs, project="kbonus"):
     for i in tqdm(range(len(lcs)), total=len(lcs)):
 
         # skip None lcs or lcs with all NaN
-        if lcs[i] == None or (
+        if not lcs[i] or (
             np.isnan(lcs[i].flux.value).all() and np.isnan(lcs[i].sap_flux.value).all()
         ):
             ra_lcs.append(np.nan)
@@ -199,15 +199,22 @@ def compute_stats_from_lcs(lcs, project="kbonus"):
             mean_lcs_ap1.append(np.nanmean(lc.flux).value)
             mean_lcs_ap2.append(np.nanmean(lc.sap_flux).value)
             # CDPP values
-            try:
-                cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
-            except:
+            if (lc.flux == 0).all() or not np.isfinite(lc.flux).all():
                 cdpp_lcs_ap1.append(np.nan)
-            lc.flux = lc.sap_flux
-            try:
-                cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
-            except:
+            else:
+                try:
+                    cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
+                except:
+                    cdpp_lcs_ap1.append(np.nan)
+
+            if (lc.sap_flux == 0).all():
                 cdpp_lcs_ap2.append(np.nan)
+            else:
+                lc.flux = lc.sap_flux
+                try:
+                    cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
+                except:
+                    cdpp_lcs_ap2.append(np.nan)
 
         else:
             cat_mag.append(lc.meta["KEPMAG"])
@@ -411,33 +418,31 @@ def get_features(lcs, flux_col="flux"):
 
 
 def find_lc_examples(jm_stats, lcs):
-    bright_goods = np.where(
-        (jm_stats["lc_mean_psf_zp"] > 1e5)
-        & (jm_stats["lc_mean_psf_zp"] < 1e6)
-        & (jm_stats["lc_cdpp_psf"] > 10)
-        & (jm_stats["lc_cdpp_psf"] < 50)
-    )[0]
+    jm_stats_df = pd.DataFrame.from_dict(jm_stats)
+    flux_bright = [1e5, 1e6]
+    flux_faint = [1e2, 5e3]
 
-    faint_goods = np.where(
-        (jm_stats["lc_mean_psf_zp"] > 1e2)
-        & (jm_stats["lc_mean_psf_zp"] < 5e3)
-        & (jm_stats["lc_cdpp_psf"] > 10)
-        & (jm_stats["lc_cdpp_psf"] < 400)
-    )[0]
+    brights = jm_stats_df.query(
+        f"lc_mean_psf_zp > {flux_bright[0]} and lc_mean_psf_zp < {flux_bright[1]}"
+    )
 
-    bright_bads = np.where(
-        (jm_stats["lc_mean_psf_zp"] > 1e5)
-        & (jm_stats["lc_mean_psf_zp"] < 1e6)
-        & (jm_stats["lc_cdpp_psf"] > 500)
-        & (jm_stats["lc_cdpp_psf"] < 1e3)
-    )[0]
+    faints = jm_stats_df.query(
+        f"lc_mean_psf_zp > {flux_faint[0]} and lc_mean_psf_zp < {flux_faint[1]}"
+    )
 
-    faint_bads = np.where(
-        (jm_stats["lc_mean_psf_zp"] > 1e2)
-        & (jm_stats["lc_mean_psf_zp"] < 5e3)
-        & (jm_stats["lc_cdpp_psf"] > 800)
-        & (jm_stats["lc_cdpp_psf"] < 2e3)
-    )[0]
+    cdpp_bright = [
+        np.percentile(brights["lc_cdpp_psf"], 15),
+        np.percentile(brights["lc_cdpp_psf"], 85),
+    ]
+    cdpp_faint = [
+        np.percentile(faints["lc_cdpp_psf"], 15),
+        np.percentile(faints["lc_cdpp_psf"], 85),
+    ]
+
+    bright_goods = brights.query(f"lc_cdpp_psf < {cdpp_bright[0]}").index.values
+    bright_bads = brights.query(f"lc_cdpp_psf > {cdpp_bright[1]}").index.values
+    faint_goods = faints.query(f"lc_cdpp_psf < {cdpp_faint[0]}").index.values
+    faint_bads = faints.query(f"lc_cdpp_psf > {cdpp_faint[1]}").index.values
 
     # find neighbors
     sources = SkyCoord(
@@ -864,9 +869,9 @@ def plot_features(
 
     concat = pd.concat(
         [
-            feat_kp_pdc.query("Amplitude < .1").assign(dataset="PDC"),
             feat_jm_sap.query("Amplitude < .1").assign(dataset="SAP"),
             feat_jm_psf.query("Amplitude < .1").assign(dataset="PSF"),
+            feat_kp_pdc.query("Amplitude < .1").assign(dataset="PDC"),
         ]
     )
     sb.pairplot(
