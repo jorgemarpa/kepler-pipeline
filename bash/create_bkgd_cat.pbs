@@ -1,0 +1,17 @@
+#PBS -S /bin/csh
+#PBS -N Create-Background-Catalog
+#PBS -q devel
+#PBS -l select=1:ncpus=5:mem=60G:model=ivy
+#PBS -l walltime=1:00:00
+#PBS -j oe
+#PBS -m e
+
+# change directory
+cd /home4/jimartin/ADAP/kepler-workflow/kepler_workflow
+
+# activate conda env
+source /nasa/jupyter/4.4/miniconda/etc/profile.d/conda.sh
+conda activate kepler-workflow
+
+# lunch parallel jobs 
+seq 4 84 | xargs -n 1 -I {} -P 5 python create_background_catalog.py --channel {}
