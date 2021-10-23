@@ -58,8 +58,9 @@ def get_KICs(catalog):
         ra=kic["RAJ2000"], dec=kic["DEJ2000"], frame="icrs", unit=(u.deg, u.deg)
     )
     midx, mdist = match_coordinates_3d(gaia, kicc, nthneighbor=1)[:2]
-    catalog.loc[:, "kic"] = ""
+    catalog.loc[:, "kic"] = 0
     catalog.loc[mdist.arcsec < 2, "kic"] = kic[midx[mdist.arcsec < 2]]["KIC"].data.data
+    catalog["kic"] = catalog["kic"].astype(int)
     catalog.loc[:, "kepmag"] = np.nan
     catalog.loc[mdist.arcsec < 2, "kepmag"] = kic[midx[mdist.arcsec < 2]][
         "kepmag"
@@ -106,15 +107,15 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
         "QUARTER": lc.meta["QUARTER"],
         # "CAMPAIGN": lc.meta["CAMPAIGN"],
         # objct info
-        "LABEL": "KIC %s" % (extra_meta["KEPLERID"])
-        if extra_meta["KEPLERID"] != ""
+        "LABEL": f"KIC {extra_meta['KEPLERID']}"
+        if extra_meta["KEPLERID"] != 0
         else catalog.designation,
         "TARGETID": lc.meta["TARGETID"],
         "RA_OBJ": lc.meta["RA"],
         "DEC_OBJ": lc.meta["DEC"],
         "EQUINOX": extra_meta["EQUINOX"],
         # KIC info
-        "KEPLERID": extra_meta["KEPLERID"],
+        "KEPLERID": extra_meta["KEPLERID"] if extra_meta["KEPLERID"] != 0 else "",
         "KEPMAG": extra_meta["KEPMAG"] if np.isfinite(extra_meta["KEPMAG"]) else "",
         "TPFORG": extra_meta["TPFORG"],
         # gaia catalog info
@@ -289,6 +290,7 @@ def do_lcs(
     tar_tpfs=True,
     fit_va=True,
     quiet=False,
+    compute_node=False,
 ):
 
     # load config file for TPFs
@@ -315,9 +317,7 @@ def do_lcs(
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     # create machine object
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
-    if (socket.gethostname() == "NASAs-MacBook-Pro.local") or (
-        socket.gethostname()[:3] == "pfe"
-    ):
+    if not compute_node:
         machine.quiet = quiet
     else:
         machine.quiet = True
@@ -413,9 +413,7 @@ def do_lcs(
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
-    if (socket.gethostname() == "NASAs-MacBook-Pro.local") or (
-        socket.gethostname()[:3] == "pfe"
-    ):
+    if not compute_node:
         kics = get_KICs(machine.sources)
     else:
         kics = machine.sources
@@ -594,12 +592,14 @@ if __name__ == "__main__":
 
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
     # send to log file when running in compute nodes
-    if (socket.gethostname() in ["NASAs-MacBook-Pro.local" "r445i2n13"]) or (
+    if (socket.gethostname() in ["NASAs-MacBook-Pro.local"]) or (
         (socket.gethostname()[:3] == "pfe")
     ):
+        compute_node = False
         hand = logging.StreamHandler(sys.stdout)
         hand.setFormatter(logging.Formatter(FORMAT))
     else:
+        compute_node = True
         hand = logging.FileHandler(
             f"{PACKAGEDIR}/logs/make_lightcurve_{os.getpid()}.info"
         )
@@ -613,5 +613,5 @@ if __name__ == "__main__":
     kwargs = vars(args)
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
-    do_lcs(**kwargs)
+    do_lcs(**kwargs, compute_node=compute_node)
     log.info("Done!")
