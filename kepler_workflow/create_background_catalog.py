@@ -82,12 +82,12 @@ def _get_coord_and_query_gaia(
     return sources, cone_search
 
 
-def main(channel=1):
+def main(channel=1, do_batch=True):
 
     fname_list = get_file_list(5, channel, -1, 1, tar_tpfs=True)
     print(f"Total TPF files: {len(fname_list)}")
 
-    if False:
+    if do_batch:
         batch_size = 500
         nbatches = len(fname_list) // batch_size + 1
         tpfs = []
