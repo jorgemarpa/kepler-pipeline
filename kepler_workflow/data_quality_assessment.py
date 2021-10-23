@@ -586,7 +586,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
 
     if isinstance(kp_stats, dict):
         colors = ["k", "tab:blue", "tab:orange"]
-        labels = ["Kepler Pipeline", "KBonus SAP", "KBonus PSF"]
+        labels = ["Kepler PDC", "KBonus SAP", "KBonus PSF"]
         Xs = [
             kp_stats["lc_mean_pdc"],
             jm_stats["lc_mean_sap"],
