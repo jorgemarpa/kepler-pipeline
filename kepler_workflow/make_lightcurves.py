@@ -81,12 +81,15 @@ def get_file_list(quarter, channel, batch_size, batch_number, tar_tpfs=True):
     )
     if files_in.shape[0] == 0:
         raise IndexError("Channel does not contain TPFs.")
-    files_in = files_in.iloc[
-        batch_size * (batch_number - 1) : batch_size * (batch_number)
-    ]
-    if files_in.shape[0] == 0:
-        raise IndexError("Batch does not contain TPFs.")
-    return files_in.file_name.tolist()
+    if batch_size > 0:
+        files_in = files_in.iloc[
+            batch_size * (batch_number - 1) : batch_size * (batch_number)
+        ]
+        if files_in.shape[0] == 0:
+            raise IndexError("Batch does not contain TPFs.")
+        return files_in.file_name.tolist()
+    else:
+        return files_in.file_name.tolist()
 
 
 # @profile
