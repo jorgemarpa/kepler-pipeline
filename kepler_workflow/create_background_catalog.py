@@ -85,8 +85,21 @@ def _get_coord_and_query_gaia(
 def main(channel=1):
 
     fname_list = get_file_list(5, channel, -1, 1, tar_tpfs=True)
-    print(f"Total TPFs: {len(fname_list)}")
-    tpfs = get_tpfs(fname_list, tar_tpfs=True)
+    print(f"Total TPF files: {len(fname_list)}")
+
+    if False:
+        batch_size = 500
+        nbatches = len(fname_list) // batch_size + 1
+        tpfs = []
+        for batch in range(nbatches):
+            aux = get_tpfs(
+                fname_list[batch_size * (batch) : batch_size * (batch + 1)],
+                tar_tpfs=True,
+            )
+            tpfs.extend([x for x in aux])
+    else:
+        tpfs = get_tpfs(fname_list, tar_tpfs=True)
+    print(f"Total TPFs: {len(tpfs)}")
 
     sources, cone_search = _get_coord_and_query_gaia(tpfs, magnitude_limit=20, dr=3)
 
