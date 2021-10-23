@@ -106,7 +106,7 @@ def get_keple_lightcurves(kics, quarter):
 
 def make_lc_download_sh(unique_kics, channel, quarter):
 
-    sh_name = f"kepler_lcs_ch{channel:02}_q{quarter:02}.sh"
+    sh_name = f"../bash/kepler_lcs_ch{channel:02}_q{quarter:02}.sh"
     try:
         os.remove(sh_name)
     except FileNotFoundError:
