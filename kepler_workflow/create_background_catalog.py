@@ -130,4 +130,5 @@ if __name__ == "__main__":
         help="Channel number",
     )
     args = parser.parse_args()
+    print(f"Channel {args.channel}")
     main(channel=args.channel)
