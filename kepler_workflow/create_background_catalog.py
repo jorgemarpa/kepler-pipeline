@@ -84,7 +84,7 @@ def _get_coord_and_query_gaia(
 
 def main(channel=1, do_batch=True):
 
-    fname_list = get_file_list(0, channel, -1, 1, tar_tpfs=True)
+    fname_list = get_file_list(1, channel, -1, 1, tar_tpfs=True)
     print(f"Total TPF files: {len(fname_list)}")
 
     if do_batch:
