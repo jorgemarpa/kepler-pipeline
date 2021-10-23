@@ -92,6 +92,7 @@ def main(channel=1):
         nbatches = len(fname_list) // batch_size + 1
         tpfs = []
         for batch in range(nbatches):
+            print(batch)
             aux = get_tpfs(
                 fname_list[batch_size * (batch) : batch_size * (batch + 1)],
                 tar_tpfs=True,
