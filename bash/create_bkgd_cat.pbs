@@ -1,4 +1,4 @@
-#PBS -S /bin/csh
+#PBS -S /bin/sh
 #PBS -N Create-Background-Catalog
 #PBS -q devel
 #PBS -l select=1:ncpus=5:mem=60G:model=ivy
