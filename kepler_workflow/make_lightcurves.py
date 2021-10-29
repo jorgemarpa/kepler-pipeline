@@ -503,19 +503,12 @@ def do_lcs(
             ][i],
         }
         hdul = make_hdul(lc, machine.sources.loc[i], meta, fit_va=fit_va)
-
-        target_name = (
-            "KIC-%09i" % (meta["KEPLERID"])
-            if meta["KEPLERID"] != ""
-            else machine.sources.designation[i].replace(" ", "-")
-        )
+        target_name = hdul[0].header["LABEL"].replace(" ", "-")
         fname = "hlsp_kbonus-kbkgd_kepler_kepler_%s-q%02i_kepler_v%s_lc.fits" % (
             target_name,
             quarter,
             lc_version,
-            # batch_size,
         )
-        # i need to tarball all these FITS file to meet inode quota
         if tar_lcs:
             with tempfile.NamedTemporaryFile(mode="wb") as tmp:
                 hdul.writeto(tmp)
