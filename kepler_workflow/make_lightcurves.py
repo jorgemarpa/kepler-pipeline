@@ -434,7 +434,6 @@ def do_lcs(
         channel,
         quarter,
     )
-
     log.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
