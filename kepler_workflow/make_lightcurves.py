@@ -435,24 +435,6 @@ def do_lcs(
         quarter,
     )
 
-    # save weight matrices
-    if fit_va:
-        weights_file = (
-            "%s/weights_va_ch%02i_q%02i_b%03i-%02i_poscor%s_%s_tk%i_tp%i.npy"
-            % (
-                dir_name,
-                channel,
-                quarter,
-                batch_size,
-                batch_number,
-                str(machine.use_poscorr)[0],
-                machine.cartesian_knot_spacing,
-                machine.n_time_knots,
-                machine.n_time_points,
-            )
-        )
-        np.save(weights_file, machine.ws_va)
-
     log.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
