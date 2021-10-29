@@ -157,6 +157,23 @@ def how_many_batches(quarter, batch_size):
     df_nb.set_index("channel").to_csv(file_name)
 
 
+def how_many_tpfs():
+    df = pd.DataFrame(
+        np.zeros((18, 84)), index=np.arange(0, 18), columns=np.arange(1, 85)
+    )
+    for q in df.index:
+        file_name = "%s/support/kepler_tpf_map_q%02i.csv" % (OUTPUT_PATH, q)
+        if not os.path.isfile(file_name):
+            log.info(f"Warning: no file map for quarter {q}")
+            continue
+        map = pd.read_csv(file_name, index_col=0)
+        for ch in df.columns:
+            df.loc[q, ch] = map.query(f"channel == {ch}").shape[0]
+
+    file_name = "%s/support/kepler_ntpf_qch.csv" % (OUTPUT_PATH)
+    df.to_csv(file_name)
+
+
 # def do_tpf_batch_files():
 #     file_name = "../data/support/kepler_tpf_map_all_q%02i.csv" % (args.quarter)
 #     df = pd.read_csv(file_name, index_col=0)
@@ -223,8 +240,8 @@ if __name__ == "__main__":
         help="Concatenate all lookup tables in a quarter.",
     )
     parser.add_argument(
-        "--do-batch",
-        dest="do_batch",
+        "--sum-tpfs",
+        dest="sum_tpfs",
         action="store_true",
         default=False,
         help="Computen number of batches per channel/quarter.",
@@ -252,8 +269,8 @@ if __name__ == "__main__":
 
     if args.concat:
         concatenate(args.quarter, tar_archive=args.tar_archive)
-    elif args.do_batch:
-        how_many_batches(args.quarter, args.batch_size)
+    elif args.sum_tpfs:
+        how_many_tpfs()
     else:
         do_lookup_table(
             folder=args.folder,
