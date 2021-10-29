@@ -159,7 +159,7 @@ def how_many_batches(quarter, batch_size):
 
 def how_many_tpfs(tar_archive=True):
     df = pd.DataFrame(
-        np.zeros((18, 84)), index=np.arange(0, 18), columns=np.arange(1, 85)
+        np.zeros((18, 84), dtype=int), index=np.arange(0, 18), columns=np.arange(1, 85)
     )
     for q in df.index:
         file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
