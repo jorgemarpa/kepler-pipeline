@@ -157,12 +157,16 @@ def how_many_batches(quarter, batch_size):
     df_nb.set_index("channel").to_csv(file_name)
 
 
-def how_many_tpfs():
+def how_many_tpfs(tar_archive=True):
     df = pd.DataFrame(
         np.zeros((18, 84)), index=np.arange(0, 18), columns=np.arange(1, 85)
     )
     for q in df.index:
-        file_name = "%s/support/kepler_tpf_map_q%02i.csv" % (OUTPUT_PATH, q)
+        file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
+            OUTPUT_PATH,
+            q,
+            "_tar" if tar_archive else "",
+        )
         if not os.path.isfile(file_name):
             log.info(f"Warning: no file map for quarter {q}")
             continue
@@ -270,7 +274,7 @@ if __name__ == "__main__":
     if args.concat:
         concatenate(args.quarter, tar_archive=args.tar_archive)
     elif args.sum_tpfs:
-        how_many_tpfs()
+        how_many_tpfs(tar_archive=args.tar_archive)
     else:
         do_lookup_table(
             folder=args.folder,
