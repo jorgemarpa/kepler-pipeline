@@ -683,7 +683,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
         )
 
         ax_11.set_xlim(-1e-2, 1e-2)
-        ax_11.set_ylim(-10, ax_11.get_ylim()[1] / 20)
+        ax_11.set_ylim(-10, ax_11.get_ylim()[1] / 10)
         ax_11.xaxis.set_major_locator(plt.MaxNLocator(5))
 
     for i, k in enumerate(lc_ex_idx):
@@ -771,8 +771,11 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
         ax_21.legend(loc="upper left", markerscale=5)
 
     if save:
-        fig_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel}/dashboard_q{quarter}.pdf"
-        plt.savefig(fig_name, format="pdf")
+        dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel}"
+        if not os.path.isdir(dir_name):
+            os.makedirs(dir_name)
+        fig_name = f"{dir_name}/dashboard_q{quarter}.pdf"
+        plt.savefig(fig_name, format="pdf", bbox_inches="tight", pad_inches=0.1)
     else:
         plt.show()
 

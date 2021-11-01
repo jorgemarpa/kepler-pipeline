@@ -14,6 +14,7 @@ import psfmachine as pm
 import lightkurve as lk
 from scipy import sparse
 from tqdm import tqdm
+from memory_profiler import profile
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
@@ -68,7 +69,7 @@ def get_KICs(catalog):
     return catalog
 
 
-# @profile
+@profile
 def get_file_list(quarter, channel, batch_size, batch_number, tar_tpfs=True):
 
     lookup_table = pd.read_csv(
@@ -187,7 +188,7 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
     return hdul
 
 
-# @profile
+@profile
 def get_tpfs(fname_list, tar_tpfs=True):
     if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
@@ -281,7 +282,7 @@ def do_poscorr_plot(machine):
     return fig
 
 
-# @profile
+@profile
 def do_lcs(
     quarter=5,
     channel=1,
@@ -317,15 +318,17 @@ def do_lcs(
         log.info("Dry run!")
         sys.exit()
     # load TPFs
+    log.info("Loading TPFs from disk")
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     # create machine object
+    log.info("Initializing PSFMachine")
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
     if not compute_node:
         machine.quiet = quiet
     else:
         machine.quiet = True
         quiet = True
-    log.info("Runing PSFMachine with:")
+    log.info("PSFMachine config:")
     print_dict(config)
 
     del tpfs
