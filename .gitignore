@@ -10,4 +10,5 @@ notebooks/lcs
 kepler_workflow/.python-version
 kepler_workflow/__pycache__
 kepler_workflow/*.info
+kepler_workflow/*.dat
 logs/

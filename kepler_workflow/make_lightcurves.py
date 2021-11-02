@@ -562,6 +562,13 @@ if __name__ == "__main__":
         default=False,
         help="Is archive in tarball files.",
     )
+    parser.add_argument(
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        default=False,
+        help="Dry run.",
+    )
     parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
     # set verbose level for logger
@@ -589,6 +596,9 @@ if __name__ == "__main__":
     log.setLevel(args.log)
 
     print_dict(vars(args))
+    if args.dry_run:
+        log.info("Dry run!")
+        sys.exit()
 
     kwargs = vars(args)
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
