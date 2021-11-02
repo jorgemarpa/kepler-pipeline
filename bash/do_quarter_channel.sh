@@ -29,4 +29,4 @@ fi
 hh="00"
 mm="01"
 
-echo qsub -J 0-${bntot} -lwalltime=${hh}:${mm}:00 pbs_quarter_channel.sh ${quarter} ${channel}
+echo qsub -lwalltime=${hh}:${mm}:00 -v \"qu=$quarter,ch=$channel,bs=$bsize,bn=$bntot\" pbs_quarter_channel.sh

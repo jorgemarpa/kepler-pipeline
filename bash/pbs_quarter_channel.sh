@@ -14,17 +14,8 @@ cd /home4/jimartin/ADAP/kepler-workflow/kepler_workflow
 source /nasa/jupyter/4.4/miniconda/etc/profile.d/conda.sh
 conda activate kepler-workflow
 
-echo "PBS Job Id PBS_JOBID is ${PBS_JOBID}"
-echo "PBS job array index PBS_ARRAY_INDEX value is ${PBS_ARRAY_INDEX}"
-
-echo "Channel $2 Quarter $1"
-
-#
-#  To isolate the job id number, cut on the character "[" instead of
-#  ".".  PBS_JOBID might look like "48274[].server" rather "48274.server"
-#  in job arrays
-#
-
+echo "Channel $ch Quarter $qu"
+echo "$bn batches of size $bs"
 
 # lunch parallel jobs
-python make_lightcurves.py --quarter ${1} --channel ${2} --batch-size 201 --batch-number ${PBS_ARRAY_INDEX} --tar-tpfs --tar-lcs --fit-va --log 20 --dry-run
+seq 1 ${bn} | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter ${qu} --channel ${ch} --batch-size ${bs} --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20 --dry-run
