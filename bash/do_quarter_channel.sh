@@ -29,4 +29,4 @@ fi
 hh="00"
 mm="01"
 
-echo qsub -J 0-${bntot} -lwalltime=${hh}:${mm}:00 ${WORKDIR}/kepler-workflow/do_quarter_channel.sh ${quarter} ${channel}
+echo qsub -J 0-${bntot} -lwalltime=${hh}:${mm}:00 pbs_quarter_channel.sh ${quarter} ${channel}
