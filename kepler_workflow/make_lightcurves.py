@@ -188,7 +188,7 @@ def make_hdul(lc, catalog, extra_meta, fit_va=True):
     return hdul
 
 
-@profile
+# @profile
 def get_tpfs(fname_list, tar_tpfs=True):
     if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
@@ -282,7 +282,7 @@ def do_poscorr_plot(machine):
     return fig
 
 
-@profile
+# @profile
 def do_lcs(
     quarter=5,
     channel=1,
