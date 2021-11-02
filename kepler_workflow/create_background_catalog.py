@@ -70,15 +70,6 @@ def _get_coord_and_query_gaia(
     )
     cone_search = {"ras": ras, "decs": decs, "rads": rads}
 
-    ras, decs = [], []
-    for tpf in tpfs:
-        r, d = np.hstack(tpf.get_coordinates(0)).T.reshape(
-            [2, np.product(tpf.shape[1:])]
-        )
-        ras.append(r)
-        decs.append(d)
-    ras, decs = np.hstack(ras), np.hstack(decs)
-    sources, removed_sources = _clean_source_list(sources, ras, decs)
     return sources, cone_search
 
 
@@ -107,7 +98,7 @@ def main(channel=1, do_batch=True):
     cone_search = pd.DataFrame.from_dict(cone_search)
 
     cone_file = (
-        f"{ARCHIVE_PATH}/data/catalogs/" f"cone_search_kepler_field_ch{channel:02}.csv"
+        f"{ARCHIVE_PATH}/data/catalogs/cone_search_kepler_field_ch{channel:02}.csv"
     )
     cone_search.to_csv(cone_file)
 

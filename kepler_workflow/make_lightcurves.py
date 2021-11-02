@@ -69,7 +69,7 @@ def get_KICs(catalog):
     return catalog
 
 
-@profile
+# @profile
 def get_file_list(quarter, channel, batch_size, batch_number, tar_tpfs=True):
 
     lookup_table = pd.read_csv(
