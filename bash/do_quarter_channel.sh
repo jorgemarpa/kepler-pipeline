@@ -10,9 +10,9 @@ channel1=$((channel + 1))
 
 WORKDIR=$(dirname `pwd`)
 
-tpftot=`head -"$quarter1" "$WORKDIR"/data/support/kepler_ntpf_qch.csv | tail -1 | cut -f "$channel1" -d","`
-bsize=`head -"$quarter1" "$WORKDIR"/data/support/kepler_batchsize_qch.csv | tail -1 | cut -f "$channel1" -d","`
-bntot=`head -"$quarter1" "$WORKDIR"/data/support/kepler_nbatches_qch.csv | tail -1 | cut -f "$channel1" -d","`
+tpftot=`head -"$quarter1" "$WORKDIR"/data/support/kepler_quarter_channel_tpfnumber.csv | tail -1 | cut -f "$channel1" -d","`
+bsize=`head -"$quarter1" "$WORKDIR"/data/support/kepler_quarter_channel_batchsize.csv | tail -1 | cut -f "$channel1" -d","`
+bntot=`head -"$quarter1" "$WORKDIR"/data/support/kepler_quarter_channel_totalbatches.csv | tail -1 | cut -f "$channel1" -d","`
 
 echo "Total TPFs $tpftot"
 echo "$bntot batches of size $bsize"

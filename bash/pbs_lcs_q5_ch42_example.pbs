@@ -1,0 +1,19 @@
+#PBS -S /bin/sh
+#PBS -N make-LCs
+#PBS -q devel
+#PBS -l select=1:ncpus=10:mem=60G:model=ivy
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -m e
+#PBS -o pfe21:/home4/jimartin/ADAP/kepler-workflow/logs/
+
+# change directory
+cd /home4/jimartin/ADAP/kepler-workflow/kepler_workflow
+
+# activate conda env
+source /nasa/jupyter/4.4/miniconda/etc/profile.d/conda.sh
+conda activate kepler-workflow
+
+# lunch parallel jobs
+
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 5 --channel 42 --batch-size 215 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20

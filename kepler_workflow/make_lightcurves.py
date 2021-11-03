@@ -43,8 +43,8 @@ typedir = {
 
 
 def print_dict(dictionary):
-    for k, v in dictionary.items():
-        log.info(f"{k:<22}: {v}")
+    for k in sorted(dictionary.keys()):
+        log.info(f"{k:<22}: {dictionary[k]}")
 
 
 # @profile
@@ -510,15 +510,22 @@ if __name__ == "__main__":
         "--quarter",
         dest="quarter",
         type=int,
-        default=5,
+        default=None,
         help="Quarter number.",
     )
     parser.add_argument(
         "--channel",
         dest="channel",
         type=int,
-        default=31,
+        default=None,
         help="Channel number",
+    )
+    parser.add_argument(
+        "--batch-index",
+        dest="batch_index",
+        type=int,
+        default=-1,
+        help="File with index list of channel/quarter/batch size/batch number",
     )
     parser.add_argument(
         "--batch-size",
@@ -532,7 +539,7 @@ if __name__ == "__main__":
         dest="batch_number",
         type=int,
         default=1,
-        help="Batch number",
+        help="Batch number or batch index in --batch-file",
     )
     parser.add_argument(
         "--plot",
@@ -595,12 +602,26 @@ if __name__ == "__main__":
     log.addHandler(hand)
     log.setLevel(args.log)
 
+    if args.channel is None and args.batch_index > -1:
+        batch_info = "%s/data/support/kepler_batch_info_quarter%i.dat" % (
+            PACKAGEDIR,
+            args.quarter,
+        )
+        log.info(f"Batch info file {batch_info}")
+        params = np.loadtxt(batch_info, dtype=int, delimiter=" ", comments="#")
+        args.quarter = params[args.batch_index - 1, 1]
+        args.channel = params[args.batch_index - 1, 2]
+        args.batch_size = params[args.batch_index - 1, 3]
+        args.batch_total = params[args.batch_index - 1, 4]
+        args.batch_number = params[args.batch_index - 1, 5]
+
     print_dict(vars(args))
     if args.dry_run:
         log.info("Dry run!")
         sys.exit()
 
     kwargs = vars(args)
+    del kwargs["batch_index"], kwargs["batch_total"]
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
     do_lcs(**kwargs, compute_node=compute_node)
