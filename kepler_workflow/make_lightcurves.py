@@ -621,7 +621,10 @@ if __name__ == "__main__":
         sys.exit()
 
     kwargs = vars(args)
-    del kwargs["batch_index"], kwargs["batch_total"]
+    try:
+        del kwargs["batch_index"], kwargs["batch_total"]
+    except KeyError:
+        pass
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
     do_lcs(**kwargs, compute_node=compute_node)
