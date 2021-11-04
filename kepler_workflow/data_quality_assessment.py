@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import argparse
 import numpy as np
@@ -24,6 +25,10 @@ def main(quarter, channel):
         f"../data/lcs/kepler/ch{channel:02}/q{quarter:02}/"
         f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_poscorT_sqrt_tk6_tp100.tar.gz"
     )
+    print(tar_file)
+    if not os.path.isfile(tar_file):
+        print("No light curve archive...")
+        sys.exit()
 
     lcs, kics, tpfs_org = get_archive_lightcurves(tar_file)
     jm_stats = compute_stats_from_lcs(lcs, project="kbonus")
@@ -33,11 +38,8 @@ def main(quarter, channel):
     print(kplcs_exist)
 
     if kplcs_exist:
-        print("Here!")
         feat_kp_sap = get_features(kplcs, flux_col="sap_flux")
-        print("fail?")
         feat_kp_pdc = get_features(kplcs, flux_col="pdcsap_flux")
-        print("maybe")
         kp_stats = compute_stats_from_lcs(kplcs, project="kepler")
         psf_zp, _, _, _ = compute_zero_point(
             jm_stats["lc_mean_psf"], kp_stats["lc_mean_pdc"], use_ransac=False
