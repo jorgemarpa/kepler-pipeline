@@ -14,7 +14,7 @@ def main():
     if not os.path.isdir(out_dir):
         os.makedirs(f"{PACKAGEDIR}/download/")
 
-    for k, fname in tqdm(enumerate(fname_list), total=len(file_list)):
+    for k, fname in tqdm(enumerate(file_list), total=len(file_list)):
         tarf = f"{fname.split('/')[0]}_{fname.split('/')[1]}.tar"
         tarf = f"{ARCHIVE_PATH}/data/kepler/tpf/{fname.split('/')[0]}/{tarf}"
         tarfile.open(tarf, mode="r").extract(fname, out_dir)
