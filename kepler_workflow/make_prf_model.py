@@ -5,12 +5,16 @@ import argparse
 import fitsio
 import warnings
 import logging
+import yaml
 import numpy as np
 import psfmachine as pm
+import lightkurve as lk
 import matplotlib.pyplot as plt
 from scipy import sparse
+from tqdm import tqdm
 
-from paths import ARCHIVE_PATH, OUTPUT_PATH
+from paths import ARCHIVE_PATH, OUTPUT_PATH, PACKAGEDIR
+from make_lightcurves import get_file_list, get_tpfs
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
@@ -29,29 +33,46 @@ def do_FFI(
     quiet=False,
 ):
 
-    if mission in ["Kepler", "kepler"]:
-        ffi_files = np.sort(
-            glob.glob(f"{ARCHIVE_PATH}/data/kepler/ffi/kplr*_ffi-cal.fits")
-        )
-        epoch_kw = "QUARTER"
-    elif mission in ["ktwo", "K2", "k2"]:
-        ffi_files = np.sort(glob.glob(f"{ARCHIVE_PATH}/data/k2/ffi/ktwo*_ffi-cal.fits"))
-        epoch_kw = "CAMPAIGN"
-    else:
-        raise ValueError("Wrong mission name, choose one of [Kepler, K2]")
-    ffi_q_fnames = [
-        ffi_f for ffi_f in ffi_files if fitsio.read_header(ffi_f)[epoch_kw] == quarter
-    ]
-    ffi_q_fnames = [f for f in ffi_q_fnames if not "kplr2009170043915" in f]
-    log.info(f"Using FFI files: {ffi_q_fnames}")
+    if mission in ["Kepler", "kepler", "ktwo", "K2", "k2"] and not quarter in [1, 17]:
+        if mission in ["Kepler", "kepler"]:
+            ffi_files = np.sort(
+                glob.glob(f"{ARCHIVE_PATH}/data/kepler/ffi/kplr*_ffi-cal.fits")
+            )
+            epoch_kw = "QUARTER"
+        elif mission in ["ktwo", "K2", "k2"]:
+            ffi_files = np.sort(
+                glob.glob(f"{ARCHIVE_PATH}/data/k2/ffi/ktwo*_ffi-cal.fits")
+            )
+            epoch_kw = "CAMPAIGN"
+        else:
+            raise ValueError("Wrong mission name, choose one of [Kepler, K2]")
+        ffi_q_fnames = [
+            ffi_f
+            for ffi_f in ffi_files
+            if fitsio.read_header(ffi_f)[epoch_kw] == quarter
+        ]
+        ffi_q_fnames = [f for f in ffi_q_fnames if not "kplr2009170043915" in f]
+        log.info(f"Using FFI files: {ffi_q_fnames}")
 
-    ffi = pm.FFIMachine.from_file(
-        ffi_q_fnames,
-        extension=channel,
-        cutout_size=400 if cut_out else None,
-        cutout_origin=[300, 300],
-        correct_offsets=False,
-    )
+        ffi = pm.FFIMachine.from_file(
+            ffi_q_fnames,
+            extension=channel,
+            cutout_size=400 if cut_out else None,
+            cutout_origin=[300, 300],
+            correct_offsets=False,
+        )
+    else:
+        log.info("Quarter does not have FFI, using all TPFs in the channel instead")
+        name_list = get_file_list(quarter, channel, -1, 1, tar_tpfs=True)
+        tpfs = get_tpfs(fname_list, tar_tpfs=True)
+        # load config file for TPFs
+        with open(
+            "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml"
+            % (PACKAGEDIR),
+            "r",
+        ) as f:
+            config = yaml.safe_load(f)
+        ffi = pm.TPFMachine.from_TPFs(tpfs, **config)
     ffi.quiet = quiet
     log.info(ffi)
 
