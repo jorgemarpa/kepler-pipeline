@@ -23,11 +23,13 @@ else
 fi
 
 echo "$jobs"
-
-ls -1 $prefix*$sufix* | xargs -n 1 -I {} -P $jobs tar xzvf {}
+echo " Uncompressing files..."
+ls -1 $prefix*$sufix* | xargs -n 1 -I {} -P $jobs tar xzf {}
 
 lcs=`ls -1 hlsp_kbonus*`
-
+echo "Compressing again..."
 tar czvf $tarname hlsp_kbonus*
 
+echo "Removing old files..."
 rm $lcs
+rm $files
