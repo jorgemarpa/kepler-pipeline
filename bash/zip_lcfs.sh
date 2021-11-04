@@ -24,10 +24,10 @@ fi
 
 echo "$jobs"
 
-echo "$files | xargs -n 1 -I {} -P $jobs tar xzvf {}"
+echo $files | xargs -n 1 -I {} -P $jobs tar xzvf {}
 
 lcs=`ls -1 hlsp_kbonus*`
 
-# tar cvf $tarname hlsp_kbonus*
-#
-# rm $lcs
+tar cvf $tarname hlsp_kbonus*
+
+rm $lcs
