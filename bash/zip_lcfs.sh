@@ -2,6 +2,9 @@
 
 prefix=$1
 sufix=$2
+tarname="${prefix}_${sufix}.tar.gz"
+
+rm $tarname
 
 files=`ls $prefix*$sufix*`
 
@@ -15,15 +18,16 @@ echo $n
 if [[ $n -lt 5 ]]
 then
   jobs=$n
+else
+  jobs=5
 fi
 
 echo "$jobs"
 
-echo $files | xargs -n 1 -I {} -P $jobs tar xzvf {}
+echo "$files | xargs -n 1 -I {} -P $jobs tar xzvf {}"
 
 lcs=`ls -1 hlsp_kbonus*`
-tarname="${prefix}_${sufix}.tar.gz"
 
-tar cvf $tarname hlsp_kbonus*
-
-rm $lcs
+# tar cvf $tarname hlsp_kbonus*
+#
+# rm $lcs
