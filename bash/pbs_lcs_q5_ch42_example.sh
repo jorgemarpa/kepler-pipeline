@@ -18,8 +18,8 @@ conda activate kepler-workflow
 # lunch parallel jobs
 # seq 1 3 | xargs -n 1 -I {} -P 3 python make_lightcurves.py --quarter 0 --channel 41 --batch-size 212 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 1 --channel 42 --batch-size 201 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 2 --channel 43 --batch-size 214 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 1 --channel 42 --batch-size 201 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 2 --channel 43 --batch-size 214 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 3 --channel 44 --batch-size 212 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 4 --channel 41 --batch-size 217 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 
@@ -29,18 +29,15 @@ seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 7 --chann
 seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 8 --channel 41 --batch-size 229 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 
 seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 9 --channel 42 --batch-size 228 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 10 --channel 43 --batch-size 234 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 11 --channel 44 --batch-size 228 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 12 --channel 41 --batch-size 224 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 
-# till here some lcfs are repeated "999999" problem
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 13 --channel 42 --batch-size 223 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 14 --channel 43 --batch-size 229 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 15 --channel 44 --batch-size 225 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 16 --channel 41 --batch-size 224 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 10 --channel 43 --batch-size 234 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 11 --channel 44 --batch-size 228 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 12 --channel 41 --batch-size 224 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 13 --channel 42 --batch-size 223 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 14 --channel 43 --batch-size 229 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 15 --channel 44 --batch-size 225 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 16 --channel 41 --batch-size 224 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
-
-# seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 17 --channel 42 --batch-size 223 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 17 --channel 42 --batch-size 223 --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20
 
 exit 0

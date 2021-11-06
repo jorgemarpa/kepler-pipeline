@@ -35,7 +35,6 @@ def main(quarter, channel):
 
     kplcs = get_keple_lightcurves(kics, quarter)
     kplcs_exist = ~np.all([lc == None for lc in kplcs])
-    print(kplcs_exist)
 
     if kplcs_exist:
         feat_kp_sap = get_features(kplcs, flux_col="sap_flux")

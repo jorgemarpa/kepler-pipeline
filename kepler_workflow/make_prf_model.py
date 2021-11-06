@@ -62,8 +62,9 @@ def do_FFI(
             correct_offsets=False,
         )
     else:
+        epoch_kw = "QUARTER"
         log.info("Quarter does not have FFI, using all TPFs in the channel instead")
-        name_list = get_file_list(quarter, channel, -1, 1, tar_tpfs=True)
+        fname_list = get_file_list(quarter, channel, -1, 1, tar_tpfs=True)
         tpfs = get_tpfs(fname_list, tar_tpfs=True)
         # load config file for TPFs
         with open(
@@ -73,6 +74,8 @@ def do_FFI(
         ) as f:
             config = yaml.safe_load(f)
         ffi = pm.TPFMachine.from_TPFs(tpfs, **config)
+        ffi.meta = {}
+        ffi.meta["MISSION"] = ffi.tpf_meta["mission"][0]
     ffi.quiet = quiet
     log.info(ffi)
 
