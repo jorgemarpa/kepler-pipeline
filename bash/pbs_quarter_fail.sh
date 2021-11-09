@@ -14,6 +14,7 @@ conda activate kepler-workflow
 
 # project directory
 WORKDIR=$(dirname `pwd`)
+quarter=5
 
 # get batch info from quarter file
 info="${WORKDIR}/data/support/fail_batch_index_quarter${quarter}.dat"
