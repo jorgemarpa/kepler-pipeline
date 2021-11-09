@@ -7,7 +7,7 @@ import tarfile
 import tempfile
 import warnings
 import logging
-import datetime
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import psfmachine as pm
@@ -595,7 +595,8 @@ if __name__ == "__main__":
     else:
         compute_node = True
         hand = logging.FileHandler(
-            f"{PACKAGEDIR}/logs/make_lightcurve_{os.getpid()}.info"
+            f"{PACKAGEDIR}/logs/make_lightcurve_{os.getpid()}_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.info"
         )
         hand.setLevel(logging.INFO)
     hand.setFormatter(logging.Formatter(FORMAT))
