@@ -9,13 +9,17 @@ def main():
 
     batch_idx_fail = []
     for fname in info_list:
+        print(fname)
         with open(fname, "r") as f:
             lines = f.readlines()
-            quarter = int(lines[10].split(":")[-1])
             if lines[-1][-6:-1] == "Done!":
+                quarter = int(lines[10].split(":")[-1])
                 continue
             else:
-                batch_idx_fail.append(int(lines[1].split(":")[-1]))
+                try:
+                    batch_idx_fail.append(int(lines[1].split(":")[-1]))
+                except IndexError:
+                    continue
 
     with open(
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat", "w"
