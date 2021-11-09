@@ -25,7 +25,7 @@ def main():
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat", "w"
     ) as f:
         for k in batch_idx_fail:
-            f.write(f"{batch_idx_fail[k]}\n")
+            f.write(f"{k}\n")
 
 
 if __name__ == "__main__":
