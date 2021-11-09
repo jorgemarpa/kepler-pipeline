@@ -21,6 +21,7 @@ def main():
                 except IndexError:
                     continue
 
+    batch_idx_fail = list(set(batch_idx_fail))
     with open(
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat", "w"
     ) as f:
