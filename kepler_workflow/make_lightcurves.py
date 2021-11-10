@@ -13,6 +13,7 @@ import pandas as pd
 import psfmachine as pm
 import lightkurve as lk
 from scipy import sparse
+from scipy import stats
 from tqdm import tqdm
 from memory_profiler import profile
 import matplotlib.pyplot as plt
@@ -425,11 +426,17 @@ def do_lcs(
         kics = machine.sources
 
     # get the TPF index for each lc, a sources could fall in more than 1 tpf
+    obs_per_pixel = machine.source_mask.multiply(machine.pix2obs).tocsr()
     tpf_idx = []
-    for i in range(len(machine.sources)):
-        tpf_idx.append(
-            [k for k, ss in enumerate(machine.tpf_meta["sources"]) if i in ss]
-        )
+    for k in range(machine.source_mask.shape[0]):
+        pix = obs_per_pixel[k].data
+        mode = stats.mode(pix)[0]
+        if len(mode) > 0:
+            tpf_idx.append(mode[0])
+        else:
+            tpf_idx.append(
+                [x for x, ss in enumerate(machine.tpf_meta["sources"]) if k in ss][0]
+            )
     # save lcs
     dir_name = "%s/%s/ch%02i/q%02i" % (
         LCS_PATH,
@@ -470,15 +477,15 @@ def do_lcs(
             "PIXINAP": machine.aperture_mask[i].sum(),
             "KEPLERID": kics["kic"][i],
             "KEPMAG": kics["kepmag"][i],
-            "TPFORG": machine.tpfs[tpf_idx[i][0]].meta["KEPLERID"],
+            "TPFORG": machine.tpfs[tpf_idx[i]].meta["KEPLERID"],
             "TELESCOP": machine.tpfs[0].meta["TELESCOP"],
             "INSTRUME": machine.tpfs[0].meta["INSTRUME"],
             "OBSMODE": machine.tpfs[0].meta["OBSMODE"],
             "OUTPUT": machine.tpfs[0].meta["OUTPUT"],
             "SEASON": machine.tpfs[0].meta["SEASON"],
             "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
-            "cadenceno": machine.tpfs[tpf_idx[i][0]].cadenceno[cadno_mask],
-            "quality": machine.tpfs[tpf_idx[i][0]].quality[cadno_mask],
+            "cadenceno": machine.tpfs[tpf_idx[i]].cadenceno[cadno_mask],
+            "quality": machine.tpfs[tpf_idx[i]].quality[cadno_mask],
             "centroid_col": vars(machine)[
                 "source_centroids_column_%s" % (centroid_method)
             ][i],
