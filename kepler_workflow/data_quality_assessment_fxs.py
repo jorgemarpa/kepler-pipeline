@@ -67,41 +67,62 @@ def get_archive_lightcurves(tar_files):
     return lcs, kics, tpf_org
 
 
-def get_keple_lightcurves(kics, quarter):
+def get_keple_lightcurves(kics, quarter, tar=True):
 
     lcs = []
-    with tempfile.TemporaryDirectory() as tmpdir:
+    exist = False
+    if tar:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for kic in tqdm(kics, desc="Loading Kepler LCs"):
+                # skip None IDs
+                if kic is None:
+                    lcs.append(None)
+                    continue
+                tarname = glob.glob(
+                    f"{kepler_root_dir}/lcs/{kic[:4]}/kplr{kic}_lc_Q*.tar"
+                )
+                # skip when tarball doesn't exist
+                if len(tarname) == 0:
+                    lcs.append(None)
+                    continue
+                else:
+                    tarname = tarname[0]
+                to_extract = f"{kic}/kplr{kic}-{qd_map[quarter]}_llc.fits"
+                # unpack
+                with tarfile.open(tarname, mode="r") as tar:
+                    try:
+                        tar.extract(to_extract, path=tmpdir)
+                    # skip when quarter doesn’t exist
+                    except KeyError:
+                        lcs.append(None)
+                        continue
+
+                fin = f"{tmpdir}/{to_extract}"
+
+                if os.path.isfile(fin):
+                    lcs.append(lk.KeplerLightCurve.read(fin))
+                    exist = True
+                else:
+                    lcs.append(None)
+                    continue
+    else:
         for kic in tqdm(kics, desc="Loading Kepler LCs"):
             # skip None IDs
             if kic is None:
                 lcs.append(None)
                 continue
-            tarname = glob.glob(f"{kepler_root_dir}/lcs/{kic[:4]}/kplr{kic}_lc_Q*.tar")
-            # skip when tarball doesn't exist
-            if len(tarname) == 0:
-                lcs.append(None)
-                continue
-            else:
-                tarname = tarname[0]
-            to_extract = f"{kic}/kplr{kic}-{qd_map[quarter]}_llc.fits"
-            # unpack
-            with tarfile.open(tarname, mode="r") as tar:
-                try:
-                    tar.extract(to_extract, path=tmpdir)
-                # skip when quarter doesn’t exist
-                except KeyError:
-                    lcs.append(None)
-                    continue
-
-            fin = f"{tmpdir}/{to_extract}"
-
-            if os.path.isfile(fin):
-                lcs.append(lk.KeplerLightCurve.read(fin))
+            fname = (
+                f"{ARCHIVE_PATH}/data/kepler/lcs/q{quarter:02}"
+                f"/{kic[:4]}/kplr{kic}-{qd_map[quarter]}_llc.fits"
+            )
+            if os.path.isfile(fname):
+                lcs.append(lk.KeplerLightCurve.read(fname))
+                exist = True
             else:
                 lcs.append(None)
                 continue
 
-    return lcs
+    return lcs, exist
 
 
 def make_lc_download_sh(unique_kics, channel, quarter):
@@ -156,7 +177,7 @@ def make_lc_download_sh(unique_kics, channel, quarter):
 #     wget.download(url, out="lcs/Kepler/")
 
 
-def compute_stats_from_lcs(lcs, project="kbonus"):
+def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
     mean_lcs_ap1, mean_lcs_ap2, = (
         [],
         [],
@@ -201,32 +222,40 @@ def compute_stats_from_lcs(lcs, project="kbonus"):
             mean_lcs_ap1.append(np.nanmean(lc.flux).value)
             mean_lcs_ap2.append(np.nanmean(lc.sap_flux).value)
             # CDPP values
-            if (lc.flux == 0).all() or not np.isfinite(lc.flux).all():
-                cdpp_lcs_ap1.append(np.nan)
-            else:
-                try:
-                    cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
-                except:
+            if do_cdpp:
+                if (lc.flux == 0).all() or not np.isfinite(lc.flux).all():
                     cdpp_lcs_ap1.append(np.nan)
+                else:
+                    try:
+                        cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
+                    except:
+                        cdpp_lcs_ap1.append(np.nan)
 
-            if (lc.sap_flux == 0).all():
-                cdpp_lcs_ap2.append(np.nan)
-            else:
-                lc.flux = lc.sap_flux
-                try:
-                    cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
-                except:
+                if (lc.sap_flux == 0).all():
                     cdpp_lcs_ap2.append(np.nan)
+                else:
+                    lc.flux = lc.sap_flux
+                    try:
+                        cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
+                    except:
+                        cdpp_lcs_ap2.append(np.nan)
+            else:
+                cdpp_lcs_ap1.append(np.nan)
+                cdpp_lcs_ap2.append(np.nan)
 
         else:
             cat_mag.append(lc.meta["KEPMAG"])
             mean_lcs_ap1.append(np.nanmean(lc.pdcsap_flux).value)
             mean_lcs_ap2.append(np.nanmean(lc.sap_flux).value)
             # CDPP values
-            lc.flux = lc.pdcsap_flux
-            cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
-            lc.flux = lc.sap_flux
-            cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
+            if do_cdpp:
+                lc.flux = lc.pdcsap_flux
+                cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
+                lc.flux = lc.sap_flux
+                cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
+            else:
+                cdpp_lcs_ap1.append(np.nan)
+                cdpp_lcs_ap2.append(np.nan)
 
         complet.append(float(lc.FLFRCSAP) if lc.FLFRCSAP != "" else np.nan)
         contam.append(float(lc.CROWDSAP) if lc.CROWDSAP != "" else np.nan)
@@ -519,7 +548,9 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     lc_ex_idx = find_lc_examples(jm_stats, lcs)
 
     fig = plt.figure(figsize=(24, 35))
-    fig.suptitle(f"Kepler Q{quarter} Ch{channel}", x=0.5, y=0.895, fontsize=20)
+    fig.suptitle(
+        f"Kepler Q{quarter} Ch{channel} N {len(lcs):,}", x=0.5, y=0.895, fontsize=20
+    )
     G = gridspec.GridSpec(8, 4, figure=fig)
 
     fontsize = 10
@@ -775,10 +806,10 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
         ax_21.legend(loc="upper left", markerscale=5)
 
     if save:
-        dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel}"
+        dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel:02}"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        fig_name = f"{dir_name}/dashboard_q{quarter}.pdf"
+        fig_name = f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}.pdf"
         plt.savefig(fig_name, format="pdf", bbox_inches="tight", pad_inches=0.1)
     else:
         plt.show()
