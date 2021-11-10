@@ -12,40 +12,94 @@ path = os.path.dirname(os.getcwd())
 
 sys.path.append(f"{path}/kepler_workflow/")
 
+from paths import PACKAGEDIR, ARCHIVE_PATH, LCS_PATH
 from data_quality_assessment_fxs import *
 
 import warnings
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def main(quarter, channel):
-    tar_file = (
-        f"../data/lcs/kepler/ch{channel:02}/q{quarter:02}/"
-        f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_poscorT_sqrt_tk6_tp100.tar.gz"
+def drop_repeated(lcs):
+    """
+    Return index of duplicated light curves, we keep the good ones.
+    """
+    gids = np.array([int(x.GAIAID.split(" ")[-1]) for x in lcs])
+    dup_mask = np.ones_like(gids, dtype=bool)
+    dup_mask[np.unique(gids, return_index=True)[1]] = False
+
+    drop_idx = []
+    for dup in gids[dup_mask]:
+        dup_idx = np.where(dup == gids)[0]
+        err_means = np.array([lcs[idx].flux_err.mean().value for idx in dup_idx])
+        drop_idx.extend(dup_idx[np.isnan(err_means)])
+        dup_idx = dup_idx[np.isfinite(err_means)]
+        err_means = err_means[np.isfinite(err_means)]
+        drop_idx.extend(np.delete(dup_idx, np.argmin(err_means)))
+    return drop_idx
+
+
+def main(quarter, channel, download=False):
+    tar_file = np.sort(
+        glob.glob(
+            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc*_"
+            f"poscorT_sqrt_tk6_tp100.tar.gz"
+        )
     )
+    if len(tar_file) == 0:
+        print("No light curve archive...")
+        sys.exit()
     print(tar_file)
-    if not os.path.isfile(tar_file):
+    if not os.path.isfile(tar_file[0]):
         print("No light curve archive...")
         sys.exit()
 
     lcs, kics, tpfs_org = get_archive_lightcurves(tar_file)
-    jm_stats = compute_stats_from_lcs(lcs, project="kbonus")
+    print(len(lcs), len(kics), len(tpfs_org))
+    drop_idx = drop_repeated(lcs)
+    print(drop_idx)
+    for k in sorted(drop_idx)[::-1]:
+        del lcs[k], kics[k], tpfs_org[k]
+    print(len(lcs), len(kics), len(tpfs_org))
+    jm_stats = compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True)
 
-    kplcs = get_keple_lightcurves(kics, quarter)
-    kplcs_exist = ~np.all([lc == None for lc in kplcs])
+    kplcs, kplcs_exist = get_keple_lightcurves(
+        kics, quarter, tar=False if quarter == 5 else True
+    )
+    print(kplcs_exist)
+    # kplcs_exist = ~np.all([lc == None for lc in kplcs])
+    if (not kplcs_exist) and (download):
+        print("Downloading Kepler LCFs")
+        pr_name = make_lc_download_sh(list(set(kics)), channel, quarter)
+        # Use subprocess to run the shell script and download the LCFs
+        # This takes time to run
+        exit = subprocess.run(["sh", "pr_name"], stdout=subprocess.DEVNULL)
+        print("The exit code was: %d" % exit.returncode)
 
     if kplcs_exist:
-        feat_kp_sap = get_features(kplcs, flux_col="sap_flux")
-        feat_kp_pdc = get_features(kplcs, flux_col="pdcsap_flux")
-        kp_stats = compute_stats_from_lcs(kplcs, project="kepler")
+        kp_stats = compute_stats_from_lcs(kplcs, project="kepler", do_cdpp=True)
         psf_zp, _, _, _ = compute_zero_point(
             jm_stats["lc_mean_psf"], kp_stats["lc_mean_pdc"], use_ransac=False
         )
         sap_zp, _, _, _ = compute_zero_point(
             jm_stats["lc_mean_sap"], kp_stats["lc_mean_pdc"], use_ransac=False
         )
+        zp_fname = (
+            f"{PACKAGEDIR}/data/support/zero_point_ch{channel:02}_q{quarter:02}.dat"
+        )
+        np.savetxt(
+            zp_fname,
+            np.array([[quarter, channel, psf_zp, sap_zp]]),
+            header="quarter,channel,psf_zp,sap_zp",
+            delimiter=",",
+            fmt="%i %i %f %f",
+        )
+        # sys.exit()
+        feat_kp_sap = get_features(kplcs, flux_col="sap_flux")
+        feat_kp_pdc = get_features(kplcs, flux_col="pdcsap_flux")
     else:
         kplcs = None
         feat_kp_sap = None
