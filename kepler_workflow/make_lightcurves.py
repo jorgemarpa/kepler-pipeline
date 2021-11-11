@@ -494,12 +494,16 @@ def do_lcs(
             ][i],
         }
         hdul = make_hdul(lc, machine.sources.loc[i], meta, fit_va=fit_va)
-        target_name = hdul[0].header["LABEL"].replace(" ", "-")
+        if "KIC" in hdul[0].header["LABEL"]:
+            target_name = f"KIC-{int(hdul[0].header['LABEL'].split(' ')[-1]):09}"
+        else:
+            target_name = hdul[0].header["LABEL"].replace(" ", "-")
         fname = "hlsp_kbonus-kbkgd_kepler_kepler_%s-q%02i_kepler_v%s_lc.fits" % (
-            target_name,
+            target_name.lower(),
             quarter,
             lc_version,
         )
+        print(fname)
         if tar_lcs:
             with tempfile.NamedTemporaryFile(mode="wb") as tmp:
                 hdul.writeto(tmp)
