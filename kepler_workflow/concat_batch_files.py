@@ -1,7 +1,7 @@
 import glob
 import numpy as np
 import argparse
-from astropy.io import fits
+import fitsio
 import tarfile
 import tempfile
 from tqdm import tqdm
@@ -37,10 +37,10 @@ def main(prefix="", sufix="", path=""):
             tar_out.close()
 
     else:
-        raise(ValueError)
+        raise (ValueError)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AutoEncoder")
     parser.add_argument(
         "--prefix",
