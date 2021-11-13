@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def drop_repeated(lcs):
+def drop_repeated(lcs, quarter, channel):
     """
     Return index of duplicated light curves, we keep the good ones.
     """
@@ -31,13 +31,24 @@ def drop_repeated(lcs):
     dup_mask[np.unique(gids, return_index=True)[1]] = False
 
     drop_idx = []
-    for dup in gids[dup_mask]:
-        dup_idx = np.where(dup == gids)[0]
-        err_means = np.array([lcs[idx].flux_err.mean().value for idx in dup_idx])
-        drop_idx.extend(dup_idx[np.isnan(err_means)])
-        dup_idx = dup_idx[np.isfinite(err_means)]
-        err_means = err_means[np.isfinite(err_means)]
-        drop_idx.extend(np.delete(dup_idx, np.argmin(err_means)))
+    with open(
+        f"{PACKAGEDIR}/data/support/duplicated/"
+        f"gids_duplicated_q{quarter:02}_ch{channel:02}.dat",
+        "w",
+    ) as f:
+        f.write("#gaia_designation, n_repeated, keep_idx\n")
+        for dup in gids[dup_mask]:
+            dup_idx = np.where(dup == gids)[0]
+            err_means = np.array([lcs[idx].flux_err.mean().value for idx in dup_idx])
+            if np.isnan(err_means).all():
+                err_means = np.array(
+                    [lcs[idx].sap_flux_err.mean().value for idx in dup_idx]
+                )
+            f.write(f"Gaia EDR3 {dup}, {len(dup_idx)}, {np.nanargmin(err_means)}\n")
+            drop_idx.extend(dup_idx[np.isnan(err_means)])
+            dup_idx = dup_idx[np.isfinite(err_means)]
+            err_means = err_means[np.isfinite(err_means)]
+            drop_idx.extend(np.delete(dup_idx, np.argmin(err_means)))
     return drop_idx
 
 
@@ -59,7 +70,7 @@ def main(quarter, channel, download=False):
 
     lcs, kics, tpfs_org = get_archive_lightcurves(tar_file)
     print(len(lcs), len(kics), len(tpfs_org))
-    drop_idx = drop_repeated(lcs)
+    drop_idx = drop_repeated(lcs, quarter, channel)
     print(drop_idx)
     for k in sorted(drop_idx)[::-1]:
         del lcs[k], kics[k], tpfs_org[k]
@@ -88,7 +99,8 @@ def main(quarter, channel, download=False):
             jm_stats["lc_mean_sap"], kp_stats["lc_mean_pdc"], use_ransac=False
         )
         zp_fname = (
-            f"{PACKAGEDIR}/data/support/zero_point_ch{channel:02}_q{quarter:02}.dat"
+            f"{PACKAGEDIR}/data/support/zero_points/"
+            f"zero_point_ch{channel:02}_q{quarter:02}.dat"
         )
         np.savetxt(
             zp_fname,
