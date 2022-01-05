@@ -20,6 +20,7 @@ import astropy.units as u
 from paths import *
 
 kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler"
+# /Volumes/jorge-marpa/Work/BAERI/data/kepler/
 qd_map = {
     1: 2009166043257,
     2: 2009259160929,
@@ -112,7 +113,7 @@ def get_keple_lightcurves(kics, quarter, tar=True):
                 lcs.append(None)
                 continue
             fname = (
-                f"{ARCHIVE_PATH}/data/kepler/lcs/q{quarter:02}"
+                f"{ARCHIVE_PATH}/data/kepler/lcs"
                 f"/{kic[:4]}/kplr{kic}-{qd_map[quarter]}_llc.fits"
             )
             if os.path.isfile(fname):
