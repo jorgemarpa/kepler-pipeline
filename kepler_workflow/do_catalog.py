@@ -23,6 +23,7 @@ def main(dir, quarter):
     psf_flux, psf_flux_err = [], []
     FLFRCSAP, CROWDSAP, NPIXSAP = [], [], []
     channel = []
+    gmag = []
 
     for k, f in tqdm(enumerate(lcfs), total=len(lcfs), desc="FITS"):
         gids.append(fitsio.read_header(f)["GAIAID"])
@@ -35,6 +36,7 @@ def main(dir, quarter):
         CROWDSAP.append(fitsio.read_header(f)["CROWDSAP"])
         NPIXSAP.append(fitsio.read_header(f)["NPIXSAP"])
         channel.append(fitsio.read_header(f)["CHANNEL"])
+        gmag.append(fitsio.read_header(f)["GMAG"])
 
         sap_flux.append(np.median(fitsio.read(f, ext=1, columns="SAP_FLUX")))
         psf_flux.append(np.median(fitsio.read(f, ext=1, columns="FLUX")))
@@ -54,6 +56,7 @@ def main(dir, quarter):
             "sap_flux_err": sap_flux_err,
             "psf_flux": psf_flux,
             "psf_flux_err": psf_flux_err,
+            "gmag": gmag,
             "channel": channel,
             "flfrcsap": FLFRCSAP,
             "crowdsap": CROWDSAP,
