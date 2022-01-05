@@ -37,7 +37,7 @@ typedir = {
     float: "D",
     bool: "L",
     np.int32: "J",
-    np.int32: "K",
+    np.int64: "K",
     np.float32: "E",
     np.float64: "D",
 }
@@ -334,6 +334,7 @@ def do_lcs(
 
     del tpfs
     log.info(machine)
+
     # load shape model from FFI and fit light curves
     shape_model_path = (
         "%s/data/shape_models/ffi/ch%02i/%s_ffi_shape_model_ch%02i_q%02i.fits"
