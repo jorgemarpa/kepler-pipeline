@@ -1,4 +1,4 @@
-magnitude_limit: 18
+magnitude_limit: 19
 dr: 3
 apply_focus_mask: True
 limit_radius: 24.0
@@ -9,5 +9,6 @@ n_time_points: 100
 time_radius: 8
 rmin: 1
 rmax: 16
-use_poscorr: True
+time_corrector: "pos_corr"
 cartesian_knot_spacing: sqrt
+fit_bkg: True
