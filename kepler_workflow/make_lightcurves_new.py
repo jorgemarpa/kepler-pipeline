@@ -20,8 +20,6 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.coordinates import SkyCoord, match_coordinates_3d
 import astropy.units as u
-
-# from astropy.table import Table
 from astroquery.vizier import Vizier
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
@@ -52,7 +50,7 @@ def print_dict(dictionary):
         log.info(f"{k:<22}: {dictionary[k]}")
 
 
-# @profile
+@profile
 def get_KICs(catalog):
     """
     Query KIC (<2") and return the Kepler IDs for result sources.
@@ -74,7 +72,7 @@ def get_KICs(catalog):
     return catalog
 
 
-# @profile
+@profile
 def get_file_list(quarter, channel, batch_size, batch_number, tar_tpfs=True):
 
     lookup_table = pd.read_csv(
@@ -195,7 +193,7 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
     return hdul
 
 
-# @profile
+@profile
 def get_tpfs(fname_list, tar_tpfs=True):
     if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
@@ -213,7 +211,7 @@ def get_tpfs(fname_list, tar_tpfs=True):
         return lk.collections.TargetPixelFileCollection(tpfs)
 
 
-# @profile
+@profile
 def do_poscorr_plot(machine):
     (
         time_original,
@@ -260,7 +258,7 @@ def do_poscorr_plot(machine):
     return fig
 
 
-# @profile
+@profile
 def do_lcs(
     quarter=5,
     channel=1,
@@ -326,7 +324,7 @@ def do_lcs(
         f"/{date[:4]}"
         f"/kplr{machine.tpfs[0].module}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
     )
-    print(bkg_file)
+    log.info(bkg_file)
     if os.path.isfile(bkg_file):
         log.info("Adding Mission BKG pixels...")
         # read files
@@ -346,6 +344,7 @@ def do_lcs(
     else:
         data_augment = None
 
+    log.info("Building models...")
     # fit background
     machine.build_background_model(
         plot=False,
@@ -375,6 +374,7 @@ def do_lcs(
     )
     # PSF phot
     machine.build_time_model(plot=False)
+    log.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
     iter_negative = True
     if iter_negative:
