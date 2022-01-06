@@ -2,13 +2,13 @@ import os
 import sys
 import glob
 import argparse
-import fitsio
 import tarfile
 import tempfile
 import logging
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from astropy.io import fits
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH
 
@@ -55,13 +55,15 @@ def do_lookup_table(
         if len(tpfs) == 0:
             raise ValueError("No TPFs for selected quarter %i" % quarter)
 
-        channels, quarters, ras, decs = np.array(
+        channels, quarters, ras, decs, cols, rows = np.array(
             [
                 [
-                    fitsio.read_header(f)["CHANNEL"],
-                    fitsio.read_header(f)["QUARTER"],
-                    fitsio.read_header(f)["RA_OBJ"],
-                    fitsio.read_header(f)["DEC_OBJ"],
+                    fits.getheader(f, ex=0)["CHANNEL"],
+                    fits.getheader(f, ex=0)["QUARTER"],
+                    fits.getheader(f, ex=0)["RA_OBJ"],
+                    fits.getheader(f, ex=0)["DEC_OBJ"],
+                    fits.getheader(f, ex=1)["1CRV5P"],
+                    fits.getheader(f, ex=1)["2CRV5P"],
                 ]
                 for f in tpfs
             ]
@@ -71,7 +73,7 @@ def do_lookup_table(
         log.info(f"Total number of tarballs in {folder}/: {tarlist.shape[0]}")
         if len(tarlist) == 0:
             raise ValueError(f"No TPFs for selected folder {folder}")
-        tpfs, channels, quarters, ras, decs = [], [], [], [], []
+        tpfs, channels, quarters, ras, decs, cols, rows = [], [], [], [], [], [], []
         with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
             for tarf in tqdm(tarlist, desc="Reading headers", disable=quiet):
                 kic = tarf.split(".")[0].split("_")[-1]
@@ -84,15 +86,18 @@ def do_lookup_table(
                     log.info(f"tar file fail {tarf}")
                     continue
                 tpfs.append(fname)
-                header = fitsio.read_header(f"{tmpdir}/{fname}")
+                header = fits.getheader(f"{tmpdir}/{fname}", ext=0)
                 channels.append(header["CHANNEL"])
                 quarters.append(header["QUARTER"])
                 ras.append(header["RA_OBJ"])
                 decs.append(header["DEC_OBJ"])
+                header = fits.getheader(f"{tmpdir}/{fname}", ext=1)
+                cols.append(header["1CRV5P"])
+                rows.append(header["2CRV5P"])
 
     df = pd.DataFrame(
-        [tpfs, quarters, channels, ras, decs],
-        index=["file_name", "quarter", "channel", "ra", "dec"],
+        [tpfs, quarters, channels, ras, decs, cols, rows],
+        index=["file_name", "quarter", "channel", "ra", "dec", "col", "row"],
     ).T
     df.channel = df.channel.astype(np.int8)
     df.quarter = df.quarter.astype(np.int8)
