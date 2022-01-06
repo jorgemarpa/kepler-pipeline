@@ -50,7 +50,7 @@ def print_dict(dictionary):
         log.info(f"{k:<22}: {dictionary[k]}")
 
 
-@profile
+# @profile
 def get_KICs(catalog):
     """
     Query KIC (<2") and return the Kepler IDs for result sources.
@@ -72,7 +72,7 @@ def get_KICs(catalog):
     return catalog
 
 
-@profile
+# @profile
 def get_file_list(quarter, channel, batch_size, batch_number, tar_tpfs=True):
 
     lookup_table = pd.read_csv(
@@ -193,7 +193,7 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
     return hdul
 
 
-@profile
+# @profile
 def get_tpfs(fname_list, tar_tpfs=True):
     if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
@@ -211,7 +211,7 @@ def get_tpfs(fname_list, tar_tpfs=True):
         return lk.collections.TargetPixelFileCollection(tpfs)
 
 
-@profile
+# @profile
 def do_poscorr_plot(machine):
     (
         time_original,
@@ -258,7 +258,7 @@ def do_poscorr_plot(machine):
     return fig
 
 
-@profile
+# @profile
 def do_lcs(
     quarter=5,
     channel=1,
