@@ -378,7 +378,7 @@ def do_lcs(
     machine.build_time_model(plot=False)
     log.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
-    iter_negative = True
+    iter_negative = fit_va
     if iter_negative:
         # More than 2% negative cadences
         negative_sources = (machine.ws_va < 0).sum(axis=0) > (0.02 * machine.nt)
