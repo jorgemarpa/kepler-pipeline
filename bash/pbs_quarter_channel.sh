@@ -2,6 +2,7 @@
 #PBS -N make-LCs
 #PBS -q devel
 #PBS -l select=1:ncpus=10:mem=60G:model=ivy
+#PBS -l walltime=00:60:00
 #PBS -j oe
 #PBS -m e
 #PBS -V
@@ -18,4 +19,4 @@ echo "Channel $ch Quarter $qu"
 echo "$bn batches of size $bs"
 
 # lunch parallel jobs
-seq 1 ${bn} | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter ${qu} --channel ${ch} --batch-size ${bs} --batch-number {} --tar-tpfs --tar-lcs --fit-va --log 20 --dry-run
+seq 1 ${bn} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${qu} --channel ${ch} --batch-size ${bs} --batch-number {} --tar-tpfs --tar-lcs --augment-bkg --plot --fit-va --log 20
