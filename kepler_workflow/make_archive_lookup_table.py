@@ -127,10 +127,32 @@ def concatenate(quarter, tar_archive=True):
         raise FileExistsError("No files to concatenate")
     dfs = pd.concat([pd.read_csv(f, index_col=0) for f in f_list], axis=0)
 
+    file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
+        OUTPUT_PATH,
+        quarter,
+        "_tar" if tar_archive else "",
+    )
+    log.info(f"Output file: {file_name}")
+    dfs.reset_index(drop=True).to_csv(file_name)
+    for f in f_list:
+        os.remove(f)
+
+
+def sort_tpfs_by_pos(quarter, tar_archive=True):
+
+    file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
+        OUTPUT_PATH,
+        quarter,
+        "_tar" if tar_archive else "",
+    )
+    log.info(f"Loading from {file_name}")
+    lkp_tbl = pd.read_csv(file_name, index_col=0)
+
     bins = [5, 4, 3, 2, 1]
     sorted_lkp_tbl = []
+    log.info("Sorting TPFs")
     for ch in tqdm(range(1, 85), total=84):
-        files_in = dfs.query("channel == %i and quarter == %i" % (ch, quarter))
+        files_in = lkp_tbl.query("channel == %i and quarter == %i" % (ch, quarter))
 
         for bn in bins:
             h, xedges, yedges = np.histogram2d(files_in.col, files_in.row, bins=bn)
@@ -159,15 +181,7 @@ def concatenate(quarter, tar_archive=True):
         sorted_lkp_tbl.append(sorted_ch)
     sorted_lkp_tbl = pd.concat(sorted_lkp_tbl).reset_index(drop=True).drop_duplicates()
 
-    file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
-        OUTPUT_PATH,
-        quarter,
-        "_tar" if tar_archive else "",
-    )
-    log.info(f"Output file: {file_name}")
-    sorted_lkp_tbl.reset_index(drop=True).to_csv(file_name)
-    for f in f_list:
-        os.remove(f)
+    sorted_lkp_tbl.to_csv(file_name)
 
 
 def how_many_batches(quarter, batch_size):
@@ -281,6 +295,13 @@ if __name__ == "__main__":
         help="Concatenate all lookup tables in a quarter.",
     )
     parser.add_argument(
+        "--sort",
+        dest="sort",
+        action="store_true",
+        default=False,
+        help="Sort TPFs.",
+    )
+    parser.add_argument(
         "--sum-tpfs",
         dest="sum_tpfs",
         action="store_true",
@@ -310,6 +331,9 @@ if __name__ == "__main__":
 
     if args.concat:
         concatenate(args.quarter, tar_archive=args.tar_archive)
+        sort_tpfs_by_pos(args.quarter, tar_archive=args.tar_archive)
+    elif args.sort:
+        sort_tpfs_by_pos(args.quarter, tar_archive=args.tar_archive)
     elif args.sum_tpfs:
         how_many_tpfs(tar_archive=args.tar_archive)
     else:
