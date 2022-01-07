@@ -271,6 +271,7 @@ def do_lcs(
     fit_va=True,
     quiet=False,
     compute_node=False,
+    augment_bkg=True,
 ):
 
     ##############################################################################
@@ -325,7 +326,7 @@ def do_lcs(
         f"/kplr{machine.tpfs[0].module}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
     )
     log.info(bkg_file)
-    if os.path.isfile(bkg_file):
+    if os.path.isfile(bkg_file) and augment_bkg:
         log.info("Adding Mission BKG pixels...")
         # read files
         mission_bkg_pixels = Table.read(bkg_file, hdu=2)
@@ -624,6 +625,13 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Fit Velocity aberration.",
+    )
+    parser.add_argument(
+        "--augment-bkg",
+        dest="augment_bkg",
+        action="store_true",
+        default=False,
+        help="Augment background pixels.",
     )
     parser.add_argument(
         "--tar-lcs",
