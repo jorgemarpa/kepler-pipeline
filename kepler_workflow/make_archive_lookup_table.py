@@ -127,13 +127,45 @@ def concatenate(quarter, tar_archive=True):
         raise FileExistsError("No files to concatenate")
     dfs = pd.concat([pd.read_csv(f, index_col=0) for f in f_list], axis=0)
 
+    bins = [5, 4, 3, 2, 1]
+    sorted_lkp_tbl = []
+    for ch in tqdm(range(1, 85), total=84):
+        files_in = dfs.query("channel == %i and quarter == %i" % (ch, quarter))
+
+        for bn in bins:
+            h, xedges, yedges = np.histogram2d(files_in.col, files_in.row, bins=bn)
+            if h.max() > 150:
+                break
+
+        sorted_ch = []
+        col_size = 1112 // bn
+        row_size = 1044 // bn
+        bn_row_org = np.arange(bn)
+        bn_col = np.arange(bn)
+        for i, x in enumerate(range(bn)):
+            if i % 2 == 1:
+                bn_row = bn_row_org[::-1]
+            else:
+                bn_row = bn_row_org
+            for y in range(bn):
+
+                in_cell = files_in.query(
+                    f"col >= {bn_col[x]*col_size} and col <= {(bn_col[x]+1)*col_size} and "
+                    f"row >= {bn_row[y]*row_size} and row <= {(bn_row[y]+1)*row_size}"
+                )
+                sorted_ch.append(in_cell.sort_values(["row"], ascending=i % 2 == 0))
+
+        sorted_ch = pd.concat(sorted_ch).reset_index(drop=True).drop_duplicates()
+        sorted_lkp_tbl.append(sorted_ch)
+    sorted_lkp_tbl = pd.concat(sorted_lkp_tbl).reset_index(drop=True).drop_duplicates()
+
     file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
         OUTPUT_PATH,
         quarter,
         "_tar" if tar_archive else "",
     )
     log.info(f"Output file: {file_name}")
-    dfs.reset_index(drop=True).to_csv(file_name)
+    sorted_lkp_tbl.reset_index(drop=True).to_csv(file_name)
     for f in f_list:
         os.remove(f)
 
