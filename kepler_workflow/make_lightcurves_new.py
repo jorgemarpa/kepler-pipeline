@@ -710,8 +710,9 @@ if __name__ == "__main__":
         sys.exit()
 
     kwargs = vars(args)
+    kwargs["force_log"]
     try:
-        del kwargs["batch_index"], kwargs["batch_total"], kwargs["force_log"]
+        del kwargs["batch_index"], kwargs["batch_total"]
     except KeyError:
         pass
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
