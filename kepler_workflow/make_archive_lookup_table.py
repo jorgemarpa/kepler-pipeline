@@ -181,6 +181,9 @@ def sort_tpfs_by_pos(quarter, tar_archive=True):
         sorted_lkp_tbl.append(sorted_ch)
     sorted_lkp_tbl = pd.concat(sorted_lkp_tbl).reset_index(drop=True).drop_duplicates()
 
+    log.info(f"org table shape {lkp_tbl.shape}")
+    log.info(f"new table shape {sorted_lkp_tbl.shape}")
+
     sorted_lkp_tbl.to_csv(file_name)
 
 
