@@ -342,6 +342,7 @@ def do_lcs(
             "column": mission_bkg_pixels["RAWX"].data,
             "flux": mission_bkg_data["FLUX"].data[mission_mask],
         }
+        del mission_bkg_pixels, mission_bkg_data
     else:
         data_augment = None
 
@@ -654,6 +655,13 @@ if __name__ == "__main__":
         default=False,
         help="Dry run.",
     )
+    parser.add_argument(
+        "--force-log",
+        dest="force_log",
+        action="store_true",
+        default=False,
+        help="Forcel logging.",
+    )
     parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
     # set verbose level for logger
@@ -664,8 +672,10 @@ if __name__ == "__main__":
 
     FORMAT = "%(filename)s:%(lineno)s : %(message)s"
     # send to log file when running in compute nodes
-    if (socket.gethostname() in ["NASAs-MacBook-Pro.local"]) or (
-        (socket.gethostname()[:3] == "pfe")
+    if (
+        (socket.gethostname() in ["NASAs-MacBook-Pro.local"])
+        or (socket.gethostname()[:3] == "pfe")
+        or (args.force_log)
     ):
         compute_node = False
         hand = logging.StreamHandler(sys.stdout)
@@ -701,7 +711,7 @@ if __name__ == "__main__":
 
     kwargs = vars(args)
     try:
-        del kwargs["batch_index"], kwargs["batch_total"]
+        del kwargs["batch_index"], kwargs["batch_total"], kwargs["force_log"]
     except KeyError:
         pass
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
