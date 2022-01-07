@@ -677,7 +677,10 @@ if __name__ == "__main__":
         or (socket.gethostname()[:3] == "pfe")
         or (args.force_log)
     ):
-        compute_node = False
+        if args.force_log:
+            compute_node = True
+        else:
+            compute_node = False
         hand = logging.StreamHandler(sys.stdout)
         hand.setFormatter(logging.Formatter(FORMAT))
     else:
