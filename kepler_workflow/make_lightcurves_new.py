@@ -7,6 +7,7 @@ import tarfile
 import tempfile
 import logging
 from datetime import datetime
+from time import sleep
 import numpy as np
 import pandas as pd
 import psfmachine as pm
@@ -301,6 +302,8 @@ def do_lcs(
         sys.exit()
     # load TPFs
     log.info("Loading TPFs from disk")
+    if socket.gethostname().startswith("r"):
+        sleep(np.random.randint(10, 20))
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
 
     ##############################################################################
