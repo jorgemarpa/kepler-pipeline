@@ -333,18 +333,18 @@ def do_lcs(
         # read files
         # mission_bkg_pixels = Table.read(bkg_file, hdu=2)
         mission_bkg_pixels = fitsio.read(bkg_file, columns=["RAWY", "RAWX"], ext=2)
-        # mission_bkg_flux = Table.read(bkg_file, hdu=1)
-        mission_bkg_flux = fitsio.read(bkg_file, columns=["CADENCENO", "FLUX"], ext=1)
+        # mission_bkg_data = Table.read(bkg_file, hdu=1)
+        mission_bkg_data = fitsio.read(bkg_file, columns=["CADENCENO", "FLUX"], ext=1)
 
         # match cadences
         cadence_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
         cadenceno_machine = machine.tpfs[0].cadenceno[cadence_mask]
-        mission_mask = np.in1d(mission_bkg_pixels["CADENCENO"].data, cadenceno_machine)
+        mission_mask = np.in1d(mission_bkg_data["CADENCENO"], cadenceno_machine)
         # get data
         data_augment = {
-            "row": mission_bkg_pixels["RAWY"].data,
-            "column": mission_bkg_pixels["RAWX"].data,
-            "flux": mission_bkg_data["FLUX"].data[mission_mask],
+            "row": mission_bkg_pixels["RAWY"],
+            "column": mission_bkg_pixels["RAWX"],
+            "flux": mission_bkg_data["FLUX"][mission_mask],
         }
         del mission_bkg_pixels, mission_bkg_data
     else:
