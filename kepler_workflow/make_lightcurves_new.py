@@ -17,7 +17,9 @@ from memory_profiler import profile
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
-from astropy.table import Table
+import fitsio
+
+# from astropy.table import Table
 from astropy.coordinates import SkyCoord, match_coordinates_3d
 import astropy.units as u
 from astroquery.vizier import Vizier
@@ -323,19 +325,21 @@ def do_lcs(
     bkg_file = (
         f"{ARCHIVE_PATH}/data/kepler/bkg"
         f"/{date[:4]}"
-        f"/kplr{machine.tpfs[0].module}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
+        f"/kplr{machine.tpfs[0].module:02}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
     )
-    log.info(bkg_file)
     if os.path.isfile(bkg_file) and augment_bkg:
         log.info("Adding Mission BKG pixels...")
+        log.info(bkg_file)
         # read files
-        mission_bkg_pixels = Table.read(bkg_file, hdu=2)
-        mission_bkg_data = Table.read(bkg_file, hdu=1)
+        # mission_bkg_pixels = Table.read(bkg_file, hdu=2)
+        mission_bkg_pixels = fitsio.read(bkg_file, columns=["RAWY", "RAWX"], ext=2)
+        # mission_bkg_flux = Table.read(bkg_file, hdu=1)
+        mission_bkg_flux = fitsio.read(bkg_file, columns=["CADENCENO", "FLUX"], ext=1)
 
         # match cadences
         cadence_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
         cadenceno_machine = machine.tpfs[0].cadenceno[cadence_mask]
-        mission_mask = np.in1d(mission_bkg_data["CADENCENO"].data, cadenceno_machine)
+        mission_mask = np.in1d(mission_bkg_pixels["CADENCENO"].data, cadenceno_machine)
         # get data
         data_augment = {
             "row": mission_bkg_pixels["RAWY"].data,
