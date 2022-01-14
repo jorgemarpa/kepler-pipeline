@@ -12,15 +12,30 @@ import numpy as np
 from paths import *
 
 
-def do_archive(quarter, channel):
+def do_archive(quarter, channel, bkg=False):
 
-    tar_files = sorted(
-        glob.glob(
-            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-            "poscorT_sqrt_tk6_tp100.tar.gz"
+    if not bkg:
+        tar_files = sorted(
+            glob.glob(
+                f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+                f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+                "poscorT_sqrt_tk6_tp100.tar.gz"
+            )
         )
-    )
+    else:
+        print("here")
+        print(
+            f"{LCS_PATH}/kepler_bkg/ch{channel:02}/q{quarter:02}/"
+            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+            "poscorr_sqrt_tk6_tp100_bkgT.tar.gz"
+        )
+        tar_files = sorted(
+            glob.glob(
+                f"{LCS_PATH}/kepler_bkg/ch{channel:02}/q{quarter:02}/"
+                f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+                "poscorr_sqrt_tk6_tp100_bkgT.tar.gz"
+            )
+        )
     print(f"Total tar files: {len(tar_files)}")
 
     for i, tf in enumerate(tar_files):
@@ -50,7 +65,10 @@ def do_archive(quarter, channel):
                     total=len(members),
                     desc="Extracting FITS into archive",
                 ):
-                    dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
+                    if not bkg:
+                        dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
+                    else:
+                        dirout = f"{LCS_PATH}/kepler_bkg/{ids[k][:4]}/{ids[k]}"
                     if not os.path.isdir(dirout):
                         os.makedirs(dirout)
                     fout = f"{dirout}/{member.name}"
@@ -84,11 +102,16 @@ def rename_fits():
                     shutil.move(f, f"{path}/{fname.lower()}")
 
 
-def drop_duplicates(dir):
+def drop_duplicates(dir, bkg=False):
     print(f"Working on {dir}")
-    dupfiles = glob.glob(
-        f"{LCS_PATH}/kepler/{dir}/*/" "hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
-    )
+    if not bkg:
+        dupfiles = glob.glob(
+            f"{LCS_PATH}/kepler/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
+        )
+    else:
+        dupfiles = glob.glob(
+            f"{LCS_PATH}/kepler_bkg/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
+        )
     if len(dupfiles) == 0:
         print("No duplicated files")
         return
@@ -145,9 +168,17 @@ if __name__ == "__main__":
         default=None,
         help="Kepler 4-digit directory",
     )
+    parser.add_argument(
+        "--bkg",
+        dest="bkg",
+        action="store_true",
+        default=False,
+        help="PSFMachine fitted the bkg",
+    )
     args = parser.parse_args()
-    # do_archive(args.quarter, args.channel)
+    if args.quarter and args.channel:
+        do_archive(args.quarter, args.channel, bkg=args.bkg)
 
     # rename_fits()
-
-    drop_duplicates(args.dir)
+    if args.dir:
+        drop_duplicates(args.dir, bkg=args.bkg)

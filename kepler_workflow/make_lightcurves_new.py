@@ -355,7 +355,7 @@ def do_lcs(
 
     log.info("Building models...")
     # fit background
-    machine.build_background_model(
+    machine.remove_background_model(
         plot=False,
         data_augment=data_augment,
     )
@@ -443,11 +443,11 @@ def do_lcs(
             machine.cartesian_knot_spacing,
             machine.n_time_knots,
             machine.n_time_points,
-            str(machine.fit_bkg)[0],
+            str(config["renormalize_tpf_bkg"])[0],
         )
 
         # bkg model
-        if machine.fit_bkg:
+        if config["renormalize_tpf_bkg"]:
             bkg_fig = machine.plot_background_model(frame_index=machine.nt // 2)
 
         # SHAPE FIGURE
@@ -472,7 +472,7 @@ def do_lcs(
             time_fig.suptitle(f"Time model: {machine.time_corrector}")
 
         with PdfPages(file_name) as pages:
-            if machine.fit_bkg:
+            if config["renormalize_tpf_bkg"]:
                 FigureCanvasPdf(bkg_fig).print_figure(pages)
             FigureCanvasPdf(shape_fig).print_figure(pages)
             if fit_va:
@@ -509,7 +509,7 @@ def do_lcs(
                 machine.cartesian_knot_spacing,
                 machine.n_time_knots,
                 machine.n_time_points,
-                str(machine.fit_bkg)[0],
+                str(config["renormalize_tpf_bkg"])[0],
             ),
             mode="w:gz",
         )

@@ -11,4 +11,4 @@ rmin: 1
 rmax: 16
 time_corrector: "pos_corr"
 cartesian_knot_spacing: sqrt
-fit_bkg: True
+renormalize_tpf_bkg: True
