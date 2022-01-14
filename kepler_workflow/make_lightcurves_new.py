@@ -303,7 +303,7 @@ def do_lcs(
     # load TPFs
     log.info("Loading TPFs from disk")
     if socket.gethostname().startswith("r"):
-        sleep(np.random.randint(10, 20))
+        sleep(np.random.randint(10, 30))
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
 
     ##############################################################################
