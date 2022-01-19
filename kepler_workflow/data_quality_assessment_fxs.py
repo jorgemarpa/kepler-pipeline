@@ -1,9 +1,10 @@
-import os
+import os, re
 import glob
 import tarfile
 import tempfile
 import subprocess
 import feets
+import yaml
 import numpy as np
 import pandas as pd
 import lightkurve as lk
@@ -19,8 +20,8 @@ from astropy.coordinates import SkyCoord, match_coordinates_3d
 import astropy.units as u
 from paths import *
 
-kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler"
-# /Volumes/jorge-marpa/Work/BAERI/data/kepler/
+# kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler"
+kepler_root_dir = "/Volumes/jorge-marpa/Work/BAERI/data/kepler/"
 qd_map = {
     1: 2009166043257,
     2: 2009259160929,
@@ -527,7 +528,35 @@ def find_lc_examples(jm_stats, lcs):
     return lc_ex_idx
 
 
-def make_dashboard(stats, features, lightcurves, meta, save=True):
+def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
+
+    if name:
+        bkg = True if name[re.search("_bkg", name).span()[1]] == "T" else False
+        try:
+            fva = True if name[re.search("_fva", name).span()[1]] == "T" else False
+        except:
+            fva = True
+        try:
+            augment = True if name[re.search("_aug", name).span()[1]] == "T" else False
+        except:
+            augment = bkg
+
+    with open(
+        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR),
+        "r",
+    ) as f:
+        config = yaml.safe_load(f)
+    config["fit_va"] = fva
+    config["fit_bkg"] = bkg
+    config["augment_bkg"] = augment
+
+    df = pd.DataFrame.from_dict([config]).T.reset_index(drop=False)
+    df = df.rename({"index": "Parameter", 0: "value"}, axis=1)
+
+    color = [["w"] * df.shape[1] for k in range(df.shape[0])]
+    for k in range(len(color)):
+        if isinstance(df.values[k][1], bool):
+            color[k][1] = "tab:green" if df.values[k][1] else "tab:red"
 
     channel = meta["channel"]
     quarter = meta["quarter"]
@@ -552,7 +581,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     fig.suptitle(
         f"Kepler Q{quarter} Ch{channel} N {len(lcs):,}", x=0.5, y=0.895, fontsize=20
     )
-    G = gridspec.GridSpec(8, 4, figure=fig)
+    G = gridspec.GridSpec(9, 4, figure=fig)
 
     fontsize = 10
     markerscale = 5
@@ -562,7 +591,33 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     ##################################################################################
     ##################################################################################
 
-    ax_00 = fig.add_subplot(G[0, 0])
+    ax_table1 = fig.add_subplot(G[0, 2])
+    ax_table2 = fig.add_subplot(G[0, 3])
+
+    ax_table1.axis("off")
+    ax_table1.axis("tight")
+    ax_table1.table(
+        cellText=df.values[: df.shape[0] // 2],
+        colLabels=None,
+        loc="center",
+        cellColours=color[: df.shape[0] // 2],
+        fontsize=10,
+    )
+
+    ax_table2.axis("off")
+    ax_table2.axis("tight")
+    ax_table2.table(
+        cellText=df.values[df.shape[0] // 2 :],
+        colLabels=None,
+        loc="center",
+        cellColours=color[df.shape[0] // 2 :],
+        fontsize=10,
+    )
+
+    ##################################################################################
+    ##################################################################################
+
+    ax_00 = fig.add_subplot(G[1, 0])
 
     if isinstance(kp_stats, dict):
         ax_00.scatter(
@@ -609,16 +664,16 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
 
     ylim = [-7.5, 1e3]
     xlim = [2.2, 6]
-    ax_01 = fig.add_subplot(G[0, 1])
-    ax_02 = fig.add_subplot(G[0, 2])
-    ax_03 = fig.add_subplot(G[0, 3])
+    ax_01 = fig.add_subplot(G[1, 1])
+    ax_02 = fig.add_subplot(G[1, 2])
+    ax_03 = fig.add_subplot(G[1, 3])
     kde_axis = [ax_01, ax_02, ax_03]
     # gs02 = G[0, 2].subgridspec(2, 1)
     # gs02ax0 = fig.add_subplot(gs02[0])
     # gs02ax1 = fig.add_subplot(gs02[1])
 
-    ax_10 = fig.add_subplot(G[1, 0])
-    ax_11 = fig.add_subplot(G[1, 1])
+    ax_10 = fig.add_subplot(G[2, 0])
+    ax_11 = fig.add_subplot(G[2, 1])
 
     if isinstance(kp_stats, dict):
         colors = ["k", "tab:blue", "tab:orange"]
@@ -675,7 +730,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     ##################################################################################
     ##################################################################################
 
-    ax_11 = fig.add_subplot(G[1, 2])
+    ax_11 = fig.add_subplot(G[2, 2])
     (feat_jm_sap["LinearTrend"]).plot(
         kind="kde", ax=ax_11, label="KBonus_SAP", color="tab:blue"
     )
@@ -689,7 +744,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
     ax_11.set_xlabel("LinearTrend")
     ax_11.legend(loc="upper left")
 
-    ax_12 = fig.add_subplot(G[1, 3])
+    ax_12 = fig.add_subplot(G[2, 3])
     (feat_jm_sap["FluxPercentileRatioMid20"]).plot(
         kind="kde", ax=ax_12, label="_nolegend_", color="tab:blue"
     )
@@ -726,7 +781,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
         lc = lcs[k].copy()
         if lc.time.value[0] > 2454833:
             lc.time = lc.time - 2454833
-        ax_20 = fig.add_subplot(G[2 + i, 0])
+        ax_20 = fig.add_subplot(G[3 + i, 0])
         tpf = lk.search_targetpixelfile(
             f"KIC {lc.TPFORG:09}",
             quarter=lc.QUARTER,
@@ -764,7 +819,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
             np.maximum(tpf.row + tpf.shape[-2], row[k] + 0.5),
         )
 
-        ax_21 = fig.add_subplot(G[2 + i, 1:])
+        ax_21 = fig.add_subplot(G[3 + i, 1:])
 
         if isinstance(kplcs, list) and kplcs[k] is not None:
             klc = kplcs[k].copy()
@@ -810,7 +865,10 @@ def make_dashboard(stats, features, lightcurves, meta, save=True):
         dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel:02}"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        fig_name = f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}.pdf"
+        fig_name = (
+            f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}_bkg{str(bkg)[0]}.pdf"
+        )
+        print(fig_name)
         plt.savefig(fig_name, format="pdf", bbox_inches="tight", pad_inches=0.1)
     else:
         plt.show()
