@@ -275,6 +275,7 @@ def do_lcs(
     quiet=False,
     compute_node=False,
     augment_bkg=True,
+    save_npy=False,
 ):
 
     ##############################################################################
@@ -497,7 +498,7 @@ def do_lcs(
     if tar_lcs:
         log.info("LCFs will be tar.gz")
         tar = tarfile.open(
-            "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_%s_%s_tk%i_tp%i_bkg%s.tar.gz"
+            "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_%s_%s_tk%i_tp%i_fva%s_bkg%s_aug%s.tar.gz"
             % (
                 dir_name,
                 channel,
@@ -509,7 +510,9 @@ def do_lcs(
                 machine.cartesian_knot_spacing,
                 machine.n_time_knots,
                 machine.n_time_points,
+                str(fit_va)[0],
                 str(config["renormalize_tpf_bkg"])[0],
+                str(augment_bkg)[0],
             ),
             mode="w:gz",
         )
@@ -581,6 +584,15 @@ def do_lcs(
 
     if tar_lcs:
         tar.close()
+
+    if save_npy:
+        np.savez(
+            tar.replace("tar.gz", "npz"),
+            time=machine.time,
+            flux=machine.flux,
+            flux_err=machine.flux_err,
+            source=machine.sources.designation.values,
+        )
 
 
 if __name__ == "__main__":
@@ -668,6 +680,13 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Forcel logging.",
+    )
+    parser.add_argument(
+        "--save-npy",
+        dest="save_npy",
+        action="store_true",
+        default=False,
+        help="Save W's as npy files for quick access.",
     )
     parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()

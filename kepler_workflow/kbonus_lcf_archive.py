@@ -12,7 +12,7 @@ import numpy as np
 from paths import *
 
 
-def do_archive(quarter, channel, bkg=False):
+def do_archive(quarter, channel, bkg=False, augment_bkg=False, fit_va=True):
 
     if not bkg:
         tar_files = sorted(
@@ -25,13 +25,13 @@ def do_archive(quarter, channel, bkg=False):
     else:
         print("here")
         print(
-            f"{LCS_PATH}/kepler_bkg/ch{channel:02}/q{quarter:02}/"
+            f"{LCS_PATH}/kepler-bkg/ch{channel:02}/q{quarter:02}/"
             f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
             "poscorr_sqrt_tk6_tp100_bkgT.tar.gz"
         )
         tar_files = sorted(
             glob.glob(
-                f"{LCS_PATH}/kepler_bkg/ch{channel:02}/q{quarter:02}/"
+                f"{LCS_PATH}/kepler-bkg/ch{channel:02}/q{quarter:02}/"
                 f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
                 "poscorr_sqrt_tk6_tp100_bkgT.tar.gz"
             )
@@ -68,7 +68,7 @@ def do_archive(quarter, channel, bkg=False):
                     if not bkg:
                         dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
                     else:
-                        dirout = f"{LCS_PATH}/kepler_bkg/{ids[k][:4]}/{ids[k]}"
+                        dirout = f"{LCS_PATH}/kepler-bkg/{ids[k][:4]}/{ids[k]}"
                     if not os.path.isdir(dirout):
                         os.makedirs(dirout)
                     fout = f"{dirout}/{member.name}"
@@ -102,7 +102,7 @@ def rename_fits():
                     shutil.move(f, f"{path}/{fname.lower()}")
 
 
-def drop_duplicates(dir, bkg=False):
+def drop_duplicates(dir, bkg=False, augment_bkg=False, fit_va=True):
     print(f"Working on {dir}")
     if not bkg:
         dupfiles = glob.glob(
@@ -110,7 +110,7 @@ def drop_duplicates(dir, bkg=False):
         )
     else:
         dupfiles = glob.glob(
-            f"{LCS_PATH}/kepler_bkg/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
+            f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
         )
     if len(dupfiles) == 0:
         print("No duplicated files")
@@ -177,8 +177,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     if args.quarter and args.channel:
-        do_archive(args.quarter, args.channel, bkg=args.bkg)
+        do_archive(args.quarter, args.channel, bkg=args.bkg, augment_bkg=args.bkg)
 
     # rename_fits()
     if args.dir:
-        drop_duplicates(args.dir, bkg=args.bkg)
+        drop_duplicates(args.dir, bkg=args.bkg, augment_bkg=args.bkg)
