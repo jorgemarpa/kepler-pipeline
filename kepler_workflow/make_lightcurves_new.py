@@ -450,6 +450,7 @@ def do_lcs(
         # bkg model
         if config["renormalize_tpf_bkg"]:
             bkg_fig = machine.plot_background_model(frame_index=machine.nt // 2)
+            bkg_fig_2 = machine.bkg_est.plot()
 
         # SHAPE FIGURE
         shape_fig = machine.plot_shape_model()
@@ -474,6 +475,7 @@ def do_lcs(
 
         with PdfPages(file_name) as pages:
             if config["renormalize_tpf_bkg"]:
+                FigureCanvasPdf(bkg_fig_2).print_figure(pages)
                 FigureCanvasPdf(bkg_fig).print_figure(pages)
             FigureCanvasPdf(shape_fig).print_figure(pages)
             if fit_va:
