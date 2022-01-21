@@ -603,6 +603,8 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         cellColours=color[: df.shape[0] // 2],
         fontsize=10,
     )
+    ax_table1.set_fontsize(14)
+    ax_table1.scale(1.2, 1.2)
 
     ax_table2.axis("off")
     ax_table2.axis("tight")
@@ -613,6 +615,8 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         cellColours=color[df.shape[0] // 2 :],
         fontsize=10,
     )
+    ax_table2.set_fontsize(14)
+    ax_table2.scale(1.2, 1.2)
 
     ##################################################################################
     ##################################################################################
