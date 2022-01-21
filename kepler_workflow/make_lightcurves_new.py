@@ -457,21 +457,24 @@ def do_lcs(
 
         # TIME FIGURE
         if fit_va:
-            time_fig = machine.plot_time_model()
-            if machine.cartesian_knot_spacing == "sqrt":
-                xknots = np.linspace(
-                    -np.sqrt(machine.time_radius),
-                    np.sqrt(machine.time_radius),
-                    machine.n_time_knots,
-                )
-                xknots = np.sign(xknots) * xknots ** 2
-            else:
-                xknots = np.linspace(
-                    -machine.time_radius, machine.time_radius, machine.n_time_knots
-                )
-            xknots, yknots = np.meshgrid(xknots, xknots)
-            time_fig.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
-            time_fig.suptitle(f"Time model: {machine.time_corrector}")
+            try:
+                time_fig = machine.plot_time_model()
+                if machine.cartesian_knot_spacing == "sqrt":
+                    xknots = np.linspace(
+                        -np.sqrt(machine.time_radius),
+                        np.sqrt(machine.time_radius),
+                        machine.n_time_knots,
+                    )
+                    xknots = np.sign(xknots) * xknots ** 2
+                else:
+                    xknots = np.linspace(
+                        -machine.time_radius, machine.time_radius, machine.n_time_knots
+                    )
+                xknots, yknots = np.meshgrid(xknots, xknots)
+                time_fig.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
+                time_fig.suptitle(f"Time model: {machine.time_corrector}")
+            except:
+                pass
 
         with PdfPages(file_name) as pages:
             if config["renormalize_tpf_bkg"]:
@@ -479,7 +482,10 @@ def do_lcs(
                 FigureCanvasPdf(bkg_fig).print_figure(pages)
             FigureCanvasPdf(shape_fig).print_figure(pages)
             if fit_va:
-                FigureCanvasPdf(time_fig).print_figure(pages)
+                try:
+                    FigureCanvasPdf(time_fig).print_figure(pages)
+                except:
+                    pass
             if fit_va and machine.time_corrector == "pos_corr":
                 FigureCanvasPdf(do_poscorr_plot(machine)).print_figure(pages)
         plt.close()
