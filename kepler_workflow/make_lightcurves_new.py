@@ -335,20 +335,22 @@ def do_lcs(
         logg.info("Adding Mission BKG pixels...")
         logg.info(bkg_file)
         # read files
-        # mission_bkg_pixels = Table.read(bkg_file, hdu=2)
         mission_bkg_pixels = fitsio.read(bkg_file, columns=["RAWY", "RAWX"], ext=2)
-        # mission_bkg_data = Table.read(bkg_file, hdu=1)
         mission_bkg_data = fitsio.read(bkg_file, columns=["CADENCENO", "FLUX"], ext=1)
 
         # match cadences
         cadence_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
         cadenceno_machine = machine.tpfs[0].cadenceno[cadence_mask]
         mission_mask = np.in1d(mission_bkg_data["CADENCENO"], cadenceno_machine)
+
+        keep_pix = (mission_bkg_pixels["RAWY"] > machine.row.min() - 50) & (
+            mission_bkg_pixels["RAWY"] < machine.row.max() + 50
+        )
         # get data
         data_augment = {
-            "row": mission_bkg_pixels["RAWY"],
-            "column": mission_bkg_pixels["RAWX"],
-            "flux": mission_bkg_data["FLUX"][mission_mask],
+            "row": mission_bkg_pixels["RAWY"][keep_pix],
+            "column": mission_bkg_pixels["RAWX"][keep_pix],
+            "flux": mission_bkg_data["FLUX"][mission_mask][:, keep_pix],
         }
         del mission_bkg_pixels, mission_bkg_data
     else:
