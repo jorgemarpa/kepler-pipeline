@@ -33,7 +33,7 @@ from scipy import sparse
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
-log = logging.getLogger(__name__)
+logg = logging.getLogger(__name__)
 lc_version = "1.0"
 
 typedir = {
@@ -50,7 +50,7 @@ typedir = {
 
 def print_dict(dictionary):
     for k in sorted(dictionary.keys()):
-        log.info(f"{k:<22}: {dictionary[k]}")
+        logg.info(f"{k:<22}: {dictionary[k]}")
 
 
 # @profile
@@ -292,17 +292,17 @@ def do_lcs(
         quarter, channel, batch_size, batch_number, tar_tpfs=tar_tpfs
     )
     if len(fname_list) < batch_size:
-        log.info(
+        logg.info(
             f"Warning: Actual batch size ({len(fname_list)}) "
             f"is smaller than asked ({batch_size})."
         )
     if len(fname_list) < 50:
-        log.info(f"Warning: Actual batch size ({len(fname_list)}) is less than 50.")
+        logg.info(f"Warning: Actual batch size ({len(fname_list)}) is less than 50.")
     if dry_run:
-        log.info("Dry run!")
+        logg.info("Dry run!")
         sys.exit()
     # load TPFs
-    log.info("Loading TPFs from disk")
+    logg.info("Loading TPFs from disk")
     if socket.gethostname().startswith("r"):
         sleep(np.random.randint(10, 30))
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
@@ -311,18 +311,18 @@ def do_lcs(
     ############################# do machine stuff ###############################
     ##############################################################################
 
-    log.info("Initializing PSFMachine")
+    logg.info("Initializing PSFMachine")
     machine = pm.TPFMachine.from_TPFs(tpfs, **config)
     if not compute_node:
         machine.quiet = quiet
     else:
         machine.quiet = True
         quiet = True
-    log.info("PSFMachine config:")
+    logg.info("PSFMachine config:")
     print_dict(config)
 
     del tpfs
-    log.info(machine)
+    logg.info(machine)
 
     # add mission background pixels
     date = machine.tpfs[0].path.split("/")[-1].split("-")[1].split("_")[0]
@@ -332,8 +332,8 @@ def do_lcs(
         f"/kplr{machine.tpfs[0].module:02}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
     )
     if os.path.isfile(bkg_file) and augment_bkg:
-        log.info("Adding Mission BKG pixels...")
-        log.info(bkg_file)
+        logg.info("Adding Mission BKG pixels...")
+        logg.info(bkg_file)
         # read files
         # mission_bkg_pixels = Table.read(bkg_file, hdu=2)
         mission_bkg_pixels = fitsio.read(bkg_file, columns=["RAWY", "RAWX"], ext=2)
@@ -354,7 +354,7 @@ def do_lcs(
     else:
         data_augment = None
 
-    log.info("Building models...")
+    logg.info("Building models...")
     # fit background
     machine.remove_background_model(
         plot=False,
@@ -375,7 +375,7 @@ def do_lcs(
     if os.path.isfile(shape_model_path):
         machine.load_shape_model(input=shape_model_path, plot=False)
     else:
-        log.info("No shape model for this Q/Ch, fitting PRF from data...")
+        logg.info("No shape model for this Q/Ch, fitting PRF from data...")
         machine.build_shape_model(plot=plot)
 
     # SAP
@@ -384,7 +384,7 @@ def do_lcs(
     )
     # PSF phot
     machine.build_time_model(plot=False)
-    log.info("Fitting models...")
+    logg.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
     iter_negative = False
     if iter_negative:
@@ -430,7 +430,7 @@ def do_lcs(
 
     if plot:
         dir_name = "%s/figures/tpf/ch%02i" % (OUTPUT_PATH, channel)
-        log.info(f"Saving diagnostic plots into: {dir_name}")
+        logg.info(f"Saving diagnostic plots into: {dir_name}")
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         file_name = "%s/%s_models_ch%02i_q%02i_b%03i-%02i_%s_%s_tk%i_tp%i_bkg%s.pdf" % (
@@ -500,11 +500,11 @@ def do_lcs(
         channel,
         quarter,
     )
-    log.info(f"Saving light curves into: {dir_name}")
+    logg.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
     if tar_lcs:
-        log.info("LCFs will be tar.gz")
+        logg.info("LCFs will be tar.gz")
         tar = tarfile.open(
             "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_%s_%s_tk%i_tp%i_fva%s_bkg%s_aug%s.tar.gz"
             % (
@@ -725,15 +725,15 @@ if __name__ == "__main__":
         )
         hand.setLevel(logging.INFO)
     hand.setFormatter(logging.Formatter(FORMAT))
-    log.addHandler(hand)
-    log.setLevel(args.log)
+    logg.addHandler(hand)
+    logg.setLevel(args.log)
 
     if args.channel is None and args.batch_index > -1:
         batch_info = "%s/data/support/kepler_batch_info_quarter%i.dat" % (
             PACKAGEDIR,
             args.quarter,
         )
-        log.info(f"Batch info file {batch_info}")
+        logg.info(f"Batch info file {batch_info}")
         params = np.loadtxt(batch_info, dtype=int, delimiter=" ", comments="#")
         args.quarter = params[args.batch_index - 1, 1]
         args.channel = params[args.batch_index - 1, 2]
@@ -743,7 +743,7 @@ if __name__ == "__main__":
 
     print_dict(vars(args))
     if args.dry_run:
-        log.info("Dry run!")
+        logg.info("Dry run!")
         sys.exit()
 
     kwargs = vars(args)
@@ -755,4 +755,4 @@ if __name__ == "__main__":
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
 
     do_lcs(**kwargs, compute_node=compute_node)
-    log.info("Done!")
+    logg.info("Done!")
