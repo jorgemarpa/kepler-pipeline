@@ -33,7 +33,7 @@ from scipy import sparse
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
-logg = logging.getLogger(__name__)
+logg = logging.getLogger("Make LCs")
 lc_version = "1.0"
 
 typedir = {
@@ -200,7 +200,7 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
 def get_tpfs(fname_list, tar_tpfs=True):
     if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
-            [lk.read(f) for f in fname_list]
+            [lk.read(f"{ARCHIVE_PATH}/data/kepler/tpf/{f}") for f in fname_list]
         )
     else:
         tpfs = []
@@ -378,7 +378,7 @@ def do_lcs(
         machine.load_shape_model(input=shape_model_path, plot=False)
     else:
         logg.info("No shape model for this Q/Ch, fitting PRF from data...")
-        machine.build_shape_model(plot=plot)
+        machine.build_shape_model(plot=False)
 
     # SAP
     machine.compute_aperture_photometry(
@@ -408,10 +408,13 @@ def do_lcs(
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
+    print("compute node", compute_node)
     if not compute_node:
+        print("vizier")
         kics = get_KICs(machine.sources)
     else:
         kics = machine.sources
+    print(kics)
 
     # get the TPF index for each lc, a sources could fall in more than 1 tpf
     obs_per_pixel = machine.source_mask.multiply(machine.pix2obs).tocsr()
@@ -706,17 +709,17 @@ if __name__ == "__main__":
     except:
         args.log = str(args.log.upper())
 
-    FORMAT = "%(filename)s:%(lineno)s : %(message)s"
+    FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     # send to log file when running in compute nodes
     if (
         (socket.gethostname() in ["NASAs-MacBook-Pro.local"])
         or (socket.gethostname()[:3] == "pfe")
         or (args.force_log)
     ):
-        if args.force_log:
-            compute_node = True
-        else:
+        if socket.gethostname() in ["NASAs-MacBook-Pro.local"]:
             compute_node = False
+        else:
+            compute_node = True
         hand = logging.StreamHandler(sys.stdout)
         hand.setFormatter(logging.Formatter(FORMAT))
     else:
@@ -727,6 +730,7 @@ if __name__ == "__main__":
         )
         hand.setLevel(logging.INFO)
     hand.setFormatter(logging.Formatter(FORMAT))
+    logg.handlers.clear()
     logg.addHandler(hand)
     logg.setLevel(args.log)
 
