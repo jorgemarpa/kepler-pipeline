@@ -408,13 +408,10 @@ def do_lcs(
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
-    print("compute node", compute_node)
     if not compute_node:
-        print("vizier")
         kics = get_KICs(machine.sources)
     else:
         kics = machine.sources
-    print(kics)
 
     # get the TPF index for each lc, a sources could fall in more than 1 tpf
     obs_per_pixel = machine.source_mask.multiply(machine.pix2obs).tocsr()
