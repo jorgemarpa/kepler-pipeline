@@ -156,6 +156,7 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
         "centroid_column": data["centroid_col"].value,
         "centroid_row": data["centroid_row"].value,
         "sap_quality": data["quality"],
+        "sap_bkg": data["sap_bkg"],
     }
     if fit_va:
         lc_dct["psf_flux_nvs"] = data["psf_flux_NVA"]
@@ -405,6 +406,14 @@ def do_lcs(
     centroid_method = "scene"
     machine.get_source_centroids(method=centroid_method)
 
+    # get bkg light curves
+    bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
+    bkg_model = (
+        machine.bkg_estimator.model[:, machine.pixels_in_tpf] + machine.bkg_median_level
+    )
+    for sdx in range(len(machine.aperture_mask)):
+        bkg_sap_flux[:, sdx] = bkg_model[:, machine.aperture_mask[sdx]].sum(axis=1)
+
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
@@ -452,7 +461,7 @@ def do_lcs(
         # bkg model
         if config["renormalize_tpf_bkg"]:
             bkg_fig = machine.plot_background_model(frame_index=machine.nt // 2)
-            bkg_fig_2 = machine.bkg_est.plot()
+            bkg_fig_2 = machine.bkg_estimator.plot()
 
         # SHAPE FIGURE
         shape_fig = machine.plot_shape_model()
@@ -556,6 +565,7 @@ def do_lcs(
             "quality": machine.tpfs[tpf_idx[idx]].quality[cadno_mask],
             "psf_flux_NVA": machine.ws[:, idx],
             "psf_flux_err_NVA": machine.werrs[:, idx],
+            "sap_bkg": bkg_sap_flux[:, idx],
         }
         # get LC metadata
         lc_meta = machine._make_meta_dict(idx, srow, True)
@@ -730,6 +740,7 @@ if __name__ == "__main__":
     logg.handlers.clear()
     logg.addHandler(hand)
     logg.setLevel(args.log)
+    logg.propagate = False
 
     if args.channel is None and args.batch_index > -1:
         batch_info = "%s/data/support/kepler_batch_info_quarter%i.dat" % (
