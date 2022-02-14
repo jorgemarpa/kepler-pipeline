@@ -58,7 +58,7 @@ def main(quarter, channel, download=False, bkg=False, augment_bkg=False, fit_va=
             glob.glob(
                 f"{LCS_PATH}/kepler-bkg/ch{channel:02}/q{quarter:02}/"
                 f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-                f"poscorr_sqrt_tk6_tp100_bkg{str(bkg)[0]}.tar.gz"
+                f"poscorr_sqrt_tk6_tp100_fvaT_bkg{str(bkg)[0]}_augT.tar.gz"
             )
         )
     else:
@@ -66,7 +66,7 @@ def main(quarter, channel, download=False, bkg=False, augment_bkg=False, fit_va=
             glob.glob(
                 f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
                 f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc*_"
-                f"poscorr_sqrt_tk6_tp100_bkg{str(bkg)[0]}.tar.gz"
+                f"poscorT_sqrt_tk6_tp100.tar.gz"
             )
         )
     if len(tar_file) == 0:
@@ -77,7 +77,7 @@ def main(quarter, channel, download=False, bkg=False, augment_bkg=False, fit_va=
         print("No light curve archive...")
         sys.exit()
 
-    lcs, kics, tpfs_org = get_archive_lightcurves(tar_file[:2])
+    lcs, kics, tpfs_org = get_archive_lightcurves(tar_file)
     if True:
         print("gmag <= 18")
         gmag = np.array([lc.GMAG for lc in lcs])

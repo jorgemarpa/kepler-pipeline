@@ -531,7 +531,10 @@ def find_lc_examples(jm_stats, lcs):
 def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
 
     if name:
-        bkg = True if name[re.search("_bkg", name).span()[1]] == "T" else False
+        try:
+            bkg = True if name[re.search("_bkg", name).span()[1]] == "T" else False
+        except:
+            bkg = False
         try:
             fva = True if name[re.search("_fva", name).span()[1]] == "T" else False
         except:
@@ -577,7 +580,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
 
     lc_ex_idx = find_lc_examples(jm_stats, lcs)
 
-    fig = plt.figure(figsize=(24, 35))
+    fig = plt.figure(figsize=(24, 36))
     fig.suptitle(
         f"Kepler Q{quarter} Ch{channel} N {len(lcs):,}", x=0.5, y=0.895, fontsize=20
     )
@@ -603,8 +606,8 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         cellColours=color[: df.shape[0] // 2],
         fontsize=10,
     )
-    ax_table1.set_fontsize(14)
-    ax_table1.scale(1.2, 1.2)
+    # ax_table1.set_fontsize(14)
+    # ax_table1.scale(1.2, 1.2)
 
     ax_table2.axis("off")
     ax_table2.axis("tight")
@@ -615,8 +618,8 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         cellColours=color[df.shape[0] // 2 :],
         fontsize=10,
     )
-    ax_table2.set_fontsize(14)
-    ax_table2.scale(1.2, 1.2)
+    # ax_table2.set_fontsize(14)
+    # ax_table2.scale(1.2, 1.2)
 
     ##################################################################################
     ##################################################################################
@@ -869,9 +872,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel:02}"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        fig_name = (
-            f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}_bkg{str(bkg)[0]}.pdf"
-        )
+        fig_name = f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}_bkg{str(bkg)[0]}_augT.pdf"
         print(fig_name)
         plt.savefig(fig_name, format="pdf", bbox_inches="tight", pad_inches=0.1)
     else:
