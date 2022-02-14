@@ -20,6 +20,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 log = logging.getLogger(__name__)
+ARCHIVE_PATH = "/Volumes/Jorge MarPa/Work/BAERI"
+# ARCHIVE_PATH = "/Users/jorgemarpa/Work/BAERI/ADAP"
 
 
 def do_FFI(
@@ -82,7 +84,7 @@ def do_FFI(
     log.info("Building shape model...")
     ax_shape = ffi.build_shape_model(plot=plot)
     if plot:
-        dir_name = "%s/figures/ffi/ch%02i" % (OUTPUT_PATH, channel)
+        dir_name = "%s/figures/ffi_new/ch%02i" % (OUTPUT_PATH, channel)
         log.info(f"Saving diagnostic plots into: {dir_name}")
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
@@ -108,7 +110,7 @@ def do_FFI(
             plt.savefig(file_name, bbox_inches="tight")
             plt.close()
 
-    dir_name = "%s/shape_models/ffi/ch%02i" % (OUTPUT_PATH, channel)
+    dir_name = "%s/shape_models/ffi_new/ch%02i" % (OUTPUT_PATH, channel)
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
     file_name = "%s/%s_ffi_shape_model_ch%02i_%s%02i.fits" % (
@@ -209,6 +211,7 @@ if __name__ == "__main__":
     h2.setFormatter(logging.Formatter(FORMAT))
     log.addHandler(h2)
     log.setLevel(args.log)
+    log.propagate = False
     log.info(vars(args))
     kwargs = vars(args)
     kwargs["quiet"] = True if kwargs.pop("log") in [0, "0", "NOTSET"] else False
