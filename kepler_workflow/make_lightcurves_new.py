@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
 import fitsio
+from psfmachine.utils import _make_A_polar
+from statsmodels import robust
 
 # from astropy.table import Table
 from astropy.coordinates import SkyCoord, match_coordinates_3d
@@ -157,6 +159,7 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
         "centroid_row": data["centroid_row"].value,
         "sap_quality": data["quality"],
         "sap_bkg": data["sap_bkg"],
+        "red_chi2": data["red_chi2"],
     }
     if fit_va:
         lc_dct["psf_flux_nvs"] = data["psf_flux_NVA"]
@@ -258,6 +261,87 @@ def do_poscorr_plot(machine):
     ax[1].plot(time_binned[:, 0], poscorr2_binned[:, 0], c="g", marker="o", lw=0, ms=5)
     ax[1].set_xlabel("Time (whitened)")
     fig.tight_layout()
+
+    return fig
+
+
+def plot_residuals_dash(mac):
+    mean_f = np.log10(
+        mac.uncontaminated_source_mask.astype(float)
+        .multiply(mac.flux[mac.time_mask].mean(axis=0))
+        .multiply(1 / mac.source_flux_estimates[:, None])
+        .data
+    )
+
+    dx, dy = (
+        mac.uncontaminated_source_mask.multiply(mac.dra),
+        mac.uncontaminated_source_mask.multiply(mac.ddec),
+    )
+    dx = dx.data * 3600
+    dy = dy.data * 3600
+    phi, r = np.arctan2(dy, dx), np.hypot(dx, dy)
+
+    A = _make_A_polar(
+        phi,
+        r,
+        rmin=mac.rmin,
+        rmax=mac.rmax,
+        cut_r=mac.cut_r,
+        n_r_knots=mac.n_r_knots,
+        n_phi_knots=mac.n_phi_knots,
+    )
+    mean_f = 10 ** mean_f
+    model = 10 ** A.dot(mac.psf_w)
+    residuals = (model - mean_f) / mean_f
+
+    source_flux = (
+        mac.uncontaminated_source_mask.astype(float)
+        .multiply(mac.source_flux_estimates[:, None])
+        .data
+    )
+    source_col = mac.uncontaminated_source_mask.astype(float).multiply(mac.column).data
+    source_row = mac.uncontaminated_source_mask.astype(float).multiply(mac.row).data
+
+    fig, ax = plt.subplots(2, 2, figsize=(12, 9), facecolor="white")
+
+    ax[0, 0].scatter(
+        residuals,
+        source_flux,
+        s=2,
+        alpha=0.2,
+        label=f"MAD = {robust.mad(residuals):.3}",
+    )
+    ax[0, 0].legend(loc="upper right")
+    ax[0, 0].set_ylabel("Gaia Source Flux", fontsize=12)
+    ax[0, 0].set_xlabel("(F$_M$ - F$_D$)/F$_D$", fontsize=12)
+    ax[0, 0].set_yscale("log")
+    ax[0, 0].set_ylim(1e3, 1e7)
+    ax[0, 0].set_xlim(-1.01, 1.01)
+
+    im = ax[0, 1].scatter(
+        source_col, source_row, c=residuals, s=3, vmin=-1, vmax=1, alpha=1, cmap="RdBu"
+    )
+    ax[0, 1].set_ylabel("Pixel Row", fontsize=12)
+    ax[0, 1].set_xlabel("Pixel Column", fontsize=12)
+
+    ax[1, 0].scatter(
+        source_flux, source_col, c=residuals, s=3, vmin=-1, vmax=1, alpha=1, cmap="RdBu"
+    )
+    ax[1, 0].set_xlabel("Gaia Source Flux", fontsize=12)
+    ax[1, 0].set_ylabel("Pixel Column", fontsize=12)
+    ax[1, 0].set_xscale("log")
+    ax[1, 0].set_xlim(1e3, 1e7)
+
+    ax[1, 1].scatter(
+        source_flux, source_row, c=residuals, s=3, vmin=-1, vmax=1, alpha=1, cmap="RdBu"
+    )
+    cbar = plt.colorbar(im, ax=ax, shrink=0.7)
+    cbar.set_label(label="(F$_M$ - F$_D$)/F$_D$", size="x-large")
+    cbar.ax.tick_params(labelsize="large")
+    ax[1, 1].set_xlabel("Gaia Source Flux", fontsize=12)
+    ax[1, 1].set_ylabel("Pixel Row", fontsize=12)
+    ax[1, 1].set_xscale("log")
+    ax[1, 1].set_xlim(1e3, 1e7)
 
     return fig
 
@@ -375,7 +459,7 @@ def do_lcs(
             quarter,
         )
     )
-    if os.path.isfile(shape_model_path):
+    if os.path.isfile(shape_model_path) and False:
         machine.load_shape_model(input=shape_model_path, plot=False)
     else:
         logg.info("No shape model for this Q/Ch, fitting PRF from data...")
@@ -407,12 +491,25 @@ def do_lcs(
     machine.get_source_centroids(method=centroid_method)
 
     # get bkg light curves
-    bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
-    bkg_model = (
-        machine.bkg_estimator.model[:, machine.pixels_in_tpf] + machine.bkg_median_level
-    )
+    if config["renormalize_tpf_bkg"]:
+        bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
+        bkg_model = (
+            machine.bkg_estimator.model[:, machine.pixels_in_tpf]
+            + machine.bkg_median_level
+        )
+        for sdx in range(len(machine.aperture_mask)):
+            bkg_sap_flux[:, sdx] = bkg_model[:, machine.aperture_mask[sdx]].sum(axis=1)
+    else:
+        bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
+
+    # PSF residual light curves
+    chi2_lc = np.zeros((machine.flux.shape[0], machine.nsources))
+    residuals = ((machine.model_flux - machine.flux) ** 2) / machine.flux
     for sdx in range(len(machine.aperture_mask)):
-        bkg_sap_flux[:, sdx] = bkg_model[:, machine.aperture_mask[sdx]].sum(axis=1)
+        chi2_lc[:, sdx] = residuals[:, machine.source_mask[sdx].toarray()[0]].sum(
+            axis=1
+        )
+    chi2_lc /= machine.nt - machine.ws.shape[1]
 
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
@@ -465,6 +562,7 @@ def do_lcs(
 
         # SHAPE FIGURE
         shape_fig = machine.plot_shape_model()
+        residuals_fig = plot_residuals_dash(machine)
 
         # TIME FIGURE
         if fit_va:
@@ -492,6 +590,7 @@ def do_lcs(
                 FigureCanvasPdf(bkg_fig_2).print_figure(pages)
                 FigureCanvasPdf(bkg_fig).print_figure(pages)
             FigureCanvasPdf(shape_fig).print_figure(pages)
+            FigureCanvasPdf(residuals_fig).print_figure(pages)
             if fit_va:
                 try:
                     FigureCanvasPdf(time_fig).print_figure(pages)
@@ -566,6 +665,7 @@ def do_lcs(
             "psf_flux_NVA": machine.ws[:, idx],
             "psf_flux_err_NVA": machine.werrs[:, idx],
             "sap_bkg": bkg_sap_flux[:, idx],
+            "red_chi2": chi2_lc[:, idx],
         }
         # get LC metadata
         lc_meta = machine._make_meta_dict(idx, srow, True)
