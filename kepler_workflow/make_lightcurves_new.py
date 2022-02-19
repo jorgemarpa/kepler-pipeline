@@ -309,7 +309,7 @@ def plot_residuals_dash(mac):
         source_flux,
         s=2,
         alpha=0.2,
-        label=f"MAD = {robust.mad(residuals):.3}",
+        label=f"MAD = {robust.mad(residuals[np.isfinite(residuals)]):.3}",
     )
     ax[0, 0].legend(loc="upper right")
     ax[0, 0].set_ylabel("Gaia Source Flux", fontsize=12)
@@ -459,7 +459,7 @@ def do_lcs(
             quarter,
         )
     )
-    if os.path.isfile(shape_model_path) and False:
+    if os.path.isfile(shape_model_path):
         machine.load_shape_model(input=shape_model_path, plot=False)
     else:
         logg.info("No shape model for this Q/Ch, fitting PRF from data...")
@@ -490,27 +490,6 @@ def do_lcs(
     centroid_method = "scene"
     machine.get_source_centroids(method=centroid_method)
 
-    # get bkg light curves
-    if config["renormalize_tpf_bkg"]:
-        bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
-        bkg_model = (
-            machine.bkg_estimator.model[:, machine.pixels_in_tpf]
-            + machine.bkg_median_level
-        )
-        for sdx in range(len(machine.aperture_mask)):
-            bkg_sap_flux[:, sdx] = bkg_model[:, machine.aperture_mask[sdx]].sum(axis=1)
-    else:
-        bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
-
-    # PSF residual light curves
-    chi2_lc = np.zeros((machine.flux.shape[0], machine.nsources))
-    residuals = ((machine.model_flux - machine.flux) ** 2) / machine.flux
-    for sdx in range(len(machine.aperture_mask)):
-        chi2_lc[:, sdx] = residuals[:, machine.source_mask[sdx].toarray()[0]].sum(
-            axis=1
-        )
-    chi2_lc /= machine.nt - machine.ws.shape[1]
-
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
@@ -531,6 +510,27 @@ def do_lcs(
             tpf_idx.append(
                 [x for x, ss in enumerate(machine.tpf_meta["sources"]) if k in ss][0]
             )
+
+    # get bkg light curves
+    if config["renormalize_tpf_bkg"]:
+        bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
+        bkg_model = (
+            machine.bkg_estimator.model[:, machine.pixels_in_tpf]
+            + machine.bkg_median_level
+        )
+        for sdx in range(len(machine.aperture_mask)):
+            bkg_sap_flux[:, sdx] = bkg_model[:, machine.aperture_mask[sdx]].sum(axis=1)
+    else:
+        bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
+
+    # PSF residual light curves
+    chi2_lc = np.zeros((machine.flux.shape[0], machine.nsources))
+    residuals = ((machine.model_flux - machine.flux) / machine.flux_err) ** 2
+    for sdx in range(len(machine.aperture_mask)):
+        chi2_lc[:, sdx] = residuals[:, machine.source_mask[sdx].toarray()[0]].sum(
+            axis=1
+        )
+    chi2_lc /= np.asarray(machine.source_mask.sum(axis=1)).flatten()
 
     ##############################################################################
     ################################## save plots ################################
