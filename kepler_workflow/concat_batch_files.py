@@ -6,48 +6,68 @@ import tarfile
 import tempfile
 from tqdm import tqdm
 
+from paths import LCS_PATH
 
-def main(prefix="", sufix="", path=""):
 
-    print(f"{path}/{prefix}_b*_{sufix}*")
-    file_list = glob.glob(f"{path}/{prefix}_b*_{sufix}*")
+def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
+
+    fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}*{sufix}.npz"
+    print(fpath)
+    file_list = glob.glob(fpath)
     print(len(file_list))
 
-    if "weights" in prefix:
-        result = []
-        for f in file_list:
-            result.append(np.load(f).T)
-        result = np.concatenate(result, axis=0)
-        print(result.shape)
-        np.save(f"{path}/{prefix}_{sufix}.npy", result)
+    time = []
+    flux = []
+    flux_err = []
+    sap_flux = []
+    sap_flux_err = []
+    chi2_lc = []
+    sources = []
+    for f in file_list:
+        npz = np.load(f)
+        time.append(npz["time"])
+        flux.append(npz["flux"])
+        flux_err.append(npz["flux_err"])
+        sap_flux.append(npz["sap_flux"])
+        sap_flux_err.append(npz["sap_flux_err"])
+        chi2_lc.append(npz["chi2_lc"])
+        sources.append(npz["sources"])
 
-    elif "kbonus-bkgd" in prefix:
-        fits_list = []
-        with tempfile.TemporaryDirectory(prefix="temp_fits") as tmpdir:
-            for tf in tqdm(file_list):
-                tar = tarfile.open(tf, mode="r")
-                tar.extractall(path=tmpdir)
-                fits_list.extend(tar.getnames())
-                tar.close()
-            tmp_file_list = glob.glob(f"{tmpdir}/*.fits")
+    time = np.concatenate(time, axis=0)
+    flux = np.concatenate(flux, axis=0)
+    flux_err = np.concatenate(flux_err, axis=0)
+    sap_flux = np.concatenate(sap_flux, axis=0)
+    sap_flux_err = np.concatenate(sap_flux_err, axis=0)
+    chi2_lc = np.concatenate(chi2_lc, axis=0)
+    sources = np.concatenate(sources, axis=0)
 
-            tar_out = tarfile.open(f"{path}/{prefix}_{sufix}.tar.gz", mode="w:gz")
-            for i, f in tqdm(enumerate(tmp_file_list), total=len(tmp_file_list)):
-                tar_out.add(f, arcname=f.split("/")[-1])
-            tar_out.close()
-
-    else:
-        raise (ValueError)
+    np.savez(
+        f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}_{sufix}.npz",
+        time=time,
+        flux=flux,
+        flux_err=flux_err,
+        sap_flux=sap_flux,
+        sap_flux_err=sap_flux_err,
+        chi2_lc=chi2_lc,
+        sources=sources,
+    )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="AutoEncoder")
+    parser = argparse.ArgumentParser(description="Concatenate NPZ files from batches")
     parser.add_argument(
-        "--prefix",
-        dest="prefix",
-        type=str,
-        default="weights_va_ch42_q05",
-        help="File prefix",
+        "--quarter",
+        dest="quarter",
+        type=int,
+        default=5,
+        help="Quarter number.",
+    )
+    parser.add_argument(
+        "--channel",
+        dest="channel",
+        type=int,
+        default=None,
+        help="Channel number",
     )
     parser.add_argument(
         "--sufix",
@@ -56,12 +76,6 @@ if __name__ == "__main__":
         default="poscorT_sqrt_tk6_tp200",
         help="File prefix",
     )
-    parser.add_argument(
-        "--path",
-        dest="path",
-        type=str,
-        default="/Users/jorgemarpa/Work/BAERI/ADAP/kepler-workflow/data/lcs/kepler/ch42/q05",
-        help="Kepler archive path.",
-    )
+
     args = parser.parse_args()
     main(**vars(args))
