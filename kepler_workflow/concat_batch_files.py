@@ -11,7 +11,7 @@ from paths import LCS_PATH
 
 def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
 
-    fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}*{sufix}.npz"
+    fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}{sufix}.npz"
     print(fpath)
     file_list = glob.glob(fpath)
     print(len(file_list))
