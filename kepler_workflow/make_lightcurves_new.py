@@ -706,8 +706,8 @@ def do_lcs(
         np.savez(
             tarf_name.replace("tar.gz", "npz"),
             time=machine.time,
-            flux=machine.flux,
-            flux_err=machine.flux_err,
+            flux=machine.ws_va,
+            flux_err=machine.werrs_va,
             sap_flux=machine.sap_flux,
             sap_flux_err=machine.sap_flux_err,
             chi2_lc=chi2_lc,
