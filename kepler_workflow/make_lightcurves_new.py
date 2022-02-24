@@ -832,8 +832,8 @@ if __name__ == "__main__":
     else:
         compute_node = True
         hand = logging.FileHandler(
-            f"{PACKAGEDIR}/logs/make_lightcurve_{os.getpid()}_"
-            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.info"
+            f"{PACKAGEDIR}/logs/make_lightcurve_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.getpid()}.info"
         )
         hand.setLevel(logging.INFO)
     hand.setFormatter(logging.Formatter(FORMAT))

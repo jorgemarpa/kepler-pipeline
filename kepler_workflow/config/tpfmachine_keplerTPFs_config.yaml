@@ -10,5 +10,5 @@ time_radius: 8
 rmin: 1
 rmax: 16
 time_corrector: "pos_corr"
-cartesian_knot_spacing: sqrt
+cartesian_knot_spacing: "sqrt"
 renormalize_tpf_bkg: True

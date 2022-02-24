@@ -11,12 +11,11 @@ from paths import LCS_PATH
 
 def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
 
-    fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}*{sufix}.npz"
+    fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}*_poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.npz"
     print(fpath)
     file_list = glob.glob(fpath)
     print(len(file_list))
 
-    time = []
     flux = []
     flux_err = []
     sap_flux = []
@@ -24,8 +23,9 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
     chi2_lc = []
     sources = []
     for f in file_list:
-        npz = np.load(f)
-        time.append(npz["time"])
+        npz = np.load(f, allow_pickle=True)
+        time = npz["time"]
+        print(npz["flux"].shape)
         flux.append(npz["flux"])
         flux_err.append(npz["flux_err"])
         sap_flux.append(npz["sap_flux"])
@@ -33,13 +33,13 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
         chi2_lc.append(npz["chi2_lc"])
         sources.append(npz["sources"])
 
-    time = np.concatenate(time, axis=0)
-    flux = np.concatenate(flux, axis=0)
-    flux_err = np.concatenate(flux_err, axis=0)
-    sap_flux = np.concatenate(sap_flux, axis=0)
-    sap_flux_err = np.concatenate(sap_flux_err, axis=0)
-    chi2_lc = np.concatenate(chi2_lc, axis=0)
-    sources = np.concatenate(sources, axis=0)
+    flux = np.hstack(flux)
+    flux_err = np.hstack(flux_err)
+    sap_flux = np.hstack(sap_flux)
+    sap_flux_err = np.hstack(sap_flux_err)
+    chi2_lc = np.hstack(chi2_lc)
+    sources = np.concatenate(sources)
+    print(flux.shape, sources.shape)
 
     np.savez(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}_{sufix}.npz",
