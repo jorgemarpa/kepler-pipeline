@@ -13,7 +13,7 @@ from paths import *
 def main(dir, quarter):
     print(f"Working on {dir}")
     lcfs = glob.glob(
-        f"{LCS_PATH}/kepler/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc.fits"
+        f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc.fits"
     )
     print(len(lcfs))
     kics, gids = [], []
@@ -23,7 +23,7 @@ def main(dir, quarter):
     psf_flux, psf_flux_err = [], []
     FLFRCSAP, CROWDSAP, NPIXSAP = [], [], []
     channel = []
-    gmag = []
+    gmag, rpmag, bpmag = [], [], []
 
     for k, f in tqdm(enumerate(lcfs), total=len(lcfs), desc="FITS"):
         gids.append(fitsio.read_header(f)["GAIAID"])
@@ -37,12 +37,19 @@ def main(dir, quarter):
         NPIXSAP.append(fitsio.read_header(f)["NPIXSAP"])
         channel.append(fitsio.read_header(f)["CHANNEL"])
         gmag.append(fitsio.read_header(f)["GMAG"])
+        rpmag.append(fitsio.read_header(f)["RPMAG"])
+        bpmag.append(fitsio.read_header(f)["BPMAG"])
 
-        sap_flux.append(np.median(fitsio.read(f, ext=1, columns="SAP_FLUX")))
-        psf_flux.append(np.median(fitsio.read(f, ext=1, columns="FLUX")))
+        sap_flux.append(np.nanmedian(fitsio.read(f, ext=1, columns="SAP_FLUX")))
+        psf_flux.append(np.nanmedian(fitsio.read(f, ext=1, columns="FLUX")))
 
-        sap_flux_err.append(np.std(fitsio.read(f, ext=1, columns="SAP_FLUX")))
-        psf_flux_err.append(np.std(fitsio.read(f, ext=1, columns="FLUX")))
+        nt = fitsio.read_header(f, ext=1)["NAXIS2"]
+        sap_flux_err.append(
+            np.sqrt(np.nansum(fitsio.read(f, ext=1, columns="SAP_FLUX_ERR") ** 2)) / nt
+        )
+        psf_flux_err.append(
+            np.sqrt(np.nansum(fitsio.read(f, ext=1, columns="FLUX_ERR") ** 2)) / nt
+        )
 
     df = pd.DataFrame.from_dict(
         {
