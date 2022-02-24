@@ -1,7 +1,7 @@
 #PBS -S /bin/sh
 #PBS -N make-LCs
 #PBS -q long
-#PBS -l select=1:ncpus=10:mem=62G:model=ivy
+#PBS -l select=1:ncpus=12:mem=62G:model=ivy
 #PBS -l walltime=12:00:00
 #PBS -j oe
 #PBS -m e
@@ -28,7 +28,7 @@ echo "Total batches in quarter $totallines"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "seq 1 ${totallines} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --save-npy --log 20"
-seq 1 ${totallines} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --save-npy --log 20
+echo "seq 1 ${totallines} | xargs -n 1 -I {} -P 12 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --save-npy --log 20"
+seq 1 ${totallines} | xargs -n 1 -I {} -P 12 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --save-npy --log 20
 
 exit 0
