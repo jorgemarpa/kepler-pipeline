@@ -14,28 +14,18 @@ from paths import *
 
 def do_archive(quarter, channel, bkg=False, augment_bkg=False, fit_va=True):
 
-    if not bkg:
-        tar_files = sorted(
-            glob.glob(
-                f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-                f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-                "poscorT_sqrt_tk6_tp100.tar.gz"
-            )
-        )
-    else:
-        print("here")
-        print(
-            f"{LCS_PATH}/kepler-bkg/ch{channel:02}/q{quarter:02}/"
+    print(
+        f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+        f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+        "poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz"
+    )
+    tar_files = sorted(
+        glob.glob(
+            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
             f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-            "poscorr_sqrt_tk6_tp100_bkgT.tar.gz"
+            "poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz"
         )
-        tar_files = sorted(
-            glob.glob(
-                f"{LCS_PATH}/kepler-bkg/ch{channel:02}/q{quarter:02}/"
-                f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-                "poscorr_sqrt_tk6_tp100_bkgT.tar.gz"
-            )
-        )
+    )
     print(f"Total tar files: {len(tar_files)}")
 
     for i, tf in enumerate(tar_files):
@@ -172,7 +162,7 @@ if __name__ == "__main__":
         "--bkg",
         dest="bkg",
         action="store_true",
-        default=False,
+        default=True,
         help="PSFMachine fitted the bkg",
     )
     args = parser.parse_args()
