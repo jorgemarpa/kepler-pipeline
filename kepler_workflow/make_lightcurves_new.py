@@ -641,6 +641,8 @@ def do_lcs(
         if (
             np.isnan(machine.ws[:, idx]).all()
             and np.isnan(machine.sap_flux[:, idx]).all()
+        ) or (
+            np.isnan(machine.ws[:, idx]).all() and (machine.sap_flux[:, idx] == 0).all()
         ):
             continue
 
@@ -712,6 +714,8 @@ def do_lcs(
             sap_flux_err=machine.sap_flux_err,
             chi2_lc=chi2_lc,
             sources=machine.sources.designation.values,
+            ra=machine.sources.ra,
+            dec=machine.sources.dec,
         )
 
 
