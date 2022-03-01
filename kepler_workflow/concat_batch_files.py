@@ -18,10 +18,13 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
 
     flux = []
     flux_err = []
+    nva_flux = []
+    nva_flux_err = []
     sap_flux = []
     sap_flux_err = []
-    chi2_lc = []
+    chi2 = []
     sources = []
+    ra, dec = [], []
     for f in file_list:
         npz = np.load(f, allow_pickle=True)
         time = npz["time"]
@@ -30,15 +33,23 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
         flux_err.append(npz["flux_err"])
         sap_flux.append(npz["sap_flux"])
         sap_flux_err.append(npz["sap_flux_err"])
-        chi2_lc.append(npz["chi2_lc"])
+        nva_flux.append(npz["psfnva_flux"])
+        nva_flux_err.append(npz["psfnva_flux_err"])
+        chi2.append(npz["chi2"])
         sources.append(npz["sources"])
+        ra.append(npz["ra"])
+        dec.append(npz["dec"])
 
     flux = np.hstack(flux)
     flux_err = np.hstack(flux_err)
+    nva_flux = np.hstack(nva_flux)
+    nva_flux_err = np.hstack(nva_flux_err)
     sap_flux = np.hstack(sap_flux)
     sap_flux_err = np.hstack(sap_flux_err)
-    chi2_lc = np.hstack(chi2_lc)
+    chi2 = np.hstack(chi2)
     sources = np.concatenate(sources)
+    ra = np.concatenate(ra)
+    dec = np.concatenate(dec)
     print(flux.shape, sources.shape)
 
     np.savez(
@@ -48,8 +59,12 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
         flux_err=flux_err,
         sap_flux=sap_flux,
         sap_flux_err=sap_flux_err,
-        chi2_lc=chi2_lc,
+        psfnva_flux=nva_flux,
+        psfnva_flux_err=nva_flux_err,
+        chi2=chi2,
         sources=sources,
+        ra=ra,
+        dec=dec,
     )
 
 
