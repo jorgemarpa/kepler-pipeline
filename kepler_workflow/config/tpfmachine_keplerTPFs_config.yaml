@@ -9,6 +9,6 @@ n_time_points: 100
 time_radius: 8
 rmin: 1
 rmax: 16
-time_corrector: "pos_corr"
+time_corrector: "polynomial"
 cartesian_knot_spacing: "sqrt"
 renormalize_tpf_bkg: True
