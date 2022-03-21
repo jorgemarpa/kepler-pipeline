@@ -18,11 +18,27 @@ def main(channel=1, quarter=1):
         index_col=0,
     )
 
-    print(f"Channel: {channel}")
-    print(f"Quarter: {quarter}")
+    if quarter == "all":
+        lines = []
+        for qua in range(0, 18):
+            chqbsize = batch_size.loc[qua, str(channel)]
+            chqbtot = total_batch.loc[qua, str(channel)]
+            print(
+                f'qsub -v "qu={qua},ch={channel},bs={chqbsize},bn={chqbtot}" pbs_quarter_channel.sh'
+            )
+    else:
+        print("-------------------------")
+        print(f"Channel: {channel}")
+        print(f"Quarter: {quarter}")
 
-    print(f"Batch size   : {batch_size.loc[quarter, str(channel)]}")
-    print(f"Total batches: {total_batch.loc[quarter, str(channel)]}")
+        chqbsize = batch_size.loc[quarter, str(channel)]
+        chqbtot = total_batch.loc[quarter, str(channel)]
+        print(f"Batch size   : {chqbsize}")
+        print(f"Total batches: {chqbtot}")
+        print(
+            f'qsub -v "qu={quarter},ch={channel},bs={chqbsize},bn={chqbtot}" pbs_quarter_channel.sh'
+        )
+        print("-------------------------")
 
 
 if __name__ == "__main__":
@@ -30,7 +46,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--quarter",
         dest="quarter",
-        type=int,
         default=None,
         help="Quarter number.",
     )
