@@ -462,7 +462,7 @@ def do_lcs(
     if os.path.isfile(shape_model_path):
         try:
             machine.load_shape_model(input=shape_model_path, plot=False)
-        except numpy.linalg.LinAlgError:
+        except:
             logg.info("Loagind shape model failed, fitting PRF from data...")
             machine.build_shape_model(plot=False)
     else:
