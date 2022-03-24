@@ -52,6 +52,34 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
     dec = np.concatenate(dec)
     print(flux.shape, sources.shape)
 
+    mask1 = np.nanmean(psf_flux, axis=0) >= 0
+    mask2 = ~np.isnan(psf_flux).sum(axis=0).astype(bool)
+    mask = mask1 & mask2
+
+    flux = flux[:, mask]
+    flux_err = flux_err[:, mask]
+    nva_flux = nva_flux[:, mask]
+    nva_flux_err = nva_flux_err[:, mask]
+    sap_flux = sap_flux[:, mask]
+    sap_flux_err = sap_flux_err[:, mask]
+    chi2 = chi2[:, mask]
+    sources = sources[mask]
+    ra = ra[mask]
+    dec = dec[mask]
+
+    _, unique_idx = np.unique(sources, return_index=True)
+
+    psf_flux = psf_flux[:, unique_idx]
+    psf_flux_e = psf_flux_e[:, unique_idx]
+    psfnva_flux = psfnva_flux[:, unique_idx]
+    psfnva_flux_e = psfnva_flux_e[:, unique_idx]
+    sap_flux = sap_flux[:, unique_idx]
+    sap_flux_e = sap_flux_e[:, unique_idx]
+    chi2 = chi2[:, unique_idx]
+    sources = sources[unique_idx]
+    ra = ra[unique_idx]
+    dec = dec[unique_idx]
+
     np.savez(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}_{sufix}.npz",
         time=time,
