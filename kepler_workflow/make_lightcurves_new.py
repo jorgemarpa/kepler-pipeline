@@ -361,6 +361,7 @@ def do_lcs(
     compute_node=False,
     augment_bkg=True,
     save_npy=False,
+    iter_neg=True,
 ):
 
     ##############################################################################
@@ -480,8 +481,7 @@ def do_lcs(
     logg.info(f"Time model segment splits: {[x for x in machine.seg_splits]}")
     logg.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
-    iter_negative = False
-    if iter_negative:
+    if iter_neg:
         # More than 2% negative cadences
         negative_sources = (machine.ws_va < 0).sum(axis=0) > (0.02 * machine.nt)
         idx = 1
@@ -624,7 +624,7 @@ def do_lcs(
     logg.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
-    tarf_name = "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_%s_%s_tk%i_tp%i_fva%s_bkg%s_aug%s_sgm%s.tar.gz" % (
+    tarf_name = "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_%s_%s_tk%i_tp%i_fva%s_bkg%s_aug%s_sgm%s_ite%s.tar.gz" % (
         dir_name,
         channel,
         quarter,
@@ -639,6 +639,7 @@ def do_lcs(
         str(config["renormalize_tpf_bkg"])[0],
         str(augment_bkg)[0],
         str(split_time_model)[0],
+        str(iter_neg)[0],
     )
     if tar_lcs:
         logg.info("LCFs will be tar.gz")
@@ -825,6 +826,13 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Save W's as npy files for quick access.",
+    )
+    parser.add_argument(
+        "--iter-neg",
+        dest="iter_neg",
+        action="store_true",
+        default=False,
+        help="Iter negative light curves.",
     )
     parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
