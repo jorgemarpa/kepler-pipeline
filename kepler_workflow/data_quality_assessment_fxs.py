@@ -184,7 +184,7 @@ def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
         [],
         [],
     )
-    cdpp_lcs_ap1, cdpp_lcs_ap2 = [], []
+    cdpp_lcs_ap1, cdpp_lcs_ap2, cdpp_lcs_ap3 = [], [], []
     cat_mag = []
     ra_lcs, dec_lcs = [], []
     complet, contam = [], []
@@ -204,6 +204,7 @@ def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
             mean_lcs_ap2.append(np.nan)
             cdpp_lcs_ap1.append(np.nan)
             cdpp_lcs_ap2.append(np.nan)
+            cdpp_lcs_ap3.append(np.nan)
             complet.append(np.nan)
             contam.append(np.nan)
             continue
@@ -237,13 +238,24 @@ def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
                     cdpp_lcs_ap2.append(np.nan)
                 else:
                     lc.flux = lc.sap_flux
+                    lc.flux_err = lc.sap_flux_err
                     try:
                         cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
                     except:
                         cdpp_lcs_ap2.append(np.nan)
+                if (lc.psf_flux_nvs == 0).all():
+                    cdpp_lcs_ap3.append(np.nan)
+                else:
+                    lc.flux = lc.psf_flux_nvs
+                    lc.flux_err = lc.psf_flux_err_nvs
+                    try:
+                        cdpp_lcs_ap3.append(lc.estimate_cdpp().value)
+                    except:
+                        cdpp_lcs_ap3.append(np.nan)
             else:
                 cdpp_lcs_ap1.append(np.nan)
                 cdpp_lcs_ap2.append(np.nan)
+                cdpp_lcs_ap3.append(np.nan)
 
         else:
             cat_mag.append(lc.meta["KEPMAG"])
@@ -252,8 +264,10 @@ def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
             # CDPP values
             if do_cdpp:
                 lc.flux = lc.pdcsap_flux
+                lc.flux_err = lc.pdcsap_flux_err
                 cdpp_lcs_ap1.append(lc.estimate_cdpp().value)
                 lc.flux = lc.sap_flux
+                lc.flux_err = lc.sap_flux_err
                 cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
             else:
                 cdpp_lcs_ap1.append(np.nan)
@@ -272,11 +286,13 @@ def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
     dec_lcs = np.array(dec_lcs)
 
     if project == "kbonus":
+        cdpp_lcs_ap3 = np.array(cdpp_lcs_ap3)
         return {
             "lc_mean_psf": mean_lcs_ap1,
             "lc_mean_sap": mean_lcs_ap2,
             "lc_cdpp_psf": cdpp_lcs_ap1,
             "lc_cdpp_sap": cdpp_lcs_ap2,
+            "lc_cdpp_psf_nva": cdpp_lcs_ap3,
             "g_mag": cat_mag,
             "ra": ra_lcs,
             "dec": dec_lcs,
@@ -543,6 +559,10 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
             augment = True if name[re.search("_aug", name).span()[1]] == "T" else False
         except:
             augment = bkg
+        try:
+            sgmt = True if name[re.search("_sgm", name).span()[1]] == "T" else False
+        except:
+            sgmt = False
 
     with open(
         "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR),
@@ -552,6 +572,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
     config["fit_va"] = fva
     config["fit_bkg"] = bkg
     config["augment_bkg"] = augment
+    config["segments"] = sgmt
 
     df = pd.DataFrame.from_dict([config]).T.reset_index(drop=False)
     df = df.rename({"index": "Parameter", 0: "value"}, axis=1)
@@ -872,7 +893,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel:02}"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        fig_name = f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}_bkg{str(bkg)[0]}_augT.pdf"
+        fig_name = f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}_bkg{str(bkg)[0]}_augT_sgmT.pdf"
         print(fig_name)
         plt.savefig(fig_name, format="pdf", bbox_inches="tight", pad_inches=0.1)
     else:

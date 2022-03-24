@@ -53,22 +53,16 @@ def drop_repeated(lcs, quarter, channel):
 
 
 def main(quarter, channel, download=False, bkg=False, augment_bkg=False, fit_va=True):
-    if bkg:
-        tar_file = np.sort(
-            glob.glob(
-                f"{LCS_PATH}/kepler-bkg/ch{channel:02}/q{quarter:02}/"
-                f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-                f"poscorr_sqrt_tk6_tp100_fvaT_bkg{str(bkg)[0]}_augT.tar.gz"
-            )
+
+    time_corrector = "polynomial"
+    tar_file = np.sort(
+        glob.glob(
+            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+            f"{time_corrector}_sqrt_tk6_tp100_fvaT_bkg{str(bkg)[0]}_aug{str(bkg)[0]}_sgmT.tar.gz"
         )
-    else:
-        tar_file = np.sort(
-            glob.glob(
-                f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-                f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc*_"
-                f"poscorT_sqrt_tk6_tp100.tar.gz"
-            )
-        )
+    )
+
     if len(tar_file) == 0:
         print("No light curve archive...")
         sys.exit()
