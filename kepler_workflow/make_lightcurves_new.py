@@ -204,7 +204,12 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
 def get_tpfs(fname_list, tar_tpfs=True):
     if not tar_tpfs:
         return lk.collections.TargetPixelFileCollection(
-            [lk.read(f"{ARCHIVE_PATH}/data/kepler/tpf/{f}") for f in fname_list]
+            [
+                lk.KeplerTargetPixelFile(
+                    f"{ARCHIVE_PATH}/data/kepler/tpf/{f}", quality_bitmask="none"
+                )
+                for f in fname_list
+            ]
         )
     else:
         tpfs = []
@@ -213,7 +218,11 @@ def get_tpfs(fname_list, tar_tpfs=True):
                 tarf = f"{fname.split('/')[0]}_{fname.split('/')[1]}.tar"
                 tarf = f"{ARCHIVE_PATH}/data/kepler/tpf/{fname.split('/')[0]}/{tarf}"
                 tarfile.open(tarf, mode="r").extract(fname, tmpdir)
-                tpfs.append(lk.read(f"{tmpdir}/{fname}"))
+                tpfs.append(
+                    lk.KeplerTargetPixelFile(
+                        f"{tmpdir}/{fname}", quality_bitmask="none"
+                    )
+                )
 
         return lk.collections.TargetPixelFileCollection(tpfs)
 
@@ -360,7 +369,7 @@ def do_lcs(
     quiet=False,
     compute_node=False,
     augment_bkg=True,
-    save_npy=False,
+    save_array="feather",
     iter_neg=True,
 ):
 
@@ -482,16 +491,52 @@ def do_lcs(
     logg.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
     if iter_neg:
-        # More than 2% negative cadences
-        negative_sources = (machine.ws_va < 0).sum(axis=0) > (0.02 * machine.nt)
-        idx = 1
-        while len(negative_sources) > 0:
-            machine.mean_model[negative_sources] *= 0
-            machine.fit_model(fit_va=fit_va)
-            negative_sources = np.where((machine.ws_va < 0).all(axis=0))[0]
-            idx += 1
-            if idx >= 3:
-                break
+
+        def find_neg_nns(negatives):
+            # finds neighbors of negative sources
+            neg_sources_ra = machine.sources.ra.values[negatives]
+            neg_sources_dec = machine.sources.dec.values[negatives]
+
+            # find contaminants
+            all_sources_cat = SkyCoord(
+                ra=machine.sources.ra * u.degree, dec=machine.sources.dec * u.degree
+            )
+            neg_sources_cat = SkyCoord(
+                ra=neg_sources_ra * u.degree, dec=neg_sources_dec * u.degree
+            )
+            idx, d2d, _ = match_coordinates_3d(
+                neg_sources_cat, all_sources_cat, nthneighbor=2
+            )
+            # nns within 5 arcsec
+            neg_nns = idx[d2d.arcsec < 6]
+            logg.info(f"Neg LCs: {negatives.shape[0]}")
+            logg.info(f"Neg NNs: {neg_nns.shape[0]}")
+
+            # return negtive and contaminatns idxs
+            return np.unique(np.hstack([negatives, neg_nns])).ravel()
+
+        # get sources with neg lightcurves
+        negative_sources = (machine.ws_va < 0).sum(axis=0)  # > (0.02 * machine.nt)
+
+        narrow_prior = find_neg_nns(np.where(negative_sources)[0])
+        prior_sigma = (
+            np.ones(machine.mean_model.shape[0])
+            * 5
+            * np.abs(machine.source_flux_estimates) ** 0.5
+        )
+        # while len(negative_sources) > 0:
+        neg_idx = narrow_prior.copy()
+        prev_ws = machine.ws.copy()
+        prev_ws_va = machine.ws_va.copy()
+        # we narrow the prior for negatives and their NNs
+        prior_sigma[narrow_prior] /= 10
+        machine.fit_model(fit_va=fit_va, prior_sigma=prior_sigma)
+
+        # find remaining negatives and set them to zero.
+        negative_sources = np.where((machine.ws_va < 0).sum(axis=0))[0]
+        machine.ws_va[:, negative_sources] *= np.nan
+        negative_sources = np.where((machine.ws < 0).sum(axis=0))[0]
+        machine.ws[:, negative_sources] *= np.nan
 
     # compute source centroids
     centroid_method = "scene"
@@ -717,10 +762,11 @@ def do_lcs(
     if tar_lcs:
         tar.close()
 
-    if save_npy:
+    if save_array == "npz":
         np.savez(
             tarf_name.replace("tar.gz", "npz"),
             time=machine.time,
+            cadence=machine.cadenceno,
             flux=machine.ws_va,
             flux_err=machine.werrs_va,
             sap_flux=machine.sap_flux,
@@ -729,9 +775,43 @@ def do_lcs(
             psfnva_flux_err=machine.werrs,
             chi2=chi2_lc,
             sources=machine.sources.designation.values,
+            column=np.nanmean(data["centroid_col"]),
+            row=np.nanmean(data["centroid_row"]),
             ra=machine.sources.ra,
             dec=machine.sources.dec,
         )
+    elif save_array == "feather":
+        index = pd.MultiIndex.from_arrays(
+            [machine.cadenceno, machine.time], names=["cedence", "jd"]
+        )
+        locs = pd.DataFrame(
+            [
+                machine.ra,
+                machine.dec,
+                np.nanmean(data["centroid_col"]),
+                np.nanmean(data["centroid_row"]),
+            ],
+            index=["ra", "dec", "column", "row"],
+            columns=npz["sources"],
+        ).T
+        fname = tarf_name.replace(".tar.gz", f".coord.feather")
+
+        for name, val, val_err in zip(
+            ["psf", "novapsf", "sap", "chi2"],
+            [machine.ws_va, machine.ws, machine.sap_flux, chi2_lc],
+            [machine.werrs_va, machine.werrs, machine.sap_flux_err, None],
+        ):
+            fname = tarf_name.replace(".tar.gz", f".{name}.feather")
+            df = pd.DataFrame(
+                val, index=index, columns=machine.sources.designation.values
+            )
+            df.to_feather(fname)
+            if not val_err is None:
+                fname = tarf_name.replace(".tar.gz", f".{name}_err.feather")
+                df = pd.DataFrame(
+                    val_err, index=index, columns=machine.sources.designation.values
+                )
+                df.to_feather(fname)
 
 
 if __name__ == "__main__":
@@ -821,10 +901,10 @@ if __name__ == "__main__":
         help="Forcel logging.",
     )
     parser.add_argument(
-        "--save-npy",
-        dest="save_npy",
-        action="store_true",
-        default=False,
+        "--save-arrays",
+        dest="save_arrays",
+        type=str,
+        default="feather",
         help="Save W's as npy files for quick access.",
     )
     parser.add_argument(
