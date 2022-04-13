@@ -20,7 +20,7 @@ from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
 import fitsio
 from psfmachine.utils import _make_A_polar
-from statsmodels import robust
+from scipy import stats
 
 # from astropy.table import Table
 from astropy.coordinates import SkyCoord, match_coordinates_3d
@@ -312,13 +312,14 @@ def plot_residuals_dash(mac):
     source_row = mac.uncontaminated_source_mask.astype(float).multiply(mac.row).data
 
     fig, ax = plt.subplots(2, 2, figsize=(12, 9), facecolor="white")
+    mad = stats.median_absolute_deviation(residuals[np.isfinite(residuals)])
 
     ax[0, 0].scatter(
         residuals,
         source_flux,
         s=2,
         alpha=0.2,
-        label=f"MAD = {robust.mad(residuals[np.isfinite(residuals)]):.3}",
+        label=f"MAD = {mad:.3}",
     )
     ax[0, 0].legend(loc="upper right")
     ax[0, 0].set_ylabel("Gaia Source Flux", fontsize=12)
