@@ -1,14 +1,44 @@
-magnitude_limit: 19
-dr: 3
-apply_focus_mask: True
-limit_radius: 24.0
-n_r_knots: 10
-n_phi_knots: 15
-n_time_knots: 6
-time_resolution: 100
-time_radius: 8
-rmin: 1
-rmax: 16
-time_corrector: "polynomial"
-cartesian_knot_spacing: "sqrt"
-renormalize_tpf_bkg: True
+init:
+    magnitude_limit: 19
+    dr: 3
+    apply_focus_mask: True
+    limit_radius: 24.0
+    n_r_knots: 10
+    n_phi_knots: 15
+    time_nknots: 6
+    time_resolution: 100
+    time_radius: 8
+    rmin: 1
+    rmax: 16
+    cartesian_knot_spacing: "sqrt"
+    renormalize_tpf_bkg: True
+
+remove_background_model:
+    plot: False
+
+build_shape_model:
+    plot: False
+    flux_cut_off: 1
+    frame_index: "mean"
+    bin_data: False
+
+compute_aperture_photometry:
+    aperture_size: "optimal"
+    target_complete: 1
+    target_crowd: 1
+
+time_model:
+    plot: False
+    bin_method: "bin"
+    segments: True
+    focus: False
+    focus_exptime: 50
+    pca_ncomponents: 3
+    pca_smooth_time_scale: 0.02
+    positions: False
+
+fit_model:
+    fit_va: True
+
+get_source_centroids:
+    method: "scene"

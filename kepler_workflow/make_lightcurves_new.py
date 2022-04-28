@@ -408,14 +408,14 @@ def do_lcs(
     ##############################################################################
 
     logg.info("Initializing PSFMachine")
-    machine = pm.TPFMachine.from_TPFs(tpfs, **config)
+    machine = pm.TPFMachine.from_TPFs(tpfs, **config["init"])
     if not compute_node:
         machine.quiet = quiet
     else:
         machine.quiet = True
         quiet = True
     logg.info("PSFMachine config:")
-    print_dict(config)
+    print_dict(config["init"])
 
     del tpfs
     logg.info(machine)
@@ -485,10 +485,7 @@ def do_lcs(
         aperture_size="optimal", target_complete=1, target_crowd=1
     )
     # PSF phot
-    split_time_model = True
-    logg.info(f"split_time_model: {split_time_model}")
-    machine.build_time_model(plot=False, split_time_model=split_time_model)
-    logg.info(f"Time model segment splits: {[x for x in machine.seg_splits]}")
+    machine.build_time_model(config["time_model"])
     logg.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
     if iter_neg:
