@@ -589,6 +589,8 @@ def do_lcs(
             str(iter_neg)[0],
         )
     )
+    if not plot:
+        plot = np.random.choice([False] * 25 + [True])
 
     if plot:
         dir_name = "%s/figures/tpf/ch%02i" % (OUTPUT_PATH, channel)
