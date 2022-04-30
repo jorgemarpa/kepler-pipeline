@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 logg = logging.getLogger("Make LCs")
-lc_version = "1.0"
+lc_version = "1.1.1"
 
 typedir = {
     int: "J",
@@ -228,48 +228,42 @@ def get_tpfs(fname_list, tar_tpfs=True):
 
 
 # @profile
-def do_poscorr_plot(machine):
-    (
-        time_original,
-        time_binned,
-        flux_binned_raw,
-        flux_binned,
-        flux_err_binned,
-        poscorr1_smooth,
-        poscorr2_smooth,
-        poscorr1_binned,
-        poscorr2_binned,
-    ) = machine._time_bin(npoints=machine.n_time_points)
-    fig, ax = plt.subplots(1, 2, figsize=(15, 3))
+def do_components_plot(machine):
+    tvec = (machine.P.poly_order + 1) * (len(machine.P.breaks) + 1)
+    if machine.P.vectors.shape[1] == tvec:
+        fig, ax = plt.subplots(1, 1, figsize=(7, 3))
 
-    ax[0].set_title("Poscorr 1")
-    ax[0].plot(
-        time_original,
-        np.median(machine.pos_corr1, axis=0),
-        c="k",
-        lw=1.2,
-        label="Median",
-    )
-    ax[0].plot(time_original, poscorr1_smooth, c="r", ls="-", lw=0.8, label="Smooth")
-    ax[0].plot(
-        time_binned[:, 0],
-        poscorr1_binned[:, 0],
-        c="g",
-        marker="o",
-        lw=0,
-        ms=5,
-        label="Knots",
-    )
-    ax[0].set_xlabel("Time (whitened)")
-    ax[0].set_ylabel("Mean")
-    ax[0].legend(loc="best")
+        ax.plot(machine.P.vectors[:, :tvec])
+        ax.set(title="Time Polynomials", xlabel="Time", ylabel="Strenght")
+    else:
+        if machine.P.focus:
+            fvec = tvec + len(machine.P.breaks) + 1
+            pvec = fvec
+            fig, ax = plt.subplots(1, 3, figsize=(18, 3))
 
-    ax[1].set_title("Poscorr 2")
-    ax[1].plot(time_original, np.median(machine.pos_corr2, axis=0), c="k", lw=1.2)
-    ax[1].plot(time_original, poscorr2_smooth, c="r", ls="-", lw=0.8)
-    ax[1].plot(time_binned[:, 0], poscorr2_binned[:, 0], c="g", marker="o", lw=0, ms=5)
-    ax[1].set_xlabel("Time (whitened)")
-    fig.tight_layout()
+            ax[0].plot(machine.P.vectors[:, :tvec])
+            ax[0].set(title="Time Polynomials", xlabel="Time", ylabel="Strenght")
+
+            ax[1].plot(machine.P.vectors[:, tvec:fvec])
+            ax[1].set(title="Focus", xlabel="Time")
+
+            ax[2].plot(machine.P.vectors[:, pvec:])
+            ax[2].set(
+                title="PCA" if machine.P.other_vectors is None else "Positions",
+                xlabel="Time",
+            )
+        else:
+            pvec = tvec
+            fig, ax = plt.subplots(1, 2, figsize=(12, 3))
+
+            ax[0].plot(machine.P.vectors[:, :tvec])
+            ax[0].set(title="Time Polynomials", xlabel="Time", ylabel="Strenght")
+
+            ax[1].plot(machine.P.vectors[:, pvec:])
+            ax[1].set(
+                title="PCA" if machine.P.other_vectors is None else "Positions",
+                xlabel="Time",
+            )
 
     return fig
 
@@ -312,7 +306,7 @@ def plot_residuals_dash(mac):
     source_row = mac.uncontaminated_source_mask.astype(float).multiply(mac.row).data
 
     fig, ax = plt.subplots(2, 2, figsize=(12, 9), facecolor="white")
-    mad = stats.median_absolute_deviation(residuals[np.isfinite(residuals)])
+    mad = stats.median_abs_deviation(residuals[np.isfinite(residuals)])
 
     ax[0, 0].scatter(
         residuals,
@@ -370,7 +364,7 @@ def do_lcs(
     quiet=False,
     compute_node=False,
     augment_bkg=True,
-    save_array="feather",
+    save_arrays="feather",
     iter_neg=True,
 ):
 
@@ -478,14 +472,12 @@ def do_lcs(
             machine.build_shape_model(plot=False)
     else:
         logg.info("No shape model for this Q/Ch, fitting PRF from data...")
-        machine.build_shape_model(plot=False)
+        machine.build_shape_model(**config["build_shape_model"])
 
     # SAP
-    machine.compute_aperture_photometry(
-        aperture_size="optimal", target_complete=1, target_crowd=1
-    )
+    machine.compute_aperture_photometry(**config["compute_aperture_photometry"])
     # PSF phot
-    machine.build_time_model(config["time_model"])
+    machine.build_time_model(**config["time_model"])
     logg.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
     if iter_neg:
@@ -522,10 +514,6 @@ def do_lcs(
             * 5
             * np.abs(machine.source_flux_estimates) ** 0.5
         )
-        # while len(negative_sources) > 0:
-        neg_idx = narrow_prior.copy()
-        prev_ws = machine.ws.copy()
-        prev_ws_va = machine.ws_va.copy()
         # we narrow the prior for negatives and their NNs
         prior_sigma[narrow_prior] /= 10
         machine.fit_model(fit_va=fit_va, prior_sigma=prior_sigma)
@@ -537,8 +525,7 @@ def do_lcs(
         machine.ws[:, negative_sources] *= np.nan
 
     # compute source centroids
-    centroid_method = "scene"
-    machine.get_source_centroids(method=centroid_method)
+    machine.get_source_centroids(**config["get_source_centroids"])
 
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
@@ -562,7 +549,7 @@ def do_lcs(
             )
 
     # get bkg light curves
-    if config["renormalize_tpf_bkg"]:
+    if config["init"]["renormalize_tpf_bkg"]:
         bkg_sap_flux = np.zeros((machine.flux.shape[0], machine.nsources))
         bkg_model = (
             machine.bkg_estimator.model[:, machine.pixels_in_tpf]
@@ -586,72 +573,65 @@ def do_lcs(
     ################################## save plots ################################
     ##############################################################################
 
+    global_name = (
+        "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_b%03i-%02i_fva%s_bkg%s_aug%s_sgm%s_ite%s"
+        % (
+            machine.tpf_meta["mission"][0].lower(),
+            channel,
+            quarter,
+            lc_version,
+            batch_size,
+            batch_number,
+            str(fit_va)[0],
+            str(config["init"]["renormalize_tpf_bkg"])[0],
+            str(augment_bkg)[0],
+            str(config["time_model"]["segments"])[0],
+            str(iter_neg)[0],
+        )
+    )
+
     if plot:
         dir_name = "%s/figures/tpf/ch%02i" % (OUTPUT_PATH, channel)
         logg.info(f"Saving diagnostic plots into: {dir_name}")
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        file_name = (
-            "%s/%s_models_ch%02i_q%02i_b%03i-%02i_%s_%s_tk%i_tp%i_bkg%s_sgm%s.pdf"
-            % (
-                dir_name,
-                machine.tpf_meta["mission"][0],
-                channel,
-                quarter,
-                batch_size,
-                batch_number,
-                machine.time_corrector.replace("_", ""),
-                machine.cartesian_knot_spacing,
-                machine.n_time_knots,
-                machine.n_time_points,
-                str(config["renormalize_tpf_bkg"])[0],
-                str(split_time_model)[0],
-            )
-        )
-
-        # bkg model
-        if config["renormalize_tpf_bkg"]:
-            bkg_fig = machine.plot_background_model(frame_index=machine.nt // 2)
-            bkg_fig_2 = machine.bkg_estimator.plot()
-
-        # SHAPE FIGURE
-        shape_fig = machine.plot_shape_model()
-        residuals_fig = plot_residuals_dash(machine)
-
-        # TIME FIGURE
-        if fit_va:
-            try:
-                time_fig = machine.plot_time_model()
-                if machine.cartesian_knot_spacing == "sqrt":
-                    xknots = np.linspace(
-                        -np.sqrt(machine.time_radius),
-                        np.sqrt(machine.time_radius),
-                        machine.n_time_knots,
-                    )
-                    xknots = np.sign(xknots) * xknots ** 2
-                else:
-                    xknots = np.linspace(
-                        -machine.time_radius, machine.time_radius, machine.n_time_knots
-                    )
-                xknots, yknots = np.meshgrid(xknots, xknots)
-                time_fig.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
-                time_fig.suptitle(f"Time model: {machine.time_corrector}")
-            except:
-                pass
+        file_name = f"{dir_name}/{global_name}.pdf"
 
         with PdfPages(file_name) as pages:
-            if config["renormalize_tpf_bkg"]:
-                FigureCanvasPdf(bkg_fig_2).print_figure(pages)
-                FigureCanvasPdf(bkg_fig).print_figure(pages)
-            FigureCanvasPdf(shape_fig).print_figure(pages)
-            FigureCanvasPdf(residuals_fig).print_figure(pages)
+            # BKG figures
+            if config["init"]["renormalize_tpf_bkg"]:
+                FigureCanvasPdf(machine.bkg_estimator.plot()).print_figure(pages)
+                FigureCanvasPdf(
+                    machine.plot_background_model(frame_index=machine.nt // 2)
+                ).print_figure(pages)
+            # SHAPE FIGURE
+            FigureCanvasPdf(machine.plot_shape_model()).print_figure(pages)
+            FigureCanvasPdf(plot_residuals_dash(machine)).print_figure(pages)
+            # TIME FIGURE
             if fit_va:
                 try:
-                    FigureCanvasPdf(time_fig).print_figure(pages)
+                    time_fig1, time_fig2 = machine.plot_time_model()
+                    if machine.cartesian_knot_spacing == "sqrt":
+                        xknots = np.linspace(
+                            -np.sqrt(machine.time_radius),
+                            np.sqrt(machine.time_radius),
+                            machine.time_nknots,
+                        )
+                        xknots = np.sign(xknots) * xknots ** 2
+                    else:
+                        xknots = np.linspace(
+                            -machine.time_radius,
+                            machine.time_radius,
+                            machine.time_nknots,
+                        )
+                    xknots, yknots = np.meshgrid(xknots, xknots)
+                    time_fig1.axes[-2].scatter(xknots, yknots, c="k", s=2, marker="x")
+                    FigureCanvasPdf(time_fig1).print_figure(pages)
+                    FigureCanvasPdf(time_fig2).print_figure(pages)
                 except:
                     pass
-            if fit_va and machine.time_corrector == "pos_corr":
-                FigureCanvasPdf(do_poscorr_plot(machine)).print_figure(pages)
+                FigureCanvasPdf(do_components_plot(machine)).print_figure(pages)
+
         plt.close()
 
     ##############################################################################
@@ -667,26 +647,11 @@ def do_lcs(
     logg.info(f"Saving light curves into: {dir_name}")
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
-    tarf_name = "%s/kbonus-bkgd_ch%02i_q%02i_v%s_lc_b%03i-%02i_%s_%s_tk%i_tp%i_fva%s_bkg%s_aug%s_sgm%s_ite%s.tar.gz" % (
-        dir_name,
-        channel,
-        quarter,
-        lc_version,
-        batch_size,
-        batch_number,
-        machine.time_corrector.replace("_", ""),
-        machine.cartesian_knot_spacing,
-        machine.n_time_knots,
-        machine.n_time_points,
-        str(fit_va)[0],
-        str(config["renormalize_tpf_bkg"])[0],
-        str(augment_bkg)[0],
-        str(split_time_model)[0],
-        str(iter_neg)[0],
-    )
+    tarf_name = f"{dir_name}/{global_name}.tar.gz"
     if tar_lcs:
         logg.info("LCFs will be tar.gz")
         tar = tarfile.open(tarf_name, mode="w:gz")
+    centroids_row, centroids_col = [], []
     for idx, srow in tqdm(
         machine.sources.iterrows(),
         total=machine.nsources,
@@ -711,10 +676,11 @@ def do_lcs(
             "sap_flux": machine.sap_flux[:, idx],
             "sap_flux_err": machine.sap_flux_err[:, idx],
             "centroid_col": vars(machine)[
-                "source_centroids_column_%s" % (centroid_method)
+                "source_centroids_column_%s"
+                % (config["get_source_centroids"]["method"])
             ][idx],
             "centroid_row": vars(machine)[
-                "source_centroids_row_%s" % (centroid_method)
+                "source_centroids_row_%s" % (config["get_source_centroids"]["method"])
             ][idx],
             "quality": machine.tpfs[tpf_idx[idx]].quality[cadno_mask],
             "psf_flux_NVA": machine.ws[:, idx],
@@ -722,6 +688,8 @@ def do_lcs(
             "sap_bkg": bkg_sap_flux[:, idx],
             "red_chi2": chi2_lc[:, idx],
         }
+        centroids_row.append(np.nanmean(data["centroid_row"]).value)
+        centroids_col.append(np.nanmean(data["centroid_col"]).value)
         # get LC metadata
         lc_meta = machine._make_meta_dict(idx, srow, True)
 
@@ -760,9 +728,9 @@ def do_lcs(
     if tar_lcs:
         tar.close()
 
-    if save_array == "npz":
+    if save_arrays == "npz":
         np.savez(
-            tarf_name.replace("tar.gz", "npz"),
+            f"{dir_name}/{global_name}.npz",
             time=machine.time,
             cadence=machine.cadenceno,
             flux=machine.ws_va,
@@ -778,38 +746,41 @@ def do_lcs(
             ra=machine.sources.ra,
             dec=machine.sources.dec,
         )
-    elif save_array == "feather":
+    elif save_arrays == "feather":
         index = pd.MultiIndex.from_arrays(
             [machine.cadenceno, machine.time], names=["cedence", "jd"]
         )
         locs = pd.DataFrame(
             [
-                machine.ra,
-                machine.dec,
-                np.nanmean(data["centroid_col"]),
-                np.nanmean(data["centroid_row"]),
+                machine.sources.ra.values,
+                machine.sources.dec.values,
+                np.array(centroids_col),
+                np.array(centroids_row),
             ],
             index=["ra", "dec", "column", "row"],
-            columns=npz["sources"],
+            columns=machine.sources.designation.values,
         ).T
-        fname = tarf_name.replace(".tar.gz", f".coord.feather")
+        fname = f"{dir_name}/{global_name}.coord.feather"
+        locs.reset_index().to_feather(fname)
 
         for name, val, val_err in zip(
             ["psf", "novapsf", "sap", "chi2"],
             [machine.ws_va, machine.ws, machine.sap_flux, chi2_lc],
             [machine.werrs_va, machine.werrs, machine.sap_flux_err, None],
         ):
-            fname = tarf_name.replace(".tar.gz", f".{name}.feather")
+            fname = f"{dir_name}/{global_name}.{name}.feather"
             df = pd.DataFrame(
                 val, index=index, columns=machine.sources.designation.values
             )
-            df.to_feather(fname)
+            df.reset_index().to_feather(fname)
             if not val_err is None:
-                fname = tarf_name.replace(".tar.gz", f".{name}_err.feather")
+                fname = f"{dir_name}/{global_name}.{name}_err.feather"
                 df = pd.DataFrame(
                     val_err, index=index, columns=machine.sources.designation.values
                 )
-                df.to_feather(fname)
+                df.reset_index().to_feather(fname)
+    else:
+        raise ValueError("Wrong type of array files.")
 
 
 if __name__ == "__main__":

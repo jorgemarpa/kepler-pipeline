@@ -13,11 +13,7 @@ init:
     cartesian_knot_spacing: "sqrt"
     renormalize_tpf_bkg: True
 
-remove_background_model:
-    plot: False
-
 build_shape_model:
-    plot: False
     flux_cut_off: 1
     frame_index: "mean"
     bin_data: False
@@ -28,7 +24,6 @@ compute_aperture_photometry:
     target_crowd: 1
 
 time_model:
-    plot: False
     bin_method: "bin"
     segments: True
     focus: False
