@@ -9,8 +9,10 @@
 #PBS -o pfe21:/home4/jimartin/ADAP/kepler-workflow/logs/
 
 # activate conda env
-# source /nasa/jupyter/4.4/miniconda/etc/profile.d/conda.sh
-# conda activate kepler-workflow
+source /nasa/jupyter/4.4/miniconda/etc/profile.d/conda.sh
+conda activate kepler-workflow
+
+echo `which python`
 
 # project directory
 WORKDIR=$(dirname `pwd`)
