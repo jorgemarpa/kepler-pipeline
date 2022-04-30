@@ -775,13 +775,13 @@ def do_lcs(
             df = pd.DataFrame(
                 val, index=index, columns=machine.sources.designation.values
             )
-            df.to_feather(fname)
+            df.reset_index().to_feather(fname)
             if not val_err is None:
                 fname = f"{dir_name}/{global_name}.{name}_err.feather"
                 df = pd.DataFrame(
                     val_err, index=index, columns=machine.sources.designation.values
                 )
-                df.to_feather(fname)
+                df.reset_index().to_feather(fname)
     else:
         raise ValueError("Wrong type of array files.")
 
