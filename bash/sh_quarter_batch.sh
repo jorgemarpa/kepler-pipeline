@@ -11,15 +11,15 @@ echo "Quarter $quarter"
 echo "Total batch index $totallines"
 
 start=1
-end=201
+end=181
 
 while [ $start -le $totallines ]
 do
   echo "qsub -v 'quarter=$1,batch_start=$start,batch_end=$end' pbs_quarter_batch.sh"
   qsub -v "quarter=$1,batch_start=$start,batch_end=$end" pbs_quarter_batch.sh
 
-  start=$(($start + 200))
-  end=$(($end + 200))
+  start=$(($start + 180))
+  end=$(($end + 180))
   if [ "$end" -ge $totallines ]
   then
     end=$totallines
