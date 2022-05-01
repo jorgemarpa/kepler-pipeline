@@ -2,7 +2,7 @@
 #PBS -N make-LCs
 #PBS -q normal
 #PBS -l select=1:ncpus=12:mem=62G:model=ivy
-#PBS -l walltime=7:00:00
+#PBS -l walltime=7:55:00
 #PBS -j oe
 #PBS -m e
 #PBS -V
