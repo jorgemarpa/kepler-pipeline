@@ -1,7 +1,7 @@
 #PBS -S /bin/sh
 #PBS -N make-LCs
 #PBS -q long
-#PBS -l select=1:ncpus=10:mem=62G:model=ivy
+#PBS -l select=1:ncpus=10:mem=120G:model=has
 #PBS -l walltime=10:00:00
 #PBS -j oe
 #PBS -m e
