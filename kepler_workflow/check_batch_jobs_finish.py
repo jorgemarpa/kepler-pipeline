@@ -41,7 +41,7 @@ def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT"):
     quarters = np.arange(0, 18)
     for q in quarters:
         archive_path = sorted(
-            glob(f"{LCS_PATH}/kepler/ch{channel:02}/q{q:02}/*{pattern}*")
+            glob(f"{LCS_PATH}/kepler/ch{channel:02}/q{q:02}/*{pattern}*.tar.gz")
         )
         if len(archive_path) > 0:
             total_batches = archive_path[0].split("/")[-1][34:36]
