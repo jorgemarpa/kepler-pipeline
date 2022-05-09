@@ -53,7 +53,7 @@ def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT"):
         else:
             total_batches = None
         print(
-            f"Channel {channel} Q {q} batches {len(archive_path)} / {batch_numer_org.iloc[q, channel]}"
+            f"Channel {channel:02} Q {q} batches {len(archive_path):02} / {batch_numer_org.iloc[q, channel]:02}"
         )
     return
 
