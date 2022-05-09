@@ -25,7 +25,8 @@ def check_make_files():
                 except IndexError:
                     continue
 
-    # batch_idx_fail = list(set(batch_idx_fail))
+    batch_idx_fail = np.array(batch_idx_fail)
+    quarters = np.array(quarters)
     for k, q in enumerate(set(quarters)):
         with open(
             f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{q}.dat", "w"
