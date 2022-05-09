@@ -2,6 +2,7 @@ import os
 from glob import glob
 import argparse
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
@@ -38,6 +39,10 @@ def check_make_files():
 
 def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT"):
 
+    batch_numer_org = pd.read_csv(
+        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
+    )
+
     quarters = np.arange(0, 18)
     for q in quarters:
         archive_path = sorted(
@@ -47,7 +52,9 @@ def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT"):
             total_batches = archive_path[0].split("/")[-1][34:36]
         else:
             total_batches = None
-        print(f"Channel {channel} Q {q} batches {len(archive_path)}")
+        print(
+            f"Channel {channel} Q {q} batches {len(archive_path)} / {batch_numer_org.iloc[q, channel]}"
+        )
     return
 
 
