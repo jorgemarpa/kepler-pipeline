@@ -36,9 +36,7 @@ def check_make_files():
     return
 
 
-def check_channel_archive(
-    channel, pattern="polynomial_sqrt_tk6_tp100_fvaT_bkgT_augT_sgmT"
-):
+def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT"):
 
     quarters = np.arange(0, 18)
     for q in quarters:
