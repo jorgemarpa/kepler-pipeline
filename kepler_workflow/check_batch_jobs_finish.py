@@ -21,7 +21,7 @@ def check_make_files():
             else:
                 try:
                     batch_idx_fail.append(int(lines[2].split(":")[-1]))
-                    quarters.append(int(lines[14].split(":")[-1]))
+                    quarters.append(int(lines[13].split(":")[-1]))
                 except IndexError:
                     continue
 
