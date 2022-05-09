@@ -31,7 +31,7 @@ def check_make_files():
         with open(
             f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{q}.dat", "w"
         ) as f:
-            for k in batch_idx_fail[quarters == q]:
+            for k in np.unique(batch_idx_fail[quarters == q]):
                 f.write(f"{k}\n")
     return
 
