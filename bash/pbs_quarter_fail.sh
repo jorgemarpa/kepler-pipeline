@@ -1,8 +1,8 @@
 #PBS -S /bin/sh
 #PBS -N make-LCs
 #PBS -q normal
-#PBS -l select=1:ncpus=12:mem=62G:model=ivy
-#PBS -l walltime=04:00:00
+#PBS -l select=1:ncpus=10:mem=62G:model=ivy
+#PBS -l walltime=06:00:00
 #PBS -j oe
 #PBS -m e
 #PBS -V
@@ -11,6 +11,8 @@
 # activate conda env
 source /nasa/jupyter/4.4/miniconda/etc/profile.d/conda.sh
 conda activate kepler-workflow
+
+echo `which python`
 
 # project directory
 WORKDIR=$(dirname `pwd`)
@@ -24,11 +26,11 @@ cd "$WORKDIR/kepler_workflow"
 echo `pwd`
 
 echo "Quarter $quarter"
-echo "Total batches in quarter $totallines"
+echo "Total failed batches in quarter $totallines"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "cat ${info} | xargs -n 1 -I {} -P 12 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --save-npy --log 20"
-cat ${info} | xargs -n 1 -I {} -P 12 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --save-npy --log 20
+echo "cat ${info} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
+cat ${info} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
 
 exit 0
