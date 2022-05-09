@@ -5,12 +5,12 @@ init:
     limit_radius: 24.0
     n_r_knots: 10
     n_phi_knots: 15
-    time_nknots: 6
-    time_resolution: 100
-    time_radius: 8
+    time_nknots: 7
+    time_resolution: 35
+    time_radius: 9
     rmin: 1
     rmax: 16
-    cartesian_knot_spacing: "sqrt"
+    cartesian_knot_spacing: "linear"
     renormalize_tpf_bkg: True
 
 build_shape_model:
