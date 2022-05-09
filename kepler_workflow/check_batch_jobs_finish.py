@@ -2,6 +2,7 @@ import os
 from glob import glob
 import argparse
 import numpy as np
+from tqdm import tqdm
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
@@ -10,26 +11,27 @@ def check_make_files():
     info_list = sorted(glob(f"{PACKAGEDIR}/logs/make_lightcurve_*.info"))
     print(f"Total info files: {len(info_list)}")
 
-    batch_idx_fail = []
+    batch_idx_fail, quarters = [], []
     for fname in info_list:
         print(fname)
         with open(fname, "r") as f:
             lines = f.readlines()
             if lines[-1][-6:-1] == "Done!":
-                quarter = int(lines[10].split(":")[-1])
                 continue
             else:
                 try:
-                    batch_idx_fail.append(int(lines[1].split(":")[-1]))
+                    batch_idx_fail.append(int(lines[2].split(":")[-1]))
+                    quarters.append(int(lines[14].split(":")[-1]))
                 except IndexError:
                     continue
 
-    batch_idx_fail = list(set(batch_idx_fail))
-    with open(
-        f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat", "w"
-    ) as f:
-        for k in batch_idx_fail:
-            f.write(f"{k}\n")
+    # batch_idx_fail = list(set(batch_idx_fail))
+    for k, q in enumerate(set(quarters)):
+        with open(
+            f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{q}.dat", "w"
+        ) as f:
+            for k in batch_idx_fail[quarters == q]:
+                f.write(f"{k}\n")
     return
 
 
