@@ -13,7 +13,7 @@ from paths import *
 def main(dir, quarter):
     print(f"Working on {dir}")
     lcfs = glob.glob(
-        f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc.fits"
+        f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-bkg_kepler_kepler*_lc.fits"
     )
     print(len(lcfs))
     kics, gids = [], []

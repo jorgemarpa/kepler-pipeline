@@ -16,13 +16,13 @@ def do_archive(quarter, channel, bkg=False, augment_bkg=False, fit_va=True):
 
     print(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-        f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+        f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
         "poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz"
     )
     tar_files = sorted(
         glob.glob(
             f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
+            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
             "poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz"
         )
     )
@@ -79,7 +79,7 @@ def rename_fits():
     for dir in tqdm(dir_list, desc="Renaming files (dir iter)"):
         subdir_list = sorted([x.path for x in os.scandir(dir) if x.is_dir()])
         for subdir in subdir_list:
-            files = glob.glob(f"{subdir}/hlsp_kbonus-kbkgd_kepler_kepler*.fits")
+            files = glob.glob(f"{subdir}/hlsp_kbonus-bkg_kepler_kepler*.fits")
             for f in files:
                 if "KIC" in f or "kic" in f:
                     path, fname = os.path.split(f)
@@ -96,11 +96,11 @@ def drop_duplicates(dir, bkg=False, augment_bkg=False, fit_va=True):
     print(f"Working on {dir}")
     if not bkg:
         dupfiles = glob.glob(
-            f"{LCS_PATH}/kepler/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
+            f"{LCS_PATH}/kepler/{dir}/*/hlsp_kbonus-bkg_kepler_kepler*_lc_2.fits"
         )
     else:
         dupfiles = glob.glob(
-            f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-kbkgd_kepler_kepler*_lc_2.fits"
+            f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-bkg_kepler_kepler*_lc_2.fits"
         )
     if len(dupfiles) == 0:
         print("No duplicated files")
