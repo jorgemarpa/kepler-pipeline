@@ -1,5 +1,8 @@
+import sys
 import glob
+import os
 import numpy as np
+import pandas as pd
 import argparse
 import fitsio
 import tarfile
@@ -9,7 +12,7 @@ from tqdm import tqdm
 from paths import LCS_PATH
 
 
-def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
+def channel_npz(channel=1, quarter=5, suffix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
 
     fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}_*-*_{sufix}.npz"
     print(fpath)
@@ -100,6 +103,143 @@ def main(channel=1, quarter=5, sufix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
     )
 
 
+def channel_feather(
+    channel=1, quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"
+):
+
+    print(
+        f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+        f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v{version}_lcs_*_{suffix}.coord.feather"
+    )
+    bfiles = sorted(
+        glob.glob(
+            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v{version}_lcs_*_{suffix}.coord.feather"
+        )
+    )
+    if len(bfiles) == 0:
+        print("No batches for this channel...")
+        sys.exit()
+    print(f"Total batches: {len(bfiles)}")
+
+    (
+        coord,
+        psf_flux,
+        psf_flux_err,
+        psfnova_flux,
+        psfnova_flux_err,
+        sap_flux,
+        sap_flux_err,
+        chi2,
+    ) = ([], [], [], [], [], [], [], [])
+    time = pd.read_feather(bfiles[0].replace("coord", "psf")).iloc[:, :2]
+    for name in bfiles:
+        coord.append(pd.read_feather(name))
+        print("Shape of batch:", coord[-1].shape)
+        psf_flux.append(pd.read_feather(name.replace("coord", "psf")).iloc[:, 2:].T)
+        psf_flux_err.append(
+            pd.read_feather(name.replace("coord", "psf_err")).iloc[:, 2:].T
+        )
+        psfnova_flux.append(
+            pd.read_feather(name.replace("coord", "novapsf")).iloc[:, 2:].T
+        )
+        psfnova_flux_err.append(
+            pd.read_feather(name.replace("coord", "novapsf_err")).iloc[:, 2:].T
+        )
+        sap_flux.append(pd.read_feather(name.replace("coord", "sap")).iloc[:, 2:].T)
+        sap_flux_err.append(
+            pd.read_feather(name.replace("coord", "sap_err")).iloc[:, 2:].T
+        )
+        chi2.append(pd.read_feather(name.replace("coord", "chi2")).iloc[:, 2:].T)
+
+    coord = pd.concat(coord).set_index("index")
+    psf_flux = pd.concat(psf_flux)
+    psf_flux_err = pd.concat(psf_flux_err)
+    psfnova_flux = pd.concat(psfnova_flux)
+    psfnova_flux_err = pd.concat(psfnova_flux_err)
+    sap_flux = pd.concat(sap_flux)
+    sap_flux_err = pd.concat(sap_flux_err)
+    chi2 = pd.concat(chi2)
+
+    print("Removing nans/neg")
+    mask1 = np.mean(psf_flux, axis=1) >= 0
+    mask2 = ~np.isnan(psf_flux).sum(axis=1).astype(bool)
+    mask = mask1 & mask2
+
+    coord = coord[mask]
+    psf_flux = psf_flux[mask]
+    psf_flux_err = psf_flux_err[mask]
+    psfnova_flux = psfnova_flux[mask]
+    psfnova_flux_err = psfnova_flux_err[mask]
+    sap_flux = sap_flux[mask]
+    sap_flux_err = sap_flux_err[mask]
+    chi2 = chi2[mask]
+
+    print("Removing duplicated")
+    _, unique_idx = np.unique(coord.index, return_index=True)
+
+    coord = coord.iloc[unique_idx]
+    psf_flux = psf_flux.iloc[unique_idx]
+    psf_flux_err = psf_flux_err.iloc[unique_idx]
+    psfnova_flux = psfnova_flux.iloc[unique_idx]
+    psfnova_flux_err = psfnova_flux_err.iloc[unique_idx]
+    sap_flux = sap_flux.iloc[unique_idx]
+    sap_flux_err = sap_flux_err.iloc[unique_idx]
+    chi2 = chi2.iloc[unique_idx]
+
+    outname = (
+        bfiles[0].replace(bfiles[0].split()[-1].split("_")[5], "").replace("lcs__", "")
+    )
+    print(outname)
+
+    print(coord.shape)
+    print(time.shape)
+    print(psf_flux.shape)
+    print(psf_flux_err.shape)
+    print(psfnova_flux.shape)
+    print(psfnova_flux_err.shape)
+    print(sap_flux.shape)
+    print(sap_flux_err.shape)
+    print(chi2.shape)
+
+    coord.reset_index().to_feather(outname)
+    time.to_feather(outname.replace("coord", "time"))
+    psf_flux.T.to_feather(outname.replace("coord", "psf"))
+    psf_flux_err.T.to_feather(outname.replace("coord", "psf_err"))
+    psfnova_flux.T.to_feather(outname.replace("coord", "novapsf"))
+    psfnova_flux_err.T.to_feather(outname.replace("coord", "novapsf_err"))
+    sap_flux.T.to_feather(outname.replace("coord", "sap"))
+    sap_flux_err.T.to_feather(outname.replace("coord", "sap_err"))
+    chi2.T.to_feather(outname.replace("coord", "chi2"))
+
+
+def quarter_feather(quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"):
+
+    channels = np.arange(1, 85, dtype=int)
+
+    coord, channel = [], []
+    for ch in tqdm(channels, total=len(channels)):
+        name = (
+            f"{LCS_PATH}/kepler/ch{ch:02}/q{quarter:02}/"
+            f"kbonus-kepler-bkg_ch{ch:02}_q{quarter:02}_v{version}_{suffix}.coord.feather"
+        )
+        if not os.path.isfile(name):
+            continue
+        aux = pd.read_feather(name)
+        aux.loc[:, "channel"] = [ch] * len(aux)
+        coord.append(aux)
+
+    coord = pd.concat(coord).set_index("index")
+
+    print(coord.shape)
+
+    name = (
+        f"{LCS_PATH}/kepler/"
+        f"kbonus-kepler-bkg_q{quarter:02}_v{version}_{suffix}.coord.feather"
+    )
+    coord.reset_index().to_feather(name)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Concatenate NPZ files from batches")
     parser.add_argument(
@@ -112,17 +252,34 @@ if __name__ == "__main__":
     parser.add_argument(
         "--channel",
         dest="channel",
-        type=int,
+        # type=int,
         default=None,
         help="Channel number",
     )
     parser.add_argument(
         "--sufix",
-        dest="sufix",
+        dest="suffix",
         type=str,
-        default="poscorT_sqrt_tk6_tp200",
+        default="fvaT_bkgT_augT_sgmT_iteT",
         help="File prefix",
+    )
+    parser.add_argument(
+        "--file-type",
+        dest="file_type",
+        type=str,
+        default="feather",
+        help="File type",
     )
 
     args = parser.parse_args()
-    main(**vars(args))
+    if args.file_type == "npz":
+        channel_npz(channel=args.channel, quarter=args.quarter, suffix=args.suffix)
+    elif args.file_type == "feather":
+        if args.channel == "all":
+            quarter_feather(quarter=args.quarter, suffix=args.suffix)
+        else:
+            channel_feather(
+                channel=args.channel, quarter=args.quarter, suffix=args.suffix
+            )
+    else:
+        raise ValueError("Wrong file type...")
