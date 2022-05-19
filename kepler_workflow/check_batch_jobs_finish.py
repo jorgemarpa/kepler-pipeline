@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from termcolor import colored
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
@@ -52,9 +53,41 @@ def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             total_batches = archive_path[0].split("/")[-1][34:36]
         else:
             total_batches = None
-        print(
-            f"Channel {channel:02} Q {q:02} batches {len(archive_path):02} / {batch_numer_org.iloc[q, channel]:02}"
+        color = (
+            "green" if len(archive_path) == batch_numer_org.iloc[q, channel] else "red"
         )
+        text = colored(
+            f"Channel {channel:02} Q {q:02} batches {len(archive_path):02} / {batch_numer_org.iloc[q, channel]:02}",
+            color=color,
+        )
+        print(text)
+    return
+
+
+def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.gz"):
+
+    batch_numer_org = pd.read_csv(
+        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
+    )
+
+    channels = np.arange(1, 85)
+    for ch in channels:
+        archive_path = sorted(
+            glob(f"{LCS_PATH}/kepler/ch{ch:02}/q{quarter:02}/*_lcs_*{suffix}*.{ext}")
+        )
+        if len(archive_path) > 0:
+            total_batches = archive_path[0].split("/")[-1][34:36]
+        else:
+            total_batches = None
+
+        color = (
+            "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
+        )
+        text = colored(
+            f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
+            color=color,
+        )
+        print(text)
     return
 
 
@@ -71,7 +104,14 @@ if __name__ == "__main__":
         dest="channel",
         type=int,
         default=None,
-        help="Channel channel",
+        help="Channel number",
+    )
+    parser.add_argument(
+        "--quarter",
+        dest="quarter",
+        type=int,
+        default=None,
+        help="Quarter",
     )
     parser.add_argument(
         "--ext",
@@ -86,4 +126,7 @@ if __name__ == "__main__":
     if args.mode == "make_files":
         check_make_files()
     elif args.mode == "check_archive":
-        check_channel_archive(args.channel, ext=args.ext)
+        if args.channel is not None:
+            check_channel_archive(args.channel, ext=args.ext)
+        if args.quarter is not None:
+            check_quarter_archive(args.quarter, ext=args.ext)
