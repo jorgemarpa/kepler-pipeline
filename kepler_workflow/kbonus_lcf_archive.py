@@ -80,6 +80,7 @@ def drop_duplicates(dir):
         print("No duplicated files")
         return
 
+    print(f"Total duplicated LCs {len(dupfiles)}")
     for sec in dupfiles:
         fir = sec.replace("_lc_2.fits", "_lc.fits")
         err_means = [
