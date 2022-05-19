@@ -104,7 +104,11 @@ def channel_npz(channel=1, quarter=5, suffix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_a
 
 
 def channel_feather(
-    channel=1, quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"
+    channel=1,
+    quarter=5,
+    suffix="fvaT_bkgT_augT_sgmT_iteT",
+    version="1.1.1",
+    remove=False,
 ):
 
     print(
@@ -211,6 +215,18 @@ def channel_feather(
     sap_flux.T.to_feather(outname.replace("coord", "sap"))
     sap_flux_err.T.to_feather(outname.replace("coord", "sap_err"))
     chi2.T.to_feather(outname.replace("coord", "chi2"))
+
+    if remove:
+        print("Removing batch files...")
+        for f in bfiles:
+            os.remove(f)
+            os.remove(f.replace("coord", "psf"))
+            os.remove(f.replace("coord", "psf_err"))
+            os.remove(f.replace("coord", "novapsf"))
+            os.remove(f.replace("coord", "novapsf_err"))
+            os.remove(f.replace("coord", "sap"))
+            os.remove(f.replace("coord", "sap_err"))
+            os.remove(f.replace("coord", "chi2"))
 
 
 def quarter_feather(quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"):
