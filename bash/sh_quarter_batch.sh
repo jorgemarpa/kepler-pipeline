@@ -6,6 +6,7 @@ WORKDIR=$(dirname `pwd`)
 # get batch info from quarter file
 info="${WORKDIR}/data/support/kepler_batch_info_quarter${quarter}.dat"
 totallines=`cat "$info" | wc -l | sed 's/^ *//g'`
+totallines=$(($totallines - 1))
 
 echo "Quarter $quarter"
 echo "Total batch index $totallines"
