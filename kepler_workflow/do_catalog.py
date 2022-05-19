@@ -72,6 +72,9 @@ def main(dir, quarter):
             "npixsap": NPIXSAP,
         }
     )
+    dirname = f"{PACKAGEDIR}/data/catalogs/tpf/"
+    if not os.path.isdir(dir_name):
+        os.makedirs(dir_name)
     df.to_csv(
         f"{PACKAGEDIR}/data/catalogs/tpf/kbonus_catalog_q{quarter:02}_dir{dir}.csv"
     )
