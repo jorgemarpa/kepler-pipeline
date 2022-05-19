@@ -56,6 +56,8 @@ def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
         color = (
             "green" if len(archive_path) == batch_numer_org.iloc[q, channel] else "red"
         )
+        if batch_numer_org.iloc[q, channel] == 0:
+            color = "yellow"
         text = colored(
             f"Channel {channel:02} Q {q:02} batches {len(archive_path):02} / {batch_numer_org.iloc[q, channel]:02}",
             color=color,
@@ -83,6 +85,8 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
         color = (
             "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
         )
+        if batch_numer_org.iloc[quarter, ch] == 0:
+            color = "yellow"
         text = colored(
             f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
