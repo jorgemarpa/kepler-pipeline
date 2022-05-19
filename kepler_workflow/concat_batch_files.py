@@ -279,7 +279,7 @@ if __name__ == "__main__":
             quarter_feather(quarter=args.quarter, suffix=args.suffix)
         else:
             channel_feather(
-                channel=args.channel, quarter=args.quarter, suffix=args.suffix
+                channel=int(args.channel), quarter=args.quarter, suffix=args.suffix
             )
     else:
         raise ValueError("Wrong file type...")
