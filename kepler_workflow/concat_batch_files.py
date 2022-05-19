@@ -12,9 +12,12 @@ from tqdm import tqdm
 from paths import LCS_PATH
 
 
-def channel_npz(channel=1, quarter=5, suffix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT"):
+def channel_npz(channel=1, quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT"):
 
-    fpath = f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}_*-*_{sufix}.npz"
+    fpath = (
+        f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+        f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_*-*_{suffix}.npz"
+    )
     print(fpath)
     file_list = glob.glob(fpath)
     print(len(file_list))
@@ -88,7 +91,10 @@ def channel_npz(channel=1, quarter=5, suffix="poscorr_sqrt_tk6_tp100_fvaT_bkgT_a
     print(flux.shape, sources.shape)
 
     np.savez(
-        f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/kbonus-bkgd_ch{channel:02}_q{quarter:02}_{sufix}.npz",
+        (
+            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_{suffix}.npz"
+        ),
         time=time,
         flux=flux,
         flux_err=flux_err,
@@ -113,12 +119,14 @@ def channel_feather(
 
     print(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-        f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v{version}_lcs_*_{suffix}.coord.feather"
+        f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_"
+        f"v{version}_lcs_*_{suffix}.coord.feather"
     )
     bfiles = sorted(
         glob.glob(
             f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v{version}_lcs_*_{suffix}.coord.feather"
+            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_"
+            f"v{version}_lcs_*_{suffix}.coord.feather"
         )
     )
     if len(bfiles) == 0:
@@ -273,7 +281,7 @@ if __name__ == "__main__":
         help="Channel number",
     )
     parser.add_argument(
-        "--sufix",
+        "--suffix",
         dest="suffix",
         type=str,
         default="fvaT_bkgT_augT_sgmT_iteT",

@@ -37,7 +37,7 @@ def check_make_files():
     return
 
 
-def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT", ext="tar.gz"):
+def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.gz"):
 
     batch_numer_org = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
@@ -46,7 +46,7 @@ def check_channel_archive(channel, pattern="fvaT_bkgT_augT_sgmT_iteT", ext="tar.
     quarters = np.arange(0, 18)
     for q in quarters:
         archive_path = sorted(
-            glob(f"{LCS_PATH}/kepler/ch{channel:02}/q{q:02}/*_lcs_*{pattern}*.{ext}")
+            glob(f"{LCS_PATH}/kepler/ch{channel:02}/q{q:02}/*_lcs_*{suffix}*.{ext}")
         )
         if len(archive_path) > 0:
             total_batches = archive_path[0].split("/")[-1][34:36]

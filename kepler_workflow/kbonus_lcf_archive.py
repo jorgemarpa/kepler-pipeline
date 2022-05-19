@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import shutil
 import tarfile
@@ -12,18 +13,18 @@ import numpy as np
 from paths import *
 
 
-def do_archive(quarter, channel, bkg=False, augment_bkg=False, fit_va=True):
+def do_archive(quarter, channel, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"):
 
     print(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-        f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-        "poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz"
+        f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}"
+        f"_v{version}_lcs_b*_{suffix}.tar.gz"
     )
     tar_files = sorted(
         glob.glob(
             f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-            "poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz"
+            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}"
+            f"_v{version}_lcs_b*_{suffix}.tar.gz"
         )
     )
     print(f"Total tar files: {len(tar_files)}")
@@ -55,10 +56,7 @@ def do_archive(quarter, channel, bkg=False, augment_bkg=False, fit_va=True):
                     total=len(members),
                     desc="Extracting FITS into archive",
                 ):
-                    if not bkg:
-                        dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
-                    else:
-                        dirout = f"{LCS_PATH}/kepler-bkg/{ids[k][:4]}/{ids[k]}"
+                    dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
                     if not os.path.isdir(dirout):
                         os.makedirs(dirout)
                     fout = f"{dirout}/{member.name}"
@@ -72,39 +70,16 @@ def do_archive(quarter, channel, bkg=False, augment_bkg=False, fit_va=True):
                         tar.extract(member, path=dirout)
 
 
-def rename_fits():
-    dir_list = sorted([x.path for x in os.scandir(f"{LCS_PATH}/kepler/") if x.is_dir()])
-    dir_list = [x for x in dir_list if not x.split("/")[-1].startswith("ch")]
-
-    for dir in tqdm(dir_list, desc="Renaming files (dir iter)"):
-        subdir_list = sorted([x.path for x in os.scandir(dir) if x.is_dir()])
-        for subdir in subdir_list:
-            files = glob.glob(f"{subdir}/hlsp_kbonus-bkg_kepler_kepler*.fits")
-            for f in files:
-                if "KIC" in f or "kic" in f:
-                    path, fname = os.path.split(f)
-                    label = fname.split("_")[4][:-4]
-                    kic = int(label.split("-")[1])
-                    newname = fname.replace(label, f"kic-{kic:09}")
-                    shutil.move(f, f"{path}/{newname}")
-                else:
-                    path, fname = os.path.split(f)
-                    shutil.move(f, f"{path}/{fname.lower()}")
-
-
-def drop_duplicates(dir, bkg=False, augment_bkg=False, fit_va=True):
-    print(f"Working on {dir}")
-    if not bkg:
-        dupfiles = glob.glob(
-            f"{LCS_PATH}/kepler/{dir}/*/hlsp_kbonus-bkg_kepler_kepler*_lc_2.fits"
-        )
-    else:
-        dupfiles = glob.glob(
-            f"{LCS_PATH}/kepler-bkg/{dir}/*/hlsp_kbonus-bkg_kepler_kepler*_lc_2.fits"
-        )
+def drop_duplicates(dir):
+    print(f"Working on {dir:04}")
+    print(f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-kbkgd_kepler_kepler_*_lc_2.fits")
+    dupfiles = glob.glob(
+        f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-kbkgd_kepler_kepler_*_lc_2.fits"
+    )
     if len(dupfiles) == 0:
         print("No duplicated files")
         return
+
     for sec in dupfiles:
         fir = sec.replace("_lc_2.fits", "_lc.fits")
         err_means = [
@@ -159,16 +134,15 @@ if __name__ == "__main__":
         help="Kepler 4-digit directory",
     )
     parser.add_argument(
-        "--bkg",
-        dest="bkg",
-        action="store_true",
-        default=True,
-        help="PSFMachine fitted the bkg",
+        "--suffix",
+        dest="suffix",
+        type=str,
+        default="fvaT_bkgT_augT_sgmT_iteT",
+        help="File prefix",
     )
     args = parser.parse_args()
     if args.quarter and args.channel:
-        do_archive(args.quarter, args.channel, bkg=args.bkg, augment_bkg=args.bkg)
+        do_archive(args.quarter, args.channel, suffix=args.suffix)
 
-    # rename_fits()
     if args.dir:
-        drop_duplicates(args.dir, bkg=args.bkg, augment_bkg=args.bkg)
+        drop_duplicates(args.dir)

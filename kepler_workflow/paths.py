@@ -3,7 +3,7 @@ import socket
 
 PACKAGEDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-if socket.gethostname() == "NASAs-MacBook-Pro.local":
+if socket.gethostname() in ["NASAs-MacBook-Pro.local", "NASAs-MacBook-Pro-2.local"]:
     ARCHIVE_PATH = "/Users/jorgemarpa/Work/BAERI/ADAP"
     OUTPUT_PATH = f"{PACKAGEDIR}/data"
     LCS_PATH = f"{PACKAGEDIR}/data/lcs"
