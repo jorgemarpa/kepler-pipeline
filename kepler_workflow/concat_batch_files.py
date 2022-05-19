@@ -286,6 +286,13 @@ if __name__ == "__main__":
         default="feather",
         help="File type",
     )
+    parser.add_argument(
+        "--remove",
+        dest="remove",
+        action="store_true",
+        default=False,
+        help="Remove batch files after concat.",
+    )
 
     args = parser.parse_args()
     if args.file_type == "npz":
@@ -295,7 +302,10 @@ if __name__ == "__main__":
             quarter_feather(quarter=args.quarter, suffix=args.suffix)
         else:
             channel_feather(
-                channel=int(args.channel), quarter=args.quarter, suffix=args.suffix
+                channel=int(args.channel),
+                quarter=args.quarter,
+                suffix=args.suffix,
+                remove=args.remove,
             )
     else:
         raise ValueError("Wrong file type...")
