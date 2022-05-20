@@ -58,12 +58,12 @@ def do_lookup_table(
         channels, quarters, ras, decs, cols, rows = np.array(
             [
                 [
-                    fits.getheader(f, ex=0)["CHANNEL"],
-                    fits.getheader(f, ex=0)["QUARTER"],
-                    fits.getheader(f, ex=0)["RA_OBJ"],
-                    fits.getheader(f, ex=0)["DEC_OBJ"],
-                    fits.getheader(f, ex=1)["1CRV5P"],
-                    fits.getheader(f, ex=1)["2CRV5P"],
+                    fits.getheader(f, ext=0)["CHANNEL"],
+                    fits.getheader(f, ext=0)["QUARTER"],
+                    fits.getheader(f, ext=0)["RA_OBJ"],
+                    fits.getheader(f, ext=0)["DEC_OBJ"],
+                    fits.getheader(f, ext=1)["1CRV5P"],
+                    fits.getheader(f, ext=1)["2CRV5P"],
                 ]
                 for f in tpfs
             ]

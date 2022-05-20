@@ -142,7 +142,7 @@ if __name__ == "__main__":
         help="File prefix",
     )
     args = parser.parse_args()
-    if args.quarter and args.channel:
+    if args.quarter is not None and args.channel is not None:
         do_archive(args.quarter, args.channel, suffix=args.suffix)
 
     if args.dir:
