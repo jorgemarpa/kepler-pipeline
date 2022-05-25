@@ -76,7 +76,6 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
         sep=" ",
         header=0,
     )
-    print(index_map)
 
     channels = np.arange(1, 85)
     missing_idexes = []
@@ -110,8 +109,7 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
         )
-
-    print(missing_idexes)
+        print(text)
 
     np.savetxt(
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat",
