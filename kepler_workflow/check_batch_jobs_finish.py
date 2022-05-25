@@ -95,12 +95,10 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             missing = batches[~np.isin(batches, batch_done)]
         else:
             missing = batches
-        print(missing, len(missing))
 
         index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
             np.isin(batches, missing)
         ]
-        print(index_map_aux)
         missing_idexes.extend(index_map_aux["#n"].values)
 
         color = (
@@ -112,8 +110,6 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
         )
-        print(text)
-        print("-------" * 4)
 
     print(missing_idexes)
 
