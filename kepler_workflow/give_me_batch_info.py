@@ -27,18 +27,18 @@ def main(channel=1, quarter=1):
                 f'qsub -v "qu={qua},ch={channel},bs={chqbsize},bn={chqbtot}" pbs_quarter_channel.sh'
             )
     else:
-        print("-------------------------")
-        print(f"Channel: {channel}")
-        print(f"Quarter: {quarter}")
+        # print("-------------------------")
+        # print(f"Channel: {channel}")
+        # print(f"Quarter: {quarter}")
 
-        chqbsize = batch_size.loc[quarter, str(channel)]
-        chqbtot = total_batch.loc[quarter, str(channel)]
-        print(f"Batch size   : {chqbsize}")
-        print(f"Total batches: {chqbtot}")
+        chqbsize = batch_size.loc[int(quarter), str(channel)]
+        chqbtot = total_batch.loc[int(quarter), str(channel)]
+        # print(f"Batch size   : {chqbsize}")
+        # print(f"Total batches: {chqbtot}")
         print(
             f'qsub -v "qu={quarter},ch={channel},bs={chqbsize},bn={chqbtot}" pbs_quarter_channel.sh'
         )
-        print("-------------------------")
+        # print("-------------------------")
 
 
 if __name__ == "__main__":

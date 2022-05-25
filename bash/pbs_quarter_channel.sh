@@ -26,7 +26,7 @@ echo "$bn batches of size $bs"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "seq 1 ${bn} | xargs -n 1 -I {} -P 5 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
-seq 1 ${bn} | xargs -n 1 -I {} -P 5 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
+echo "seq 1 ${bn} | xargs -n 1 -I {} -P 5 python make_lightcurves_new.py --quarter ${qu} --channel ${ch} --batch-size ${bs} --batch-number {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
+seq 1 ${bn} | xargs -n 1 -I {} -P 5 python make_lightcurves_new.py --quarter ${qu} --channel ${ch} --batch-size ${bs} --batch-number {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
 
 exit 0
