@@ -71,8 +71,15 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
     batch_numer_org = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
     )
+    index_map = pd.read_csv(
+        f"{PACKAGEDIR}/data/support/kepler_batch_info_quarter{quarter}.dat",
+        sep=" ",
+        header=0,
+    )
+    print(index_map)
 
     channels = np.arange(1, 85)
+    missing_idexes = []
     for ch in channels:
         archive_path = sorted(
             glob(f"{LCS_PATH}/kepler/ch{ch:02}/q{quarter:02}/*_lcs_*{suffix}*.{ext}")
@@ -81,6 +88,20 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             total_batches = archive_path[0].split("/")[-1][34:36]
         else:
             total_batches = None
+
+        batches = np.arange(1, batch_numer_org.iloc[quarter, ch] + 1)
+        if len(archive_path) > 0:
+            batch_done = [int(x.split("_")[5][-2:]) for x in archive_path]
+            missing = batches[~np.isin(batches, batch_done)]
+        else:
+            missing = batches
+        print(missing, len(missing))
+
+        index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
+            np.isin(batches, missing)
+        ]
+        print(index_map_aux)
+        missing_idexes.extend(index_map_aux["#n"].values)
 
         color = (
             "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
@@ -92,6 +113,15 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             color=color,
         )
         print(text)
+        print("-------" * 4)
+
+    print(missing_idexes)
+
+    np.savetxt(
+        f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat",
+        np.unique(missing_idexes),
+        fmt="%i",
+    )
     return
 
 
