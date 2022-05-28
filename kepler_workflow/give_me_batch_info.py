@@ -7,7 +7,7 @@ import pandas as pd
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
 
-def main(channel=1, quarter=1):
+def main(channel=1, quarter=1, run=False):
 
     batch_size = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_batchsize.csv",
@@ -35,10 +35,11 @@ def main(channel=1, quarter=1):
         chqbtot = total_batch.loc[int(quarter), str(channel)]
         # print(f"Batch size   : {chqbsize}")
         # print(f"Total batches: {chqbtot}")
-        print(
-            f'qsub -v "qu={quarter},ch={channel},bs={chqbsize},bn={chqbtot}" pbs_quarter_channel.sh'
-        )
+        command = f'qsub -v "qu={quarter},ch={channel},bs={chqbsize},bn={chqbtot}" {PACKAGEDIR}/bash/pbs_quarter_channel.sh'
+        print(command)
         # print("-------------------------")
+        if run:
+            os.system(command)
 
 
 if __name__ == "__main__":
@@ -55,6 +56,13 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="Channel number",
+    )
+    parser.add_argument(
+        "--run",
+        dest="run",
+        action="store_true",
+        default=False,
+        help="Execute PBS job.",
     )
     args = parser.parse_args()
     kwargs = vars(args)
