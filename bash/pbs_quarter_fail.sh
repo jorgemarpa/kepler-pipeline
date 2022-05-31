@@ -1,7 +1,7 @@
 #PBS -S /bin/sh
 #PBS -N make-LCs
 #PBS -q normal
-#PBS -l select=1:ncpus=2:mem=120G:model=has
+#PBS -l select=1:ncpus=4:mem=126G:model=has
 #PBS -l walltime=06:00:00
 #PBS -j oe
 #PBS -m e
@@ -30,7 +30,7 @@ echo "Total failed batches in quarter $totallines"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "cat ${info} | xargs -n 1 -I {} -P 2 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
-cat ${info} | xargs -n 1 -I {} -P 2 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
+echo "cat ${info} | xargs -n 1 -I {} -P 4 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
+cat ${info} | xargs -n 1 -I {} -P 4 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
 
 exit 0
