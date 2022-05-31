@@ -113,7 +113,7 @@ def check_quarter_archive(
             color=color,
         )
         print(text)
-        if run and len(archive_path) == 0:
+        if run and len(archive_path) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
             main(channel=ch, quarter=quarter, run=run)
 
     np.savetxt(
