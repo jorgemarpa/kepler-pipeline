@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from termcolor import colored
+from give_me_batch_info import main
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
@@ -66,7 +67,9 @@ def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
     return
 
 
-def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.gz"):
+def check_quarter_archive(
+    quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.gz", run=False
+):
 
     batch_numer_org = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
@@ -110,6 +113,8 @@ def check_quarter_archive(quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
             color=color,
         )
         print(text)
+        if run and len(archive_path) == 0:
+            main(channel=ch, quarter=quarter, run=run)
 
     np.savetxt(
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat",
@@ -148,6 +153,13 @@ if __name__ == "__main__":
         default="tar.gz",
         help="File extension",
     )
+    parser.add_argument(
+        "--run",
+        dest="run",
+        action="store_true",
+        default=False,
+        help="Execute PBS job.",
+    )
     args = parser.parse_args()
     kwargs = vars(args)
 
@@ -157,4 +169,4 @@ if __name__ == "__main__":
         if args.channel is not None:
             check_channel_archive(args.channel, ext=args.ext)
         if args.quarter is not None:
-            check_quarter_archive(args.quarter, ext=args.ext)
+            check_quarter_archive(args.quarter, ext=args.ext, run=args.run)
