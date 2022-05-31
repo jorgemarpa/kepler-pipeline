@@ -377,6 +377,8 @@ def do_lcs(
         "r",
     ) as f:
         config = yaml.safe_load(f)
+    if quarter in [2, 12]:
+        config["init"]["renormalize_tpf_bkg"] = False
     # get TPF file name list
     fname_list = get_file_list(
         quarter, channel, batch_size, batch_number, tar_tpfs=tar_tpfs
