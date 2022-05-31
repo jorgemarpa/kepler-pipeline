@@ -101,7 +101,8 @@ def check_quarter_archive(
         index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
             np.isin(batches, missing)
         ]
-        missing_idexes.extend(index_map_aux["#n"].values)
+        if len(archive_path) > 0:
+            missing_idexes.extend(index_map_aux["#n"].values)
 
         color = (
             "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
