@@ -72,9 +72,9 @@ def do_archive(quarter, channel, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1
 
 def drop_duplicates(dir):
     print(f"Working on {dir:04}")
-    print(f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-kbkgd_kepler_kepler_*_lc_2.fits")
+    print(f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*_lc_2.fits")
     dupfiles = glob.glob(
-        f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-kbkgd_kepler_kepler_*_lc_2.fits"
+        f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*_lc_2.fits"
     )
     if len(dupfiles) == 0:
         print("No duplicated files")

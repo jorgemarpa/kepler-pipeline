@@ -52,14 +52,16 @@ def drop_repeated(lcs, quarter, channel):
     return drop_idx
 
 
-def main(quarter, channel, download=False, bkg=False, augment_bkg=False, fit_va=True):
+def main(
+    quarter, channel, download=False, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"
+):
 
     time_corrector = "polynomial"
     tar_file = np.sort(
         glob.glob(
             f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
-            f"kbonus-bkgd_ch{channel:02}_q{quarter:02}_v1.0_lc_*_"
-            f"{time_corrector}_sqrt_tk6_tp100_fvaT_bkg{str(bkg)[0]}_aug{str(bkg)[0]}_sgmT.tar.gz"
+            f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}"
+            f"_v{version}_lcs_b*_{suffix}.tar.gz"
         )
     )
 
@@ -71,7 +73,7 @@ def main(quarter, channel, download=False, bkg=False, augment_bkg=False, fit_va=
         print("No light curve archive...")
         sys.exit()
 
-    lcs, kics, tpfs_org = get_archive_lightcurves(tar_file)
+    lcs, kics, tpfs_org = get_archive_lightcurves(tar_file[:1])
     if True:
         print("gmag <= 18")
         gmag = np.array([lc.GMAG for lc in lcs])
@@ -183,13 +185,6 @@ if __name__ == "__main__":
         default=None,
         help="Channel number",
     )
-    parser.add_argument(
-        "--bkg",
-        dest="bkg",
-        action="store_true",
-        default=False,
-        help="PSFMachine fitted the bkg",
-    )
     args = parser.parse_args()
 
-    main(args.quarter, args.channel, bkg=args.bkg, augment_bkg=args.bkg)
+    main(args.quarter, args.channel)
