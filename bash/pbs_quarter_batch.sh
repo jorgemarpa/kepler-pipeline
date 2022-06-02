@@ -1,8 +1,8 @@
 #PBS -S /bin/sh
 #PBS -N make-LCs
 #PBS -q normal
-#PBS -l select=1:ncpus=3:mem=120G:model=has
-#PBS -l walltime=5:00:00
+#PBS -l select=1:ncpus=8:mem=120G:model=has
+#PBS -l walltime=6:00:00
 #PBS -j oe
 #PBS -m e
 #PBS -V
@@ -30,7 +30,7 @@ echo "Batches in quarter $batch_start to $batch_end"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "seq $batch_start ${batch_end} | xargs -n 1 -I {} -P 3 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
-seq $batch_start ${batch_end} | xargs -n 1 -I {} -P 3 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
+echo "seq $batch_start ${batch_end} | xargs -n 1 -I {} -P 8 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
+seq $batch_start ${batch_end} | xargs -n 1 -I {} -P 8 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
 
 exit 0
