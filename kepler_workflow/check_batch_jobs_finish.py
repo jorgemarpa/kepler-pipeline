@@ -68,7 +68,7 @@ def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
 
 
 def check_quarter_archive(
-    quarter, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.gz", run=False
+    quarter, suffix="fvaT_bkg*_aug*_sgmT_iteT", ext="tar.gz", run=False
 ):
 
     batch_numer_org = pd.read_csv(
