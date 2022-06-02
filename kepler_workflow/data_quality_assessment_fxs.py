@@ -21,7 +21,8 @@ import astropy.units as u
 from paths import *
 
 # kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler"
-kepler_root_dir = "/Volumes/jorge-marpa/Work/BAERI/data/kepler/"
+# kepler_root_dir = "/Volumes/jorge-marpa/Work/BAERI/data/kepler/"
+kepler_root_dir = "/Volumes/Jorge MarPa/Work/BAERI"
 qd_map = {
     1: 2009166043257,
     2: 2009259160929,
@@ -114,8 +115,8 @@ def get_keple_lightcurves(kics, quarter, tar=True):
                 lcs.append(None)
                 continue
             fname = (
-                f"{ARCHIVE_PATH}/data/kepler/lcs"
-                f"/{kic[:4]}/kplr{kic}-{qd_map[quarter]}_llc.fits"
+                f"{kepler_root_dir}/data/kepler/lcs"
+                f"/{kic[:4]}/{kic}/kplr{kic}-{qd_map[quarter]}_llc.fits"
             )
             if os.path.isfile(fname):
                 lcs.append(lk.KeplerLightCurve.read(fname))
@@ -563,18 +564,23 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
             sgmt = True if name[re.search("_sgm", name).span()[1]] == "T" else False
         except:
             sgmt = False
+        try:
+            iter = True if name[re.search("_ite", name).span()[1]] == "T" else False
+        except:
+            iter = False
 
     with open(
-        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR),
+        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config_2.yaml" % (PACKAGEDIR),
         "r",
     ) as f:
         config = yaml.safe_load(f)
-    config["fit_va"] = fva
-    config["fit_bkg"] = bkg
-    config["augment_bkg"] = augment
-    config["segments"] = sgmt
+    config["init"]["fit_va"] = fva
+    config["init"]["augment_bkg"] = augment
+    config["time_model"]["iterate_negs"] = iter
 
-    df = pd.DataFrame.from_dict([config]).T.reset_index(drop=False)
+    df1 = pd.DataFrame.from_dict([config["init"]]).T.reset_index(drop=False)
+    df2 = pd.DataFrame.from_dict([config["time_model"]]).T.reset_index(drop=False)
+    df = pd.concat([df1, df2], axis=0).reset_index(drop=True)
     df = df.rename({"index": "Parameter", 0: "value"}, axis=1)
 
     color = [["w"] * df.shape[1] for k in range(df.shape[0])]
@@ -615,32 +621,39 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
     ##################################################################################
     ##################################################################################
 
-    ax_table1 = fig.add_subplot(G[0, 2])
-    ax_table2 = fig.add_subplot(G[0, 3])
+    ax_table1 = fig.add_subplot(G[0, 1])
+    ax_table2 = fig.add_subplot(G[0, 2])
+    ax_table3 = fig.add_subplot(G[0, 3])
 
     ax_table1.axis("off")
     ax_table1.axis("tight")
     ax_table1.table(
-        cellText=df.values[: df.shape[0] // 2],
+        cellText=df.values[:8],
         colLabels=None,
         loc="center",
-        cellColours=color[: df.shape[0] // 2],
+        cellColours=color[:8],
         fontsize=10,
     )
-    # ax_table1.set_fontsize(14)
-    # ax_table1.scale(1.2, 1.2)
 
     ax_table2.axis("off")
     ax_table2.axis("tight")
     ax_table2.table(
-        cellText=df.values[df.shape[0] // 2 :],
+        cellText=df.values[8:16],
         colLabels=None,
         loc="center",
-        cellColours=color[df.shape[0] // 2 :],
+        cellColours=color[8:16],
         fontsize=10,
     )
-    # ax_table2.set_fontsize(14)
-    # ax_table2.scale(1.2, 1.2)
+
+    ax_table3.axis("off")
+    ax_table3.axis("tight")
+    ax_table3.table(
+        cellText=df.values[16:],
+        colLabels=None,
+        loc="center",
+        cellColours=color[16:],
+        fontsize=10,
+    )
 
     ##################################################################################
     ##################################################################################
@@ -893,7 +906,10 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         dir_name = f"{PACKAGEDIR}/data/figures/tpf/ch{channel:02}"
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
-        fig_name = f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}_bkg{str(bkg)[0]}_augT_sgmT.pdf"
+        fig_name = (
+            f"{dir_name}/dashboard_q{quarter:02}_ch{channel:02}"
+            f"_bkg{str(bkg)[0]}_aug{str(augment)[0]}_sgm{str(sgmt)[0]}.pdf"
+        )
         print(fig_name)
         plt.savefig(fig_name, format="pdf", bbox_inches="tight", pad_inches=0.1)
     else:

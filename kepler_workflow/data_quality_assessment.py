@@ -73,7 +73,7 @@ def main(
         print("No light curve archive...")
         sys.exit()
 
-    lcs, kics, tpfs_org = get_archive_lightcurves(tar_file[:1])
+    lcs, kics, tpfs_org = get_archive_lightcurves(tar_file)
     if True:
         print("gmag <= 18")
         gmag = np.array([lc.GMAG for lc in lcs])
@@ -89,9 +89,7 @@ def main(
     print(len(lcs), len(kics), len(tpfs_org))
     jm_stats = compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True)
 
-    kplcs, kplcs_exist = get_keple_lightcurves(
-        kics, quarter, tar=False if quarter == 5 else True
-    )
+    kplcs, kplcs_exist = get_keple_lightcurves(kics, quarter, tar=False)
     print(kplcs_exist)
     # kplcs_exist = ~np.all([lc == None for lc in kplcs])
     if (not kplcs_exist) and (download):
