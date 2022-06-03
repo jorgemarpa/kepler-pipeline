@@ -135,7 +135,6 @@ def channel_feather(
 
     batch_numer_org = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv",
-        index_col=0,
     )
     print(f"Total batches: {len(bfiles)} / {batch_numer_org.iloc[quarter, channel]}")
     if len(bfiles) != batch_numer_org.iloc[quarter, channel]:
