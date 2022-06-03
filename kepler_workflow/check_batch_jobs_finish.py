@@ -118,7 +118,7 @@ def check_quarter_archive(
             main(channel=ch, quarter=quarter, run=run)
 
     missing_idexes = np.unique(missing_idexes)
-    nof = missing_idexes[::4].shape
+    nof = missing_idexes[::4].shape[0]
     print(missing_idexes)
     print(nof)
     print(np.array_split(missing_idexes, nof))
