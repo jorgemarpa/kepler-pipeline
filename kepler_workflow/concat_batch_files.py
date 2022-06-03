@@ -132,12 +132,12 @@ def channel_feather(
     if len(bfiles) == 0:
         print("No batches for this channel...")
         sys.exit()
-    print(f"Total batches: {len(bfiles)}")
 
     batch_numer_org = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv",
         index_col=0,
     )
+    print(f"Total batches: {len(bfiles)} / {batch_numer_org.iloc[quarter, channel]}")
     if len(bfiles) != batch_numer_org.iloc[quarter, channel]:
         print("Channel is uncompleted, concatenation aborted")
         return
