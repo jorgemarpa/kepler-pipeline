@@ -134,6 +134,14 @@ def channel_feather(
         sys.exit()
     print(f"Total batches: {len(bfiles)}")
 
+    batch_numer_org = pd.read_csv(
+        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv",
+        index_col=0,
+    )
+    if len(bfiles) != batch_numer_org.iloc[quarter, channel]:
+        print("Channel is uncompleted, concatenation aborted")
+        return
+
     (
         coord,
         psf_flux,
@@ -235,6 +243,8 @@ def channel_feather(
             os.remove(f.replace("coord", "sap"))
             os.remove(f.replace("coord", "sap_err"))
             os.remove(f.replace("coord", "chi2"))
+
+    return
 
 
 def quarter_feather(quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"):
