@@ -293,7 +293,7 @@ if __name__ == "__main__":
         "--suffix",
         dest="suffix",
         type=str,
-        default="fvaT_bkgT_augT_sgmT_iteT",
+        default="fvaT_bkg*_aug*_sgmT_iteT",
         help="File prefix",
     )
     parser.add_argument(

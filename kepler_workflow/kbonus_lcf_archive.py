@@ -9,6 +9,8 @@ import shutil
 import tempfile
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
+from astropy.io import fits
 
 from paths import *
 
@@ -111,6 +113,46 @@ def drop_duplicates(dir):
         print("----" * 5)
 
 
+def apply_zero_point(dir, quarter):
+
+    # list all fits files in dir
+    print(f"Working on {dir:04}")
+    files = glob.glob(
+        f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_*_lc.fits"
+    )
+    print(f"Total files {len(files)}")
+
+    # loaf zero point files
+    zp_files = sorted(
+        glob.glob(
+            f"{PACKAGEDIR}/data/support/zero_points/zero_point_ch*_q{quarter:02}.dat"
+        )
+    )
+    zp = []
+    for f in zp_files:
+        zp.append(np.loadtxt(f))
+    zp = pd.DataFrame(zp, columns=["quarter", "channel", "psf_zp", "sap_zp"])
+    zp.quarter = zp.quarter.astype(int)
+    zp.channel = zp.channel.astype(int)
+    zp.set_index("channel", drop=True, inplace=True)
+
+    for f in tqdm(files, total=len(files), desc="Correcting FITS"):
+        try:
+            iszp_corr = fits.getval(f, "PSFMZP")
+        except KeyError:
+            iszp_corr = False
+        if iszp_corr:
+            continue
+        else:
+            with fits.open(f, mode="update") as hdul:
+                hdul[1].data["FLUX"] *= zp.loc[hdul[0].header["CHANNEL"], "psf_zp"]
+                hdul[1].data["PSF_FLUX_NVS"] *= zp.loc[
+                    hdul[0].header["CHANNEL"], "psf_zp"
+                ]
+                hdul[0].header["PSFMZP"] = True
+                hdul.flush()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -141,9 +183,19 @@ if __name__ == "__main__":
         default="fvaT_bkgT_augT_sgmT_iteT",
         help="File prefix",
     )
+    parser.add_argument(
+        "--apply-zp",
+        dest="apply_zp",
+        action="store_true",
+        default=False,
+        help="Applyt ZP ccorrection to PSFMachine photometry",
+    )
     args = parser.parse_args()
     if args.quarter is not None and args.channel is not None:
         do_archive(args.quarter, args.channel, suffix=args.suffix)
 
     if args.dir:
-        drop_duplicates(args.dir)
+        if args.apply_zp and args.quarter is not None:
+            apply_zero_point(args.dir, args.quarter)
+        else:
+            drop_duplicates(args.dir)
