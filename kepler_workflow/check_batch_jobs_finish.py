@@ -101,8 +101,8 @@ def check_quarter_archive(
         index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
             np.isin(batches, missing)
         ]
-        if len(archive_path) > 0:
-            missing_idexes.extend(index_map_aux["#n"].values)
+        # if len(archive_path) > 0:
+        missing_idexes.extend(index_map_aux["#n"].values)
 
         color = (
             "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
@@ -117,11 +117,15 @@ def check_quarter_archive(
         if run and len(archive_path) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
             main(channel=ch, quarter=quarter, run=run)
 
-    np.savetxt(
-        f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat",
-        np.unique(missing_idexes),
-        fmt="%i",
-    )
+    missing_idexes = np.unique(missing_idexes)
+    nof = missing_idexes[::4].shape
+
+    for k, idxs in enumerate(np.array_split(missing_idexes, nof)):
+        np.savetxt(
+            f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}_{k+1}.dat",
+            idxs,
+            fmt="%i",
+        )
     return
 
 
