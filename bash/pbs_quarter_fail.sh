@@ -1,7 +1,7 @@
 #PBS -S /bin/sh
 #PBS -N make-LCs
 #PBS -q normal
-#PBS -l select=1:ncpus=4:mem=124G:model=has
+#PBS -l select=1:ncpus=4:mem=126G:model=has
 #PBS -l walltime=06:00:00
 #PBS -j oe
 #PBS -m e
@@ -18,7 +18,7 @@ echo `which python`
 WORKDIR=$(dirname `pwd`)
 
 # get batch info from quarter file
-info="${WORKDIR}/data/support/fail_batch_index_quarter${quarter}.dat"
+info="${WORKDIR}/data/support/fail_batch_index_quarter${quarter}_${idx}.dat"
 totallines=`cat "$info" | wc -l | sed 's/^ *//g'`
 
 # change directory
