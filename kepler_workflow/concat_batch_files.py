@@ -9,7 +9,7 @@ import tarfile
 import tempfile
 from tqdm import tqdm
 
-from paths import LCS_PATH
+from paths import LCS_PATH, PACKAGEDIR
 
 
 def channel_npz(channel=1, quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT"):
