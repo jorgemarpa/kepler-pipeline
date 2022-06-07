@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
-from make_lightcurves import get_file_list
+from make_lightcurves_new import get_file_list
 
 
 def main(quarter=5, channel=44):
