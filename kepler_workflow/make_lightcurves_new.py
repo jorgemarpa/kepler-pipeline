@@ -206,7 +206,9 @@ def get_tpfs(fname_list, tar_tpfs=True):
         return lk.collections.TargetPixelFileCollection(
             [
                 lk.KeplerTargetPixelFile(
-                    f"{ARCHIVE_PATH}/data/kepler/tpf/{f}", quality_bitmask="none"
+                    # f"{ARCHIVE_PATH}/data/kepler/tpf/{f}", quality_bitmask="none"
+                    f,
+                    quality_bitmask="none",
                 )
                 for f in fname_list
             ]
@@ -366,6 +368,7 @@ def do_lcs(
     augment_bkg=True,
     save_arrays="feather",
     iter_neg=True,
+    use_cbv=True,
 ):
 
     ##############################################################################
@@ -479,7 +482,48 @@ def do_lcs(
     # SAP
     machine.compute_aperture_photometry(**config["compute_aperture_photometry"])
     # PSF phot
-    machine.build_time_model(**config["time_model"])
+
+    # CBVs
+    if use_cbv:
+        ncomp = 4
+        cbv_file = glob(
+            f"{ARCHIVE_PATH}/data/kepler/cbv/"
+            f"kplr*-q{machine.tpf_meta['quarter'][0]:02}-d25_lcbv.fits"
+        )[0]
+        if os.path.isfile(cbv_file):
+            hdul = fits.open(cbv_file)
+            ext = f"MODOUT_{machine.tpfs[0].module}_{machine.tpfs[0].output}"
+            cbv_cdn = hdul[ext].data["CADENCENO"]
+            cbv_vec = np.vstack(
+                [hdul[ext].data[f"VECTOR_{i}"] for i in range(1, ncomp + 1)]
+            )
+        else:
+            aux = download_kepler_cbvs(
+                mission='Kepler',
+                quarter=quarter,
+                module=tpfs[0].module,
+                output=tpfs[0].output,
+            )
+            cbv_cdn = aux["CADENCENO"]
+            cbv_vec = np.vstack([aux[f"VECTOR_{i}"] for i in range(1, ncomp + 1)])
+
+        # align cadences
+        mask = np.isin(cbv_cdn, machine.cadenceno)
+        cbv_cdn = cbv_cdn[mask]
+        cbv_vec = cbv_vec[:, mask]
+        cbv_vec_smooth = bspline_smooth(
+            cbv_vec,
+            x=machine.time,
+            do_segments=True,
+            n_knots=50,
+        )
+        other_vectors = (cbv_vec_smooth - cbv_vec_smooth.mean()) / (
+            cbv_vec_smooth.max() - cbv_vec_smooth.mean()
+        )
+    else:
+        other_vectors = None
+
+    machine.build_time_model(**config["time_model"], other_vectors=other_vectors)
     logg.info("Fitting models...")
     machine.fit_model(fit_va=fit_va)
     if iter_neg:
@@ -883,6 +927,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--iter-neg",
         dest="iter_neg",
+        action="store_true",
+        default=False,
+        help="Iter negative light curves.",
+    )
+    parser.add_argument(
+        "--use_cbv",
+        dest="use_cbv",
         action="store_true",
         default=False,
         help="Iter negative light curves.",
