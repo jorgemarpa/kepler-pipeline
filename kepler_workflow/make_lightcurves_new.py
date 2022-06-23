@@ -147,6 +147,8 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
         "FLFRCSAP": lc_meta["FLFRCSAP"] if np.isfinite(lc_meta["FLFRCSAP"]) else "",
         "CROWDSAP": lc_meta["CROWDSAP"] if np.isfinite(lc_meta["CROWDSAP"]) else "",
         "NPIXSAP": extra_meta["PIXINAP"],
+        "PERRATIO": extra_meta["PERRATIO"],
+        "PERSTD": extra_meta["PERSTD"],
     }
     lc_dct = {
         "cadenceno": data["cadenceno"],
@@ -615,6 +617,17 @@ def do_lcs(
         )
     chi2_lc /= np.asarray(machine.source_mask.sum(axis=1)).flatten()
 
+    # perturbed model metrics
+    mean_model_sum = np.array(machine.mean_model.sum(axis=1)).ravel()
+    perturbed_lcs = np.vstack(
+        [
+            np.array(machine.perturbed_model(time_index=k).sum(axis=1)).ravel()
+            for k in range(machine.time.shape[0])
+        ]
+    )
+    mean_ratio_models = np.nanmean(perturbed_lcs, axis=0) / mean_model_sum
+    std_perturbed_lcs = np.nanstd(perturbed_lcs, axis=0)
+
     ##############################################################################
     ################################## save plots ################################
     ##############################################################################
@@ -754,6 +767,8 @@ def do_lcs(
             "SEASON": machine.tpfs[0].meta["SEASON"],
             "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
             "GAIA_DES": srow.designation,
+            "PERRATIO": mean_ratio_models[idx],
+            "PERSTD": std_perturbed_lcs[idx],
         }
 
         hdul = make_hdul(data, lc_meta, extra_meta, fit_va=fit_va)
