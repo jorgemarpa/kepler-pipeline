@@ -5,12 +5,12 @@ import numpy as np
 from tqdm import tqdm
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
-from make_lightcurves_new import get_file_list
+from make_lightcurves import get_file_list
 
 
 def main(quarter=5, channel=44):
 
-    file_list = get_file_list(quarter, channel, -1, 1, tar_tpfs=True)
+    file_list = get_file_list(quarter, channel, -1, tar_tpfs=True)
 
     out_dir = f"{PACKAGEDIR}/download/"
     if not os.path.isdir(out_dir):
