@@ -215,7 +215,7 @@ def do_batches_in_col(df, batch_size=200, tolerance=0.5):
     batch_index = np.hstack([np.ones(batch_size) * (k + 1) for k in range(tot_b)])
     aux[: len(batch_index)] = batch_index
     aux[aux == 0] = np.max(batch_index)
-    df["batch"] = aux
+    df.loc[:, "batch"] = aux
 
     return df
 
@@ -228,7 +228,7 @@ def sort_tpfs_in_channel(df, ncols=4, batch_size=200):
         in_col = df.query(f"col >= {col_lims[x]} and col < {col_lims[x + 1]}")
         in_col_sorted = do_batches_in_col(in_col, batch_size=batch_size)
         aux = in_col_sorted["batch"].max()
-        in_col_sorted["batch"] += prev_batch
+        in_col_sorted.loc[:, "batch"] += prev_batch
         sort_new.append(in_col_sorted)
 
         prev_batch += aux
