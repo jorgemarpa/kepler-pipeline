@@ -381,6 +381,7 @@ def do_lcs(
         config = yaml.safe_load(f)
     if quarter in [2, 12]:
         config["init"]["renormalize_tpf_bkg"] = False
+    logg.info(print_dict(config["init"]))
     # get TPF file name list
     fname_list = get_file_list(quarter, channel, batch_number, tar_tpfs=tar_tpfs)
     if len(fname_list) < 50:
@@ -624,13 +625,12 @@ def do_lcs(
     ##############################################################################
 
     global_name = (
-        "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_b%03i-%02i_fva%s_bkg%s_aug%s_sgm%s_ite%s"
+        "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_bn%02i_fva%s_bkg%s_aug%s_sgm%s_ite%s"
         % (
             machine.tpf_meta["mission"][0].lower(),
             channel,
             quarter,
             lc_version,
-            batch_size,
             batch_number,
             str(fit_va)[0],
             str(config["init"]["renormalize_tpf_bkg"])[0],

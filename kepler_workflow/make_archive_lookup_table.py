@@ -281,31 +281,6 @@ def how_many_tpfs(tar_archive=True):
     df.to_csv(file_name)
 
 
-# def do_tpf_batch_files():
-#     file_name = "../data/support/kepler_tpf_map_all_q%02i.csv" % (args.quarter)
-#     df = pd.read_csv(file_name, index_col=0)
-#
-#     channels = np.arange(1, 85)
-#     channels_batch_dict = {}
-#     for k, ch in enumerate(channels):
-#         in_channel = df.query("channel == %i" % ch)
-#         if files_in.shape[0] == 0:
-#             log.info(f"Channel {ch} does not contain TPFs.")
-#             continue
-#
-#         n_batches = int(np.ceil(in_channel.shape[0] / args.batch_size))
-#         batch_dict = {}
-#         for nb in range(1, n_batches + 1):
-#             files_in_batch = in_channel.iloc[
-#                 batch_size * (batch_number - 1) : batch_size * (batch_number)
-#             ]
-#             if files_in_batch.shape[0] < batch_size / 4:
-#                 batch_dict[nb - 1].extend(files_in_batch.file_name.tolist())
-#             else:
-#                 batch_dict[nb] = files_in_batch.file_name.tolist()
-#         channels_batch_dict[ch] = batch_dict
-
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
