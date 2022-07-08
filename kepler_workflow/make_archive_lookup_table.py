@@ -158,6 +158,8 @@ def sort_tpfs_in_all_channel(quarter, tar_archive=True, ncols_start=4):
         log.info(f"Channel {ch} total TPFS {len(files_in)}")
         if len(files_in) < 1500:
             ncols = ncols_start - 1
+            if len(files_in) < 550:
+                ncols = 2
         else:
             ncols = ncols_start
         log.info(f"Ncols {ncols}")
@@ -198,19 +200,23 @@ def sort_tpfs_in_all_channel(quarter, tar_archive=True, ncols_start=4):
 
 def do_batches_in_col(df, batch_size=200, tolerance=0.5):
 
-    left = len(df) % batch_size
+    if len(df) >= 170:
+        left = len(df) % batch_size
 
-    if left / batch_size < 0.1:
-        pass
-    elif left / batch_size < tolerance:
-        while (len(df) % batch_size) / batch_size > 0.1:
-            batch_size += 1
-    elif left / batch_size > tolerance:
-        while (len(df) % batch_size) / batch_size > 0.1 and batch_size > 170:
-            batch_size -= 1
-    tot_b = len(df) // batch_size
+        if left / batch_size < 0.1:
+            pass
+        elif left / batch_size < tolerance:
+            while (len(df) % batch_size) / batch_size > 0.1:
+                batch_size += 1
+        elif left / batch_size > tolerance:
+            while (len(df) % batch_size) / batch_size > 0.1 and batch_size > 170:
+                batch_size -= 1
+        tot_b = len(df) // batch_size
+    else:
+        batch_size = len(df)
+        tot_b = 1
 
-    log.info(batch_size, tot_b)
+    log.info(f"Batch size and total in column {batch_size} {tot_b}")
     aux = np.zeros(len(df))
     batch_index = np.hstack([np.ones(batch_size) * (k + 1) for k in range(tot_b)])
     aux[: len(batch_index)] = batch_index
@@ -221,11 +227,15 @@ def do_batches_in_col(df, batch_size=200, tolerance=0.5):
 
 
 def sort_tpfs_in_channel(df, ncols=4, batch_size=200):
-    col_lims = np.linspace(0, 1112, ncols + 1)
+    if len(df) >= 400:
+        col_lims = np.linspace(0, 1112, ncols + 1)
+    else:
+        col_lims = np.array([0, np.median(df.col), 1113])
     sort_new = []
     prev_batch = 0
     for x in range(len(col_lims) - 1):
         in_col = df.query(f"col >= {col_lims[x]} and col < {col_lims[x + 1]}")
+        log.info(f"TPFs in column {x+1} {len(in_col)}")
         in_col_sorted = do_batches_in_col(in_col, batch_size=batch_size)
         aux = in_col_sorted["batch"].max()
         in_col_sorted.loc[:, "batch"] += prev_batch
@@ -250,7 +260,6 @@ def how_many_batches(quarter, batch_size):
         np.vstack([channels, nsources, number_batch]).T,
         columns=["channel", "n_sources", "n_batch"],
     )
-    # log.info(df_nb.set_index("channel"))
 
     file_name = "%s/support/kepler_tpf_nbatches_bs%03i_q%02i.csv" % (
         OUTPUT_PATH,
