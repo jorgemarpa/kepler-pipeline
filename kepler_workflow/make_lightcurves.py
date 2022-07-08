@@ -6,6 +6,7 @@ import yaml
 import tarfile
 import tempfile
 import logging
+from glob import glob
 from datetime import datetime
 from time import sleep
 import numpy as np
@@ -19,7 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
 import fitsio
-from psfmachine.utils import _make_A_polar
+from psfmachine.utils import _make_A_polar, bspline_smooth
 from scipy import stats
 
 # from astropy.table import Table
@@ -145,8 +146,9 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
         "FLFRCSAP": lc_meta["FLFRCSAP"] if np.isfinite(lc_meta["FLFRCSAP"]) else "",
         "CROWDSAP": lc_meta["CROWDSAP"] if np.isfinite(lc_meta["CROWDSAP"]) else "",
         "NPIXSAP": extra_meta["PIXINAP"],
-        "PERRATIO": extra_meta["PERRATIO"],
-        "PERSTD": extra_meta["PERSTD"],
+        "PSFFRAC": extra_meta["PSFFRAC"],
+        "PERTRATI": extra_meta["PERRATIO"],
+        "PERTSTD": extra_meta["PERSTD"],
     }
     lc_dct = {
         "cadenceno": data["cadenceno"],
@@ -382,6 +384,7 @@ def do_lcs(
     if quarter in [2, 12]:
         config["init"]["renormalize_tpf_bkg"] = False
     logg.info(print_dict(config["init"]))
+    logg.info(print_dict(config["time_model"]))
     # get TPF file name list
     fname_list = get_file_list(quarter, channel, batch_number, tar_tpfs=tar_tpfs)
     if len(fname_list) < 50:
@@ -480,6 +483,7 @@ def do_lcs(
     # CBVs
     if use_cbv:
         ncomp = 4
+        logg.info(f"Ussing CBVs first {ncomp} components")
         cbv_file = glob(
             f"{ARCHIVE_PATH}/data/kepler/cbv/"
             f"kplr*-q{machine.tpf_meta['quarter'][0]:02}-d25_lcbv.fits"
@@ -610,15 +614,9 @@ def do_lcs(
     chi2_lc /= np.asarray(machine.source_mask.sum(axis=1)).flatten()
 
     # perturbed model metrics
-    mean_model_sum = np.array(machine.mean_model.sum(axis=1)).ravel()
-    perturbed_lcs = np.vstack(
-        [
-            np.array(machine.perturbed_model(time_index=k).sum(axis=1)).ravel()
-            for k in range(machine.time.shape[0])
-        ]
-    )
-    mean_ratio_models = np.nanmean(perturbed_lcs, axis=0) / mean_model_sum
-    std_perturbed_lcs = np.nanstd(perturbed_lcs, axis=0)
+    machine.get_psf_metrics()
+    machine.source_psf_fraction /= np.nanpercentile(machine.source_psf_fraction, 99)
+    machine.source_psf_fraction[machine.source_psf_fraction > 0.98] = 1
 
     ##############################################################################
     ################################## save plots ################################
@@ -758,8 +756,9 @@ def do_lcs(
             "SEASON": machine.tpfs[0].meta["SEASON"],
             "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
             "GAIA_DES": srow.designation,
-            "PERRATIO": mean_ratio_models[idx],
-            "PERSTD": std_perturbed_lcs[idx],
+            "PSFFRAC": machine.source_psf_fraction[idx],
+            "PERRATIO": machine.perturbed_ratio_mean[idx],
+            "PERSTD": machine.perturbed_std[idx],
         }
 
         hdul = make_hdul(data, lc_meta, extra_meta, fit_va=fit_va)
@@ -931,7 +930,7 @@ if __name__ == "__main__":
         help="Iter negative light curves.",
     )
     parser.add_argument(
-        "--use_cbv",
+        "--use-cbv",
         dest="use_cbv",
         action="store_true",
         default=False,
