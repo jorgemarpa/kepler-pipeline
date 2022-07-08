@@ -4,11 +4,12 @@ import tempfile
 import warnings
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from astropy.time import Time
 
 from psfmachine.utils import get_gaia_sources
 from psfmachine.tpf import _clean_source_list
-from make_lightcurves import get_file_list, get_tpfs
+from make_lightcurves_new import get_file_list, get_tpfs
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
 # warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
@@ -73,24 +74,23 @@ def _get_coord_and_query_gaia(
     return sources, cone_search
 
 
-def main(channel=1, do_batch=True):
+def main(quarter=1, channel=1, do_batch=True, tar_tpfs=False):
 
-    fname_list = get_file_list(1, channel, -1, 1, tar_tpfs=True)
+    fname_list = get_file_list(quarter, channel, -1, 1, tar_tpfs=tar_tpfs)
     print(f"Total TPF files: {len(fname_list)}")
 
     if do_batch:
-        batch_size = 500
+        batch_size = 100
         nbatches = len(fname_list) // batch_size + 1
         tpfs = []
-        for batch in range(nbatches):
-            print(batch)
+        for batch in tqdm(range(nbatches), total=nbatches):
             aux = get_tpfs(
                 fname_list[batch_size * (batch) : batch_size * (batch + 1)],
-                tar_tpfs=True,
+                tar_tpfs=tar_tpfs,
             )
             tpfs.extend([x for x in aux])
     else:
-        tpfs = get_tpfs(fname_list, tar_tpfs=True)
+        tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     print(f"Total TPFs: {len(tpfs)}")
 
     sources, cone_search = _get_coord_and_query_gaia(tpfs, magnitude_limit=20, dr=3)
@@ -105,7 +105,7 @@ def main(channel=1, do_batch=True):
     print(f"Total sources {len(sources)}")
     file_out = (
         f"{ARCHIVE_PATH}/data/catalogs/"
-        f"kic_x_gaia_edr3_kepler_field_ch{channel:02}.csv"
+        f"kic_x_gaia_edr3_kepler_field_q{quarter:02}_ch{channel:02}.csv"
     )
     # sources.to_hdf(file_out, key=f"ch{channel:02}", mode="w")
     sources.to_csv(file_out)
@@ -120,6 +120,13 @@ if __name__ == "__main__":
         default=31,
         help="Channel number",
     )
+    parser.add_argument(
+        "--quarter",
+        dest="quarter",
+        type=int,
+        default=1,
+        help="Channel number",
+    )
     args = parser.parse_args()
     print(f"Channel {args.channel}")
-    main(channel=args.channel)
+    main(quarter=args.quarter, channel=args.channel)
