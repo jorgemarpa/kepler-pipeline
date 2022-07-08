@@ -138,27 +138,29 @@ def concatenate(quarter, tar_archive=True):
         os.remove(f)
 
 
-def sort_tpfs_by_pos(quarter, tar_archive=True):
+def sort_tpfs_in_all_channel(quarter, tar_archive=True, ncols_start=4):
 
     file_name = "%s/support/kepler_tpf_map_q%02i%s.csv" % (
         OUTPUT_PATH,
         quarter,
         "_tar" if tar_archive else "",
     )
-    log.info(f"Loading from {file_name}")
     lkp_tbl = pd.read_csv(file_name, index_col=0)
 
     bins = [5, 4, 3, 2, 1]
     sorted_lkp_tbl = []
-    log.info("Sorting TPFs")
-    for ch in tqdm(range(1, 85), total=84):
+    print(f"Working with Quarter {quarter}")
+    for ch in tqdm(range(1, 85), total=84, disable=True):
         files_in = lkp_tbl.query("channel == %i and quarter == %i" % (ch, quarter))
-
-        for bn in bins:
-            h, xedges, yedges = np.histogram2d(files_in.col, files_in.row, bins=bn)
-            if h.max() > 150:
-                break
-
+        if len(files_in) == 0:
+            continue
+        print(f"Channel {ch} total TPFS {len(files_in)}")
+        if len(files_in) < 1500:
+            ncols = ncols_start - 1
+        else:
+            ncols = ncols_start
+        print(f"Ncols {ncols}")
+        bn = ncols
         sorted_ch = []
         col_size = 1112 // bn
         row_size = 1044 // bn
@@ -178,13 +180,59 @@ def sort_tpfs_by_pos(quarter, tar_archive=True):
                 sorted_ch.append(in_cell.sort_values(["row"], ascending=i % 2 == 0))
 
         sorted_ch = pd.concat(sorted_ch).reset_index(drop=True).drop_duplicates()
-        sorted_lkp_tbl.append(sorted_ch)
-    sorted_lkp_tbl = pd.concat(sorted_lkp_tbl).reset_index(drop=True).drop_duplicates()
 
-    log.info(f"org table shape {lkp_tbl.shape}")
-    log.info(f"new table shape {sorted_lkp_tbl.shape}")
+        df_with_batch = sort_tpfs_in_channel(sorted_ch, ncols=ncols, batch_size=200)
+        sorted_lkp_tbl.append(df_with_batch)
+        print("####" * 10)
 
-    sorted_lkp_tbl.to_csv(file_name)
+    sort_tpfs_in_all_channel = (
+        pd.concat(sorted_lkp_tbl).reset_index(drop=True).drop_duplicates()
+    )
+    if sort_tpfs_in_all_channel.shape[0] != lkp_tbl.shape[0]:
+        raise RuntimeError("Missing TPFs")
+    sort_tpfs_in_all_channel.to_csv(file_name.replace(".csv", "_new.csv"))
+
+    return
+
+
+def do_batches_in_col(df, batch_size=200, tolerance=0.5):
+
+    left = len(df) % batch_size
+
+    if left / batch_size < 0.1:
+        pass
+    elif left / batch_size < tolerance:
+        while (len(df) % batch_size) / batch_size > 0.1:
+            batch_size += 1
+    elif left / batch_size > tolerance:
+        while (len(df) % batch_size) / batch_size > 0.1 and batch_size > 170:
+            batch_size -= 1
+    tot_b = len(df) // batch_size
+
+    print(batch_size, tot_b)
+    aux = np.zeros(len(df))
+    batch_index = np.hstack([np.ones(batch_size) * (k + 1) for k in range(tot_b)])
+    aux[: len(batch_index)] = batch_index
+    aux[aux == 0] = np.max(batch_index)
+    df["batch"] = aux
+
+    return df
+
+
+def sort_tpfs_in_channel(df, ncols=4, batch_size=200):
+    col_lims = np.linspace(0, 1112, ncols + 1)
+    sort_new = []
+    prev_batch = 0
+    for x in range(len(col_lims) - 1):
+        in_col = df.query(f"col >= {col_lims[x]} and col < {col_lims[x + 1]}")
+        in_col_sorted = do_batches_in_col(in_col, batch_size=batch_size)
+        aux = in_col_sorted["batch"].max()
+        in_col_sorted["batch"] += prev_batch
+        sort_new.append(in_col_sorted)
+
+        prev_batch += aux
+
+    return pd.concat(sort_new, axis=0).reset_index(drop=True)
 
 
 def how_many_batches(quarter, batch_size):
@@ -334,9 +382,13 @@ if __name__ == "__main__":
 
     if args.concat:
         concatenate(args.quarter, tar_archive=args.tar_archive)
-        sort_tpfs_by_pos(args.quarter, tar_archive=args.tar_archive)
+        sort_tpfs_in_all_channel(
+            args.quarter, tar_archive=args.tar_archive, ncols_start=4
+        )
     elif args.sort:
-        sort_tpfs_by_pos(args.quarter, tar_archive=args.tar_archive)
+        sort_tpfs_in_all_channel(
+            args.quarter, tar_archive=args.tar_archive, ncols_start=4
+        )
     elif args.sum_tpfs:
         how_many_tpfs(tar_archive=args.tar_archive)
     else:
