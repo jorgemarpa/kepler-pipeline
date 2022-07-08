@@ -393,8 +393,7 @@ def do_lcs(
     if socket.gethostname().startswith("r"):
         sleep(np.random.randint(1, 30))
     tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
-    print(len(tpfs))
-    sys.exit()
+    logg.info(f"Working with {len(tpfs)} TPFs")
 
     ##############################################################################
     ############################# do machine stuff ###############################
