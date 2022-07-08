@@ -13,6 +13,7 @@ from astropy.io import fits
 from paths import ARCHIVE_PATH, OUTPUT_PATH
 
 log = logging.getLogger(__name__)
+pd.options.mode.chained_assignment = None
 
 qd_map = {
     0: 2009131105131,
