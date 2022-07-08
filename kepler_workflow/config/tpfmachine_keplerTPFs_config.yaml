@@ -25,10 +25,11 @@ compute_aperture_photometry:
 
 time_model:
     bin_method: "bin"
+    poly_order: 3
     segments: True
     focus: False
     focus_exptime: 50
-    pca_ncomponents: 3
+    pca_ncomponents: 0
     pca_smooth_time_scale: 0.02
     positions: False
 
