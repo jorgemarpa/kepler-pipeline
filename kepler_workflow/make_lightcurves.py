@@ -383,8 +383,6 @@ def do_lcs(
         config = yaml.safe_load(f)
     if quarter in [2, 12]:
         config["init"]["renormalize_tpf_bkg"] = False
-    logg.info(print_dict(config["init"]))
-    logg.info(print_dict(config["time_model"]))
     # get TPF file name list
     fname_list = get_file_list(quarter, channel, batch_number, tar_tpfs=tar_tpfs)
     if len(fname_list) < 50:
@@ -411,10 +409,12 @@ def do_lcs(
         machine.quiet = True
         quiet = True
     logg.info("PSFMachine config:")
-    print_dict(config["init"])
+    logg.info(print_dict(config["init"]))
 
     del tpfs
     logg.info(machine)
+    logg.info("PSFMachine time model config")
+    logg.info(print_dict(config["time_model"]))
 
     # add mission background pixels
     date = machine.tpfs[0].path.split("/")[-1].split("-")[1].split("_")[0]
@@ -618,12 +618,18 @@ def do_lcs(
     machine.source_psf_fraction /= np.nanpercentile(machine.source_psf_fraction, 99)
     machine.source_psf_fraction[machine.source_psf_fraction > 0.98] = 1
 
+    # re-scale PSF to SAP level
+    ratio = np.nanmean(machine.ws, axis=0) / np.nanmean(machine.sap_flux, axis=0)
+    factor = np.nanmedian(ratio[machine.source_psf_fraction > 0.8])
+    machine.ws /= factor
+    machine.ws_va /= factor
+
     ##############################################################################
     ################################## save plots ################################
     ##############################################################################
 
     global_name = (
-        "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_bn%02i_fva%s_bkg%s_aug%s_sgm%s_ite%s"
+        "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_bn%02i_fva%s_bkg%s_aug%s_sgm%s_ite%s_cbv%s"
         % (
             machine.tpf_meta["mission"][0].lower(),
             channel,
@@ -635,6 +641,7 @@ def do_lcs(
             str(augment_bkg)[0],
             str(config["time_model"]["segments"])[0],
             str(iter_neg)[0],
+            str(use_cbv)[0],
         )
     )
     if not plot:
@@ -982,7 +989,8 @@ if __name__ == "__main__":
         args.batch_total = params[args.batch_index - 1, 3]
         args.batch_number = params[args.batch_index - 1, 4]
 
-    print_dict(vars(args))
+    logg.info("Program config")
+    logg.info(print_dict(vars(args)))
     if args.dry_run:
         logg.info("Dry run!")
         sys.exit()
