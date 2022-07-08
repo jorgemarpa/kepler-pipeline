@@ -150,17 +150,17 @@ def sort_tpfs_in_all_channel(quarter, tar_archive=True, ncols_start=4):
 
     bins = [5, 4, 3, 2, 1]
     sorted_lkp_tbl = []
-    print(f"Working with Quarter {quarter}")
-    for ch in tqdm(range(1, 85), total=84, disable=True):
+    log.info(f"Working with Quarter {quarter}")
+    for ch in tqdm(range(1, 85), total=84, disable=False):
         files_in = lkp_tbl.query("channel == %i and quarter == %i" % (ch, quarter))
         if len(files_in) == 0:
             continue
-        print(f"Channel {ch} total TPFS {len(files_in)}")
+        log.info(f"Channel {ch} total TPFS {len(files_in)}")
         if len(files_in) < 1500:
             ncols = ncols_start - 1
         else:
             ncols = ncols_start
-        print(f"Ncols {ncols}")
+        log.info(f"Ncols {ncols}")
         bn = ncols
         sorted_ch = []
         col_size = 1112 // bn
@@ -184,7 +184,7 @@ def sort_tpfs_in_all_channel(quarter, tar_archive=True, ncols_start=4):
 
         df_with_batch = sort_tpfs_in_channel(sorted_ch, ncols=ncols, batch_size=200)
         sorted_lkp_tbl.append(df_with_batch)
-        print("####" * 10)
+        log.info("####" * 10)
 
     sort_tpfs_in_all_channel = (
         pd.concat(sorted_lkp_tbl).reset_index(drop=True).drop_duplicates()
@@ -210,7 +210,7 @@ def do_batches_in_col(df, batch_size=200, tolerance=0.5):
             batch_size -= 1
     tot_b = len(df) // batch_size
 
-    print(batch_size, tot_b)
+    log.info(batch_size, tot_b)
     aux = np.zeros(len(df))
     batch_index = np.hstack([np.ones(batch_size) * (k + 1) for k in range(tot_b)])
     aux[: len(batch_index)] = batch_index
