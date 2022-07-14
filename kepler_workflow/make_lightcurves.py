@@ -21,6 +21,7 @@ from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
 import fitsio
 from psfmachine.utils import _make_A_polar, bspline_smooth
+from psfmachine.aperture import aperture_mask_to_2d
 from scipy import stats
 
 # from astropy.table import Table
@@ -101,54 +102,100 @@ def get_file_list(quarter, channel, batch_number=-1, tar_tpfs=True):
 
 
 # @profile
-def make_hdul(data, lc_meta, extra_meta, fit_va=True):
+def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
     meta = {
-        "ORIGIN": lc_meta["ORIGIN"],
-        "VERSION": pm.__version__,
-        "APERTURE": lc_meta["APERTURE"],
+        "ORIGIN": (lc_meta["ORIGIN"], "Program used for photometry"),
+        "VERSION": (pm.__version__, "Version of ORIGIN"),
+        "APERTURE": (lc_meta["APERTURE"], "Type of photometry in file"),
         # telescope info
-        "MISSION": lc_meta["MISSION"],
-        "TELESCOP": extra_meta["TELESCOP"],
-        "INSTRUME": extra_meta["INSTRUME"],
-        "OBSMODE": extra_meta["OBSMODE"],
-        "SEASON": extra_meta["SEASON"],
-        "CHANNEL": lc_meta["CHANNEL"],
-        "MODULE": lc_meta["MODULE"],
-        "OUTPUT": extra_meta["OUTPUT"],
-        "QUARTER": lc_meta["QUARTER"],
+        "MISSION": (lc_meta["MISSION"], "Mission"),
+        "TELESCOP": (extra_meta["TELESCOP"], "Telescope name"),
+        "INSTRUME": (extra_meta["INSTRUME"], "Telescope instrument"),
+        "OBSMODE": (extra_meta["OBSMODE"], "Observation mode"),
+        "SEASON": (extra_meta["SEASON"], "Observation season"),
+        "CHANNEL": (lc_meta["CHANNEL"], "CCD channel"),
+        "MODULE": (lc_meta["MODULE"], "CCD module"),
+        "OUTPUT": (extra_meta["OUTPUT"], "CCD module output"),
+        "QUARTER": (lc_meta["QUARTER"], "Observation quarter"),
         # "CAMPAIGN": lc_meta["CAMPAIGN"],
         # objct info
-        "LABEL": f"KIC {extra_meta['KEPLERID']}"
-        if extra_meta["KEPLERID"] != 0
-        else extra_meta["GAIA_DES"],
-        "TARGETID": lc_meta["TARGETID"],
-        "RA_OBJ": lc_meta["RA"],
-        "DEC_OBJ": lc_meta["DEC"],
-        "EQUINOX": extra_meta["EQUINOX"],
+        "LABEL": (
+            f"KIC {extra_meta['KEPLERID']}"
+            if extra_meta["KEPLERID"] != 0
+            else extra_meta["GAIA_DES"],
+            "Object label",
+        ),
+        "TARGETID": (lc_meta["TARGETID"], "Kepler target identifier"),
+        "RA_OBJ": (lc_meta["RA"], "Right ascension [deg]"),
+        "DEC_OBJ": (lc_meta["DEC"], "Declination [deg]"),
+        "EQUINOX": (extra_meta["EQUINOX"], "Coordinate equinox"),
         # KIC info
-        "KEPLERID": extra_meta["KEPLERID"] if extra_meta["KEPLERID"] != 0 else "",
-        "KEPMAG": extra_meta["KEPMAG"] if np.isfinite(extra_meta["KEPMAG"]) else "",
-        "TPFORG": extra_meta["TPFORG"],
+        "KEPLERID": (
+            extra_meta["KEPLERID"] if extra_meta["KEPLERID"] != 0 else "",
+            "Kepler identifier",
+        ),
+        "KEPMAG": (
+            extra_meta["KEPMAG"] if np.isfinite(extra_meta["KEPMAG"]) else "",
+            "Kepler magnitude [mag]",
+        ),
+        "TPFORG": (extra_meta["TPFORG"], "TPF id of object origin"),
         # gaia catalog info
-        "GAIAID": extra_meta["GAIA_DES"],
-        "PMRA": lc_meta["PMRA"] if np.isfinite(lc_meta["PMRA"]) else "",
-        "PMDEC": lc_meta["PMDEC"] if np.isfinite(lc_meta["PMDEC"]) else "",
-        "PARALLAX": lc_meta["PARALLAX"] if np.isfinite(lc_meta["PARALLAX"]) else "",
-        "GMAG": lc_meta["GMAG"] if np.isfinite(lc_meta["GMAG"]) else "",
-        "RPMAG": lc_meta["RPMAG"] if np.isfinite(lc_meta["RPMAG"]) else "",
-        "BPMAG": lc_meta["BPMAG"] if np.isfinite(lc_meta["BPMAG"]) else "",
+        "GAIAID": (extra_meta["GAIA_DES"], "Gaia identifier"),
+        "PMRA": (
+            lc_meta["PMRA"] if np.isfinite(lc_meta["PMRA"]) else "",
+            "Gaia RA proper motion [mas/yr]",
+        ),
+        "PMDEC": (
+            lc_meta["PMDEC"] if np.isfinite(lc_meta["PMDEC"]) else "",
+            "Gaia Dec proper motion [mas/yr]",
+        ),
+        "PARALLAX": (
+            lc_meta["PARALLAX"] if np.isfinite(lc_meta["PARALLAX"]) else "",
+            "Gaia parallax [mas]",
+        ),
+        "GMAG": (
+            lc_meta["GMAG"] if np.isfinite(lc_meta["GMAG"]) else "",
+            "Gaia G magnitude [mag]",
+        ),
+        "RPMAG": (
+            lc_meta["RPMAG"] if np.isfinite(lc_meta["RPMAG"]) else "",
+            "Gaia RP magnitude [mag]",
+        ),
+        "BPMAG": (
+            lc_meta["BPMAG"] if np.isfinite(lc_meta["BPMAG"]) else "",
+            "Gaia BP magnitude [mag]",
+        ),
         # extraction info
-        "TPF_ROW": lc_meta["ROW"],
-        "TPF_COL": lc_meta["COLUMN"],
-        "SAP": lc_meta["SAP"],
-        "ROW": np.nanmean(data["centroid_row"]).value,
-        "COLUMN": np.nanmean(data["centroid_col"]).value,
-        "FLFRCSAP": lc_meta["FLFRCSAP"] if np.isfinite(lc_meta["FLFRCSAP"]) else "",
-        "CROWDSAP": lc_meta["CROWDSAP"] if np.isfinite(lc_meta["CROWDSAP"]) else "",
-        "NPIXSAP": extra_meta["PIXINAP"],
-        "PSFFRAC": extra_meta["PSFFRAC"],
-        "PERTRATI": extra_meta["PERRATIO"],
-        "PERTSTD": extra_meta["PERSTD"],
+        "TPF_ROW": (lc_meta["ROW"], "Origin pixel row in TPF"),
+        "TPF_COL": (lc_meta["COLUMN"], "Origin pixel column in TPF"),
+        "SAP": (
+            lc_meta["SAP"],
+            "SAP mode used in psmachine",
+        ),
+        "ROW": (
+            np.nanmean(data["centroid_row"]).value,
+            "Pixel row mean value of object SAP centroid ",
+        ),
+        "COLUMN": (
+            np.nanmean(data["centroid_col"]).value,
+            "Pixel column mean value of object SAP centroid ",
+        ),
+        "FLFRCSAP": (
+            lc_meta["FLFRCSAP"] if np.isfinite(lc_meta["FLFRCSAP"]) else "",
+            "Flux completeness metric for aperture",
+        ),
+        "CROWDSAP": (
+            lc_meta["CROWDSAP"] if np.isfinite(lc_meta["CROWDSAP"]) else "",
+            "Flux crowding metric for aperture",
+        ),
+        "NPIXSAP": (extra_meta["PIXINAP"], "Number of pixels in the aperture"),
+        "PSFFRAC": (extra_meta["PSFFRAC"], "PSF fraction in data"),
+        "PERTRATI": (extra_meta["PERRATIO"], "Ratio of perturbed and mean shape model"),
+        "PERTSTD": (extra_meta["PERSTD"], "Standard deviation of perturbed model"),
+        "ITERNEG": (
+            extra_meta["ITERNEG"],
+            "If object has negative psf_nova flux due to iter",
+        ),
     }
     lc_dct = {
         "cadenceno": data["cadenceno"],
@@ -163,9 +210,9 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
         "sap_bkg": data["sap_bkg"],
         "red_chi2": data["red_chi2"],
     }
-    if fit_va:
-        lc_dct["psf_flux_nvs"] = data["psf_flux_NVA"]
-        lc_dct["psf_flux_err_nvs"] = data["psf_flux_err_NVA"]
+    if "psf_flux_NVA" in data.keys():
+        lc_dct["psf_flux_nova"] = data["psf_flux_NVA"]
+        lc_dct["psf_flux_err_nova"] = data["psf_flux_err_NVA"]
 
     lc_dict_ = lc_dct.copy()
 
@@ -197,9 +244,14 @@ def make_hdul(data, lc_meta, extra_meta, fit_va=True):
     hdul[1].header["EXTNAME"] = "LIGHTCURVE"
 
     for key, val in meta.items():
-        hdul[0].header[key] = val
+        hdul[0].header.set(key, val[0], val[1])
 
-    return hdul
+    if aperture_mask is not None:
+        ap_hdu = fits.ImageHDU(aperture_mask.astype(np.uint8))
+        ap_hdu.header["EXTNAME"] = "APERTURE"
+        return fits.HDUList([hdul[0], hdul[1], ap_hdu])
+    else:
+        return hdul
 
 
 # @profile
@@ -394,7 +446,7 @@ def do_lcs(
     logg.info("Loading TPFs from disk")
     if socket.gethostname().startswith("r"):
         sleep(np.random.randint(1, 30))
-    tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
+    tpfs = get_tpfs(fname_list[:100], tar_tpfs=tar_tpfs)
     logg.info(f"Working with {len(tpfs)} TPFs")
 
     ##############################################################################
@@ -423,6 +475,7 @@ def do_lcs(
         f"/{date[:4]}"
         f"/kplr{machine.tpfs[0].module:02}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
     )
+    print(bkg_file)
     if os.path.isfile(bkg_file) and augment_bkg:
         logg.info("Adding Mission BKG pixels...")
         logg.info(bkg_file)
@@ -513,7 +566,7 @@ def do_lcs(
             cbv_vec,
             x=machine.time,
             do_segments=True,
-            n_knots=50,
+            n_knots=40,
         )
         other_vectors = (cbv_vec_smooth - cbv_vec_smooth.mean()) / (
             cbv_vec_smooth.max() - cbv_vec_smooth.mean()
@@ -574,10 +627,10 @@ def do_lcs(
     # get an index array to match the TPF cadenceno
     cadno_mask = np.in1d(machine.tpfs[0].time.jd, machine.time)
     # get KICs
-    if not compute_node:
-        kics = get_KICs(machine.sources)
-    else:
+    if compute_node or "kic" in machine.sources.columns:
         kics = machine.sources
+    else:
+        kics = get_KICs(machine.sources)
 
     # get the TPF index for each lc, a sources could fall in more than 1 tpf
     obs_per_pixel = machine.source_mask.multiply(machine.pix2obs).tocsr()
@@ -623,6 +676,15 @@ def do_lcs(
     factor = np.nanmedian(ratio[machine.source_psf_fraction > 0.8])
     machine.ws /= factor
     machine.ws_va /= factor
+
+    # get aperture mask in 2D shape
+    aperture_mask_2d = aperture_mask_to_2d(
+        machine.tpfs,
+        machine.tpf_meta["sources"],
+        machine.aperture_mask,
+        machine.column,
+        machine.row,
+    )
 
     ##############################################################################
     ################################## save plots ################################
@@ -715,12 +777,13 @@ def do_lcs(
         desc="Saving LCFs",
         disable=quiet,
     ):
-        # we skipt empty lcs
+        # we skip empty lcs
         if (
-            np.isnan(machine.ws[:, idx]).all()
+            np.isnan(machine.ws_va[:, idx]).all()
             and np.isnan(machine.sap_flux[:, idx]).all()
         ) or (
-            np.isnan(machine.ws[:, idx]).all() and (machine.sap_flux[:, idx] == 0).all()
+            np.isnan(machine.ws_va[:, idx]).all()
+            and (machine.sap_flux[:, idx] == 0).all()
         ):
             continue
 
@@ -766,9 +829,15 @@ def do_lcs(
             "PSFFRAC": machine.source_psf_fraction[idx],
             "PERRATIO": machine.perturbed_ratio_mean[idx],
             "PERSTD": machine.perturbed_std[idx],
+            "ITERNEG": 1
+            if np.isnan(machine.ws[:, idx]).all()
+            and not np.isnan(machine.ws_va[:, idx]).all()
+            else 0,
         }
 
-        hdul = make_hdul(data, lc_meta, extra_meta, fit_va=fit_va)
+        aperture_mask = aperture_mask_2d[f"{tpf_idx[idx]}_{idx}"]
+
+        hdul = make_hdul(data, lc_meta, extra_meta, aperture_mask=aperture_mask)
         if "KIC" in hdul[0].header["LABEL"]:
             target_name = f"KIC-{int(hdul[0].header['LABEL'].split(' ')[-1]):09}"
         else:
@@ -784,6 +853,7 @@ def do_lcs(
                 tar.add(tmp.name, arcname=fname)
         else:
             hdul.writeto("%s/%s.gz" % (dir_name, fname), overwrite=True, checksum=True)
+        del hdul
 
     if tar_lcs:
         tar.close()
@@ -816,8 +886,9 @@ def do_lcs(
                 machine.sources.dec.values,
                 np.array(centroids_col),
                 np.array(centroids_row),
+                machine.sources.tpf_id.values,
             ],
-            index=["ra", "dec", "column", "row"],
+            index=["ra", "dec", "column", "row", "tpf_id"],
             columns=machine.sources.designation.values,
         ).T
         fname = f"{dir_name}/{global_name}.coord.feather"
