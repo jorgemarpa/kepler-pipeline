@@ -8,7 +8,6 @@ from tqdm import tqdm
 from astropy.time import Time
 
 from psfmachine.utils import get_gaia_sources
-from psfmachine.tpf import _clean_source_list
 from make_lightcurves import get_file_list, get_tpfs
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
