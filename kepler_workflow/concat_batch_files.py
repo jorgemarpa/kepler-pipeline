@@ -134,7 +134,7 @@ def channel_feather(
         sys.exit()
 
     batch_numer_org = pd.read_csv(
-        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv",
+        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches_new.csv",
     )
     print(f"Total batches: {len(bfiles)} / {batch_numer_org.iloc[quarter, channel]}")
     if len(bfiles) != batch_numer_org.iloc[quarter, channel]:
@@ -293,7 +293,7 @@ if __name__ == "__main__":
         "--suffix",
         dest="suffix",
         type=str,
-        default="fvaT_bkg*_aug*_sgmT_iteT",
+        default="fvaT_bkgT_augT_sgmF_iteT_cbvT",
         help="File prefix",
     )
     parser.add_argument(
