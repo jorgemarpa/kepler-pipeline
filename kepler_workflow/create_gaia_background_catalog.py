@@ -84,6 +84,8 @@ def main(quarter=1, channel=1, do_batch=True, tar_tpfs=False, do_query=False):
                 fname_list[batch_size * (batch) : batch_size * (batch + 1)],
                 tar_tpfs=tar_tpfs,
             )
+            if len(aux):
+                continue
             sources, cone_search = _get_coord_and_query_gaia(
                 aux, magnitude_limit=20, dr=3, do_query=do_query
             )
