@@ -6,7 +6,7 @@ init:
     n_r_knots: 10
     n_phi_knots: 15
     time_nknots: 7
-    time_resolution: 35
+    time_resolution: 50
     time_radius: 9
     rmin: 1
     rmax: 16
@@ -26,7 +26,7 @@ compute_aperture_photometry:
 time_model:
     bin_method: "bin"
     poly_order: 3
-    segments: True
+    segments: False
     focus: False
     focus_exptime: 50
     pca_ncomponents: 0

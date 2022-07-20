@@ -11,7 +11,9 @@ from tqdm import tqdm
 import numpy as np
 
 from paths import *
-KEP_LC_PATH = "/Volumes/Jorge MarPa/Work/BAERI/data/kepler/lcs"
+
+# KEP_LC_PATH = "/Volumes/Jorge MarPa/Work/BAERI/data/kepler/lcs"
+KEP_LC_PATH = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler/lcs"
 
 
 def do_archive(tar_path):
@@ -21,9 +23,7 @@ def do_archive(tar_path):
         with tarfile.open(tar_path) as tar:
             members = tar.getmembers()
 
-            ids = [
-                x.name.split("/")[-1].split("-")[0][4:] for x in members
-            ]
+            ids = [x.name.split("/")[-1].split("-")[0][4:] for x in members]
             dirs = list(set([x[:4] for x in ids]))
             print("Creating the following directories:")
             print(dirs)

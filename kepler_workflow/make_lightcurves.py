@@ -446,7 +446,7 @@ def do_lcs(
     logg.info("Loading TPFs from disk")
     if socket.gethostname().startswith("r"):
         sleep(np.random.randint(1, 30))
-    tpfs = get_tpfs(fname_list[:100], tar_tpfs=tar_tpfs)
+    tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     logg.info(f"Working with {len(tpfs)} TPFs")
 
     ##############################################################################
@@ -835,7 +835,10 @@ def do_lcs(
             else 0,
         }
 
-        aperture_mask = aperture_mask_2d[f"{tpf_idx[idx]}_{idx}"]
+        try:
+            aperture_mask = aperture_mask_2d[f"{tpf_idx[idx]}_{idx}"]
+        except KeyError:
+            aperture_mask = None
 
         hdul = make_hdul(data, lc_meta, extra_meta, aperture_mask=aperture_mask)
         if "KIC" in hdul[0].header["LABEL"]:

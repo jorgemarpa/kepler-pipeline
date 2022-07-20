@@ -53,7 +53,11 @@ def drop_repeated(lcs, quarter, channel):
 
 
 def main(
-    quarter, channel, download=False, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"
+    quarter,
+    channel,
+    download=False,
+    suffix="fvaT_bkgT_augT_sgmF_iteT_cbvT",
+    version="1.1.1",
 ):
 
     time_corrector = "polynomial"
@@ -61,7 +65,7 @@ def main(
         glob.glob(
             f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
             f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}"
-            f"_v{version}_lcs_b*_{suffix}.tar.gz"
+            f"_v{version}_lcs_bn*_{suffix}.tar.gz"
         )
     )
 
@@ -141,7 +145,7 @@ def main(
 
     feat_jm_sap = get_features(lcs, flux_col="sap_flux")
     feat_jm_psf = get_features(lcs, flux_col="flux")
-    feat_jm_psfnv = get_features(lcs, flux_col="psf_flux_nvs")
+    feat_jm_psfnv = get_features(lcs, flux_col="psf_flux_nova")
 
     features = {
         "feat_jm_sap": feat_jm_sap,

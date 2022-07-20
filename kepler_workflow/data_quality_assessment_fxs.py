@@ -20,9 +20,8 @@ from astropy.coordinates import SkyCoord, match_coordinates_3d
 import astropy.units as u
 from paths import *
 
-# kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler"
+kepler_root_dir = "/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler/lcs"
 # kepler_root_dir = "/Volumes/jorge-marpa/Work/BAERI/data/kepler/"
-kepler_root_dir = "/Volumes/Jorge MarPa/Work/BAERI"
 qd_map = {
     1: 2009166043257,
     2: 2009259160929,
@@ -81,9 +80,7 @@ def get_keple_lightcurves(kics, quarter, tar=True):
                 if kic is None:
                     lcs.append(None)
                     continue
-                tarname = glob.glob(
-                    f"{kepler_root_dir}/lcs/{kic[:4]}/kplr{kic}_lc_Q*.tar"
-                )
+                tarname = glob.glob(f"{kepler_root_dir}/{kic[:4]}/kplr{kic}_lc_Q*.tar")
                 # skip when tarball doesn't exist
                 if len(tarname) == 0:
                     lcs.append(None)
@@ -115,8 +112,8 @@ def get_keple_lightcurves(kics, quarter, tar=True):
                 lcs.append(None)
                 continue
             fname = (
-                f"{kepler_root_dir}/data/kepler/lcs"
-                f"/{kic[:4]}/{kic}/kplr{kic}-{qd_map[quarter]}_llc.fits"
+                f"{kepler_root_dir}/"
+                f"{kic[:4]}/{kic}/kplr{kic}-{qd_map[quarter]}_llc.fits"
             )
             if os.path.isfile(fname):
                 lcs.append(lk.KeplerLightCurve.read(fname))
@@ -244,11 +241,11 @@ def compute_stats_from_lcs(lcs, project="kbonus", do_cdpp=True):
                         cdpp_lcs_ap2.append(lc.estimate_cdpp().value)
                     except:
                         cdpp_lcs_ap2.append(np.nan)
-                if (lc.psf_flux_nvs == 0).all():
+                if (lc.psf_flux_nova == 0).all():
                     cdpp_lcs_ap3.append(np.nan)
                 else:
-                    lc.flux = lc.psf_flux_nvs
-                    lc.flux_err = lc.psf_flux_err_nvs
+                    lc.flux = lc.psf_flux_nova
+                    lc.flux_err = lc.psf_flux_err_nova
                     try:
                         cdpp_lcs_ap3.append(lc.estimate_cdpp().value)
                     except:
@@ -776,7 +773,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         kind="kde", ax=ax_11, label="KBonus_SAP", color="tab:blue"
     )
     (feat_jm_psfnv["LinearTrend"]).plot(
-        kind="kde", ax=ax_11, label="KBonus_PSFNV", color="tab:green"
+        kind="kde", ax=ax_11, label="KBonus_PSF-NOVA", color="tab:green"
     )
     (feat_jm_psf["LinearTrend"]).plot(
         kind="kde", ax=ax_11, label="KBonus_PSF", color="tab:orange"
@@ -877,8 +874,8 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
         lc.flux_err = lc.sap_flux_err
         lc.normalize().plot(ax=ax_21, c="tab:blue", label="KBonus SAP")
 
-        lc.flux = lc.psf_flux_nvs
-        lc.flux_err = lc.psf_flux_err_nvs
+        lc.flux = lc.psf_flux_nova
+        lc.flux_err = lc.psf_flux_err_nova
         lc.normalize().plot(ax=ax_21, c="tab:green", label="KBonus PSF-NV")
 
         txt = (
@@ -934,7 +931,7 @@ def plot_features(
         kind="kde", ax=ax[0, 0], label="KBonus_SAP", color="tab:blue"
     )
     np.log10(feat_jm_psfnv["Amplitude"]).plot(
-        kind="kde", ax=ax[0, 0], label="KBonus_PSFNV", color="tab:green"
+        kind="kde", ax=ax[0, 0], label="KBonus_PSF-NOVA", color="tab:green"
     )
     np.log10(feat_jm_psf["Amplitude"]).plot(
         kind="kde", ax=ax[0, 0], label="KBonus_PSF", color="tab:orange"
@@ -961,7 +958,7 @@ def plot_features(
         kind="kde", ax=ax[0, 2], label="KBonus_SAP", color="tab:blue"
     )
     (feat_jm_psfnv["LinearTrend"]).plot(
-        kind="kde", ax=ax[0, 2], label="KBonus_PSFNV", color="tab:green"
+        kind="kde", ax=ax[0, 2], label="KBonus_PSF-NOVA", color="tab:green"
     )
     (feat_jm_psf["LinearTrend"]).plot(
         kind="kde", ax=ax[0, 2], label="KBonus_PSF", color="tab:orange"
@@ -974,7 +971,7 @@ def plot_features(
         kind="kde", ax=ax[1, 0], label="KBonus_SAP", color="tab:blue"
     )
     (feat_jm_psfnv["PercentDifferenceFluxPercentile"]).plot(
-        kind="kde", ax=ax[1, 0], label="KBonus_PSFNV", color="tab:green"
+        kind="kde", ax=ax[1, 0], label="KBonus_PSF-NOVA", color="tab:green"
     )
     (feat_jm_psf["PercentDifferenceFluxPercentile"]).plot(
         kind="kde", ax=ax[1, 0], label="KBonus_PSF", color="tab:orange"
