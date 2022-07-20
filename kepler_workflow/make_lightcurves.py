@@ -15,14 +15,14 @@ import psfmachine as pm
 import lightkurve as lk
 from scipy import stats
 from tqdm import tqdm
-from memory_profiler import profile
+
+# from memory_profiler import profile
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from astropy.io import fits
 import fitsio
 from psfmachine.utils import _make_A_polar, bspline_smooth
 from psfmachine.aperture import aperture_mask_to_2d
-from scipy import stats
 
 # from astropy.table import Table
 from astropy.coordinates import SkyCoord, match_coordinates_3d
