@@ -30,7 +30,7 @@ echo "Total failed batches in quarter $totallines"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "cat ${info} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20"
-cat ${info} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20
+echo "cat ${info} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20"
+cat ${info} | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20
 
 exit 0
