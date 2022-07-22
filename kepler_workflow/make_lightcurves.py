@@ -1051,7 +1051,7 @@ if __name__ == "__main__":
     logg.propagate = False
 
     if args.channel is None and args.batch_index > -1:
-        batch_info = "%s/data/support/kepler_batch_info_quarter%i.dat" % (
+        batch_info = "%s/data/support/kepler_batch_info_quarter%i_new.dat" % (
             PACKAGEDIR,
             args.quarter,
         )
