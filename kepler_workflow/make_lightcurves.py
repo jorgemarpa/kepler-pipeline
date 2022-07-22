@@ -475,7 +475,6 @@ def do_lcs(
         f"/{date[:4]}"
         f"/kplr{machine.tpfs[0].module:02}{machine.tpfs[0].output}-{date}_bkg.fits.gz"
     )
-    print(bkg_file)
     if os.path.isfile(bkg_file) and augment_bkg:
         logg.info("Adding Mission BKG pixels...")
         logg.info(bkg_file)
