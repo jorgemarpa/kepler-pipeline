@@ -26,7 +26,7 @@ cd "$WORKDIR/kepler_workflow"
 echo `pwd`
 
 echo "Quarter $quarter"
-echo "Batches in quarter $batch_start to $batch_end"
+echo "Batches from $batch_start to $batch_end"
 
 # lunch parallel jobs
 echo "Will run the following command:"
