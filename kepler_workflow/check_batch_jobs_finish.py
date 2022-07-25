@@ -72,7 +72,7 @@ def check_quarter_archive(
 ):
 
     batch_numer_org = pd.read_csv(
-        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
+        f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches_new.csv"
     )
     index_map = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_batch_info_quarter{quarter}_new.dat",
