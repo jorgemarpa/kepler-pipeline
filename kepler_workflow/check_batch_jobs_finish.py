@@ -109,7 +109,7 @@ def check_quarter_archive(
             txt = "Done"
         elif len(archive_path) == 0:
             color = "red"
-            txt = "Faile"
+            txt = "Fail"
         else:
             color = "yellow"
             txt = "Partial"
