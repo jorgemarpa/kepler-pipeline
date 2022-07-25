@@ -68,14 +68,14 @@ def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
 
 
 def check_quarter_archive(
-    quarter, suffix="fvaT_bkg*_aug*_sgmT_iteT", ext="tar.gz", run=False
+    quarter, suffix="fvaT_bkgT_augT_sgmF_iteT_cbvT", ext="tar.gz", run=False
 ):
 
     batch_numer_org = pd.read_csv(
         f"{PACKAGEDIR}/data/support/kepler_quarter_channel_totalbatches.csv"
     )
     index_map = pd.read_csv(
-        f"{PACKAGEDIR}/data/support/kepler_batch_info_quarter{quarter}.dat",
+        f"{PACKAGEDIR}/data/support/kepler_batch_info_quarter{quarter}_new.dat",
         sep=" ",
         header=0,
     )
@@ -110,7 +110,8 @@ def check_quarter_archive(
         if batch_numer_org.iloc[quarter, ch] == 0:
             color = "yellow"
         text = colored(
-            f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
+            f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} "
+            f"/ {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
         )
         print(text)
