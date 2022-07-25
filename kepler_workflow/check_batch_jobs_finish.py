@@ -104,14 +104,27 @@ def check_quarter_archive(
         # if len(archive_path) > 0:
         missing_idexes.extend(index_map_aux["#n"].values)
 
-        color = (
-            "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
-        )
-        if batch_numer_org.iloc[quarter, ch] == 0:
+        if len(archive_path) == batch_numer_org.iloc[quarter, ch]:
+            color = "green"
+            txt = "Done"
+        elif len(archive_path) == 0:
+            color = "red"
+            txt = "Faile"
+        else:
             color = "yellow"
+            txt = "Partial"
+        # color = (
+        #     "green" if len(archive_path) == batch_numer_org.iloc[quarter, ch] else "red"
+        # )
+        # if batch_numer_org.iloc[quarter, ch] == 0:
+        #     color = "yellow"
+        # text = colored(
+        #     f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} "
+        #     f"/ {batch_numer_org.iloc[quarter, ch]:02}",
+        #     color=color,
+        # )
         text = colored(
-            f"Channel {ch:02} Q {quarter:02} batches {len(archive_path):02} "
-            f"/ {batch_numer_org.iloc[quarter, ch]:02}",
+            f"{txt} {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
         )
         print(text)
