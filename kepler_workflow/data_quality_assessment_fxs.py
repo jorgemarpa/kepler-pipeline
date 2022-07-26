@@ -567,7 +567,7 @@ def make_dashboard(stats, features, lightcurves, meta, save=True, name=None):
             iter = False
 
     with open(
-        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config_2.yaml" % (PACKAGEDIR),
+        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR),
         "r",
     ) as f:
         config = yaml.safe_load(f)
