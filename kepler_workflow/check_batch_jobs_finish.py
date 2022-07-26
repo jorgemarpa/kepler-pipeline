@@ -132,19 +132,19 @@ def check_quarter_archive(
             main(channel=ch, quarter=quarter, run=run)
 
     missing_idexes = np.unique(missing_idexes)
-    nof = missing_idexes[::4].shape[0]
+    nof = missing_idexes[::25].shape[0]
     np.savetxt(
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat",
         missing_idexes,
         fmt="%i",
     )
 
-    # for k, idxs in enumerate(np.array_split(missing_idexes, nof)):
-    #     np.savetxt(
-    #         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}_{k+1}.dat",
-    #         idxs,
-    #         fmt="%i",
-    #     )
+    for k, idxs in enumerate(np.array_split(missing_idexes, nof)):
+        np.savetxt(
+            f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}_{k+1}.dat",
+            idxs,
+            fmt="%i",
+        )
     return
 
 
