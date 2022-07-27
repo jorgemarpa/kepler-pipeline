@@ -79,6 +79,8 @@ def check_quarter_archive(
         sep=" ",
         header=0,
     )
+    if quarter in [2, 12]:
+        suffix = suffix.replace("bkgT", "bkgF")
 
     channels = np.arange(1, 85)
     missing_idexes = []
