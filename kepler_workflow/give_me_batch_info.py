@@ -28,11 +28,9 @@ def main(channel=1, quarter=1, print_info=True, run=False):
             print(f"Channel: {channel}")
             print(f"Quarter: {quarter}")
             print(f"Total batches: {chqbtot}")
-        else:
+        if run:
             command = f'qsub -v "qu={quarter},ch={channel},bn={chqbtot}" {PACKAGEDIR}/bash/pbs_quarter_channel.sh'
             print(command)
-        # print("-------------------------")
-        if run:
             os.system(command)
 
 

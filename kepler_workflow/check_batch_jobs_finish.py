@@ -131,7 +131,7 @@ def check_quarter_archive(
         )
         print(text)
         if run and len(archive_path) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
-            main(channel=ch, quarter=quarter, run=run)
+            main(channel=ch, quarter=quarter, print_info=False, run=run)
 
     missing_idexes = np.unique(missing_idexes)
     nof = missing_idexes[::25].shape[0]
