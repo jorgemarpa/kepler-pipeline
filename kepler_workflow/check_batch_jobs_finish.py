@@ -23,10 +23,10 @@ def check_make_files():
                 continue
             else:
                 try:
-                    batch_idx_fail.append(int(lines[4].split(":")[-1]))
-                    batch_number.append(int(lines[5].split(":")[-1]))
-                    channel.append(int(lines[7].split(":")[-1]))
-                    quarters.append(int(lines[13].split(":")[-1]))
+                    batch_idx_fail.append(int(lines[3].split(":")[-1]))
+                    batch_number.append(int(lines[4].split(":")[-1]))
+                    channel.append(int(lines[6].split(":")[-1]))
+                    quarters.append(int(lines[12].split(":")[-1]))
                 except IndexError:
                     pass
                 try:
