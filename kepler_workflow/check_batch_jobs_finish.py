@@ -26,11 +26,11 @@ def check_make_files():
                     batch_idx_fail.append(int(lines[3].split(":")[-1]))
                     batch_number.append(int(lines[4].split(":")[-1]))
                     channel.append(int(lines[6].split(":")[-1]))
-                    quarters.append(int(lines[12].split(":")[-1]))
+                    quarters.append(int(lines[13].split(":")[-1]))
                 except IndexError:
                     pass
                 try:
-                    ntpfs.append(int(lines[21].split(" ")[-2]))
+                    ntpfs.append(int(lines[20].split(" ")[-2]))
                 except IndexError:
                     ntpfs.append(0)
 
