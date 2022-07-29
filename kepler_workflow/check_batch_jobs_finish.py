@@ -36,8 +36,8 @@ def check_make_files():
 
     df = pd.DataFrame(
         np.vstack([batch_idx_fail, quarters, channel, batch_number, ntpfs]),
-        columns=["batch_idx_fail", "quarters", "channel", "batch_number", "ntpfs"],
-    )
+        index=["batch_idx_fail", "quarters", "channel", "batch_number", "ntpfs"],
+    ).T
 
     df.to_csv(f"{PACKAGEDIR}/data/support/fail_batch_info.csv")
 
