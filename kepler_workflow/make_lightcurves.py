@@ -698,7 +698,9 @@ def do_lcs(
             lc_version,
             batch_number,
             str(fit_va)[0],
-            str(config["init"]["renormalize_tpf_bkg"])[0],
+            "T"
+            if quarter in [2, 12]
+            else str(config["init"]["renormalize_tpf_bkg"])[0],
             str(augment_bkg)[0],
             str(config["time_model"]["segments"])[0],
             str(iter_neg)[0],
