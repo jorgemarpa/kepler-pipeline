@@ -42,8 +42,18 @@ def check_make_files():
                     npix.append(0)
 
     df = pd.DataFrame(
-        np.vstack([batch_idx_fail, quarters, channel, batch_number, ntpfs]),
-        index=["batch_idx_fail", "quarters", "channel", "batch_number", "ntpfs"],
+        np.vstack(
+            [batch_idx_fail, quarters, channel, batch_number, ntpfs, nsources, npix]
+        ),
+        index=[
+            "batch_idx_fail",
+            "quarters",
+            "channel",
+            "batch_number",
+            "ntpfs",
+            "nsources",
+            "npix",
+        ],
     ).T
 
     df.to_csv(f"{PACKAGEDIR}/data/support/fail_batch_info.csv")
