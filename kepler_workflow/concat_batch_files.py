@@ -117,8 +117,6 @@ def channel_feather(
     remove=False,
 ):
 
-    if quarter in [2, 12]:
-        suffix = suffix.replace("bkgT", "bkgF")
     print(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
         f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}_"
@@ -251,8 +249,6 @@ def channel_feather(
 def quarter_feather(quarter=5, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"):
 
     channels = np.arange(1, 85, dtype=int)
-    if quarter in [2, 12]:
-        suffix = suffix.replace("bkgT", "bkgF")
 
     coord, channel = [], []
     for ch in tqdm(channels, total=len(channels)):
