@@ -8,6 +8,7 @@ from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 quarter = 2
 channels = np.arange(0, 18)
 suffix = "fvaT_bkgF_augT_sgmF_iteT_cbvT"
+version = "1.1.1"
 
 for ch in channels:
     in_files = sorted(
