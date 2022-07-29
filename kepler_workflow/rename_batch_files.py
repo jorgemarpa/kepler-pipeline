@@ -11,7 +11,7 @@ suffix = "fvaT_bkgF_augT_sgmF_iteT_cbvT"
 
 for ch in channels:
     in_files = sorted(
-        glob.glob(
+        glob(
             f"{LCS_PATH}/kepler/ch{ch:02}/q{quarter:02}/"
             f"kbonus-kepler-bkg_ch{ch:02}_q{quarter:02}_"
             f"v{version}_lcs_*_{suffix}.*"
