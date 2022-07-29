@@ -14,7 +14,7 @@ def check_make_files():
     info_list = sorted(glob(f"{PACKAGEDIR}/logs/make_lightcurve_*.info"))
     print(f"Total info files: {len(info_list)}")
 
-    batch_idx_fail, quarters = [], []
+    batch_idx_fail, quarters, channel, batch_number, ntpfs = [], [], [], [], []
     for fname in info_list:
         print(fname)
         with open(fname, "r") as f:
@@ -23,19 +23,24 @@ def check_make_files():
                 continue
             else:
                 try:
-                    batch_idx_fail.append(int(lines[2].split(":")[-1]))
+                    batch_idx_fail.append(int(lines[4].split(":")[-1]))
+                    batch_number.append(int(lines[5].split(":")[-1]))
+                    channel.append(int(lines[7].split(":")[-1]))
                     quarters.append(int(lines[13].split(":")[-1]))
                 except IndexError:
-                    continue
+                    pass
+                try:
+                    ntpfs.append(int(lines[21].split(" ")[-2]))
+                except IndexError:
+                    ntpfs.append(0)
 
-    batch_idx_fail = np.array(batch_idx_fail)
-    quarters = np.array(quarters)
-    for k, q in enumerate(set(quarters)):
-        with open(
-            f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{q}.dat", "w"
-        ) as f:
-            for k in np.unique(batch_idx_fail[quarters == q]):
-                f.write(f"{k}\n")
+    df = pd.DataFrame(
+        np.vstack([batch_idx_fail, quarters, channel, batch_number, ntpfs]),
+        columns=["batch_idx_fail", "quarters", "channel", "batch_number", "ntpfs"],
+    )
+
+    df.to_csv(f"{PACKAGEDIR}/data/support/fail_batch_info.csv")
+
     return
 
 
