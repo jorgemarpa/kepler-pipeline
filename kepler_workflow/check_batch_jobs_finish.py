@@ -15,6 +15,7 @@ def check_make_files():
     print(f"Total info files: {len(info_list)}")
 
     batch_idx_fail, quarters, channel, batch_number, ntpfs = [], [], [], [], []
+    nsources, npix = [], []
     for fname in info_list:
         print(fname)
         with open(fname, "r") as f:
@@ -33,6 +34,12 @@ def check_make_files():
                     ntpfs.append(int(lines[20].split(" ")[-2]))
                 except IndexError:
                     ntpfs.append(0)
+                try:
+                    nsources.append(int(lines[37].split(" ")[-1][:-1]))
+                    npix.append(int(lines[37].split(" ")[-3][1:-1]))
+                except IndexError:
+                    nsources.append(0)
+                    npix.append(0)
 
     df = pd.DataFrame(
         np.vstack([batch_idx_fail, quarters, channel, batch_number, ntpfs]),
