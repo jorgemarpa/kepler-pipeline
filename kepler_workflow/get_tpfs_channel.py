@@ -12,9 +12,9 @@ def main(quarter=5, channel=44):
 
     file_list = get_file_list(quarter, channel, -1, tar_tpfs=True)
 
-    out_dir = f"{PACKAGEDIR}/download/"
+    out_dir = f"{ARCHIVE_PATH}/download/"
     if not os.path.isdir(out_dir):
-        os.makedirs(f"{PACKAGEDIR}/download/")
+        os.makedirs(f"{ARCHIVE_PATH}/download/")
 
     for k, fname in tqdm(enumerate(file_list), total=len(file_list)):
         tarf = f"{fname.split('/')[0]}_{fname.split('/')[1]}.tar"
