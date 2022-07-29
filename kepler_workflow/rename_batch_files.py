@@ -15,7 +15,7 @@ for ch in channels:
         glob(
             f"{LCS_PATH}/kepler/ch{ch:02}/q{quarter:02}/"
             f"kbonus-kepler-bkg_ch{ch:02}_q{quarter:02}_"
-            f"v{version}_lcs_*_{suffix}.*"
+            f"v{version}_*_{suffix}.*"
         )
     )
     print(f"Total files {len(in_files)}")
