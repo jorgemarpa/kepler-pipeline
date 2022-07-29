@@ -35,7 +35,7 @@ def check_make_files():
                 except IndexError:
                     ntpfs.append(0)
                 try:
-                    nsources.append(int(lines[37].split(" ")[-1][:-1]))
+                    nsources.append(int(lines[37].split(" ")[-1][:-2]))
                     npix.append(int(lines[37].split(" ")[-3][1:-1]))
                 except IndexError:
                     nsources.append(0)
