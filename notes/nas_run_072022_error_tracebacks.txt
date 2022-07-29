@@ -1,0 +1,119 @@
+2022-07-29 10:36:11,423 - Make LCs - INFO - Program config
+2022-07-29 10:36:11,423 - Make LCs - INFO - augment_bkg           : True
+2022-07-29 10:36:11,423 - Make LCs - INFO - batch_index           : -1
+2022-07-29 10:36:11,423 - Make LCs - INFO - batch_number          : 1
+2022-07-29 10:36:11,423 - Make LCs - INFO - channel               : 84
+2022-07-29 10:36:11,423 - Make LCs - INFO - dry_run               : False
+2022-07-29 10:36:11,423 - Make LCs - INFO - fit_va                : True
+2022-07-29 10:36:11,423 - Make LCs - INFO - force_log             : True
+2022-07-29 10:36:11,423 - Make LCs - INFO - iter_neg              : True
+2022-07-29 10:36:11,423 - Make LCs - INFO - log                   : 20
+2022-07-29 10:36:11,423 - Make LCs - INFO - plot                  : False
+2022-07-29 10:36:11,423 - Make LCs - INFO - quarter               : 5
+2022-07-29 10:36:11,423 - Make LCs - INFO - save_arrays           : feather
+2022-07-29 10:36:11,424 - Make LCs - INFO - tar_lcs               : True
+2022-07-29 10:36:11,424 - Make LCs - INFO - tar_tpfs              : True
+2022-07-29 10:36:11,424 - Make LCs - INFO - use_cbv               : True
+2022-07-29 10:36:11,424 - Make LCs - INFO - None
+2022-07-29 10:36:11,691 - Make LCs - INFO - Loading TPFs from disk
+2022-07-29 10:37:37,669 - Make LCs - INFO - Working with 187 TPFs
+2022-07-29 10:37:37,669 - Make LCs - INFO - Initializing PSFMachine
+Traceback (most recent call last):
+  File "make_lightcurves.py", line 1079, in <module>
+    do_lcs(**kwargs, compute_node=compute_node)
+  File "make_lightcurves.py", line 457, in do_lcs
+    machine = pm.TPFMachine.from_TPFs(tpfs, **config["init"])
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/tpf.py", line 1006, in from_TPFs
+    sources = _get_coord_and_query_gaia(
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/tpf.py", line 1386, in _get_coord_and_query_gaia
+    sources, removed_sources = _clean_source_list(sources, ras, decs)
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/tpf.py", line 1422, in _clean_source_list
+    del raok, decok
+UnboundLocalError: local variable 'raok' referenced before assignment
+
+
+
+
+2022-07-29 10:40:24,586 - Make LCs - INFO - Program config
+2022-07-29 10:40:24,586 - Make LCs - INFO - augment_bkg           : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - batch_index           : -1
+2022-07-29 10:40:24,586 - Make LCs - INFO - batch_number          : 7
+2022-07-29 10:40:24,586 - Make LCs - INFO - channel               : 71
+2022-07-29 10:40:24,586 - Make LCs - INFO - dry_run               : False
+2022-07-29 10:40:24,586 - Make LCs - INFO - fit_va                : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - force_log             : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - iter_neg              : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - log                   : 20
+2022-07-29 10:40:24,586 - Make LCs - INFO - plot                  : False
+2022-07-29 10:40:24,586 - Make LCs - INFO - quarter               : 5
+2022-07-29 10:40:24,586 - Make LCs - INFO - save_arrays           : feather
+2022-07-29 10:40:24,586 - Make LCs - INFO - tar_lcs               : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - tar_tpfs              : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - use_cbv               : True
+2022-07-29 10:40:24,586 - Make LCs - INFO - None
+2022-07-29 10:40:24,851 - Make LCs - INFO - Loading TPFs from disk
+2022-07-29 10:41:59,488 - Make LCs - INFO - Working with 197 TPFs
+2022-07-29 10:41:59,489 - Make LCs - INFO - Initializing PSFMachine
+Creating delta arrays: 100%|███████████| 1798/1798 [00:01<00:00, 1164.79it/s]
+2022-07-29 10:42:48,701 - Make LCs - INFO - PSFMachine config:
+2022-07-29 10:42:48,701 - Make LCs - INFO - apply_focus_mask      : True
+2022-07-29 10:42:48,701 - Make LCs - INFO - cartesian_knot_spacing: linear
+2022-07-29 10:42:48,701 - Make LCs - INFO - dr                    : 3
+2022-07-29 10:42:48,701 - Make LCs - INFO - limit_radius          : 24.0
+2022-07-29 10:42:48,701 - Make LCs - INFO - magnitude_limit       : 19
+2022-07-29 10:42:48,701 - Make LCs - INFO - n_phi_knots           : 15
+2022-07-29 10:42:48,701 - Make LCs - INFO - n_r_knots             : 10
+2022-07-29 10:42:48,701 - Make LCs - INFO - renormalize_tpf_bkg   : True
+2022-07-29 10:42:48,701 - Make LCs - INFO - rmax                  : 16
+2022-07-29 10:42:48,701 - Make LCs - INFO - rmin                  : 1
+2022-07-29 10:42:48,701 - Make LCs - INFO - time_nknots           : 7
+2022-07-29 10:42:48,701 - Make LCs - INFO - time_radius           : 9
+2022-07-29 10:42:48,701 - Make LCs - INFO - time_resolution       : 50
+2022-07-29 10:42:48,701 - Make LCs - INFO - None
+2022-07-29 10:42:48,701 - Make LCs - INFO - TPFMachine (N sources, N times, N pixels): (1798, 4487, 6891)
+2022-07-29 10:42:48,701 - Make LCs - INFO - PSFMachine time model config
+2022-07-29 10:42:48,701 - Make LCs - INFO - bin_method            : bin
+2022-07-29 10:42:48,702 - Make LCs - INFO - focus                 : False
+2022-07-29 10:42:48,702 - Make LCs - INFO - focus_exptime         : 50
+2022-07-29 10:42:48,702 - Make LCs - INFO - pca_ncomponents       : 0
+2022-07-29 10:42:48,702 - Make LCs - INFO - pca_smooth_time_scale : 0.02
+2022-07-29 10:42:48,702 - Make LCs - INFO - poly_order            : 3
+2022-07-29 10:42:48,702 - Make LCs - INFO - positions             : False
+2022-07-29 10:42:48,702 - Make LCs - INFO - segments              : False
+2022-07-29 10:42:48,702 - Make LCs - INFO - None
+2022-07-29 10:42:48,741 - Make LCs - INFO - Adding Mission BKG pixels...
+2022-07-29 10:42:48,741 - Make LCs - INFO - /nobackup/jimartin/ADAP/data/kepler/bkg/2010/kplr203-2010174085026_bkg.fits.gz
+2022-07-29 10:42:56,204 - Make LCs - INFO - Building models...
+2022-07-29 10:43:24,542 - Make LCs - INFO - Loagind shape model failed, fitting PRF from data...
+WARNING: Input data contains invalid values (NaNs or infs), which were automatically clipped. [astropy.stats.sigma_clipping]
+2022-07-29 10:43:25,136 - astroquery - WARNING - Input data contains invalid values (NaNs or infs), which were automatically clipped.
+Traceback (most recent call last):
+  File "make_lightcurves.py", line 523, in do_lcs
+    machine.load_shape_model(input=shape_model_path, plot=False)
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/tpf.py", line 671, in load_shape_model
+    self._get_source_mask()
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/machine.py", line 433, in _get_source_mask
+    w = np.linalg.solve(sigma_w_inv, B)
+  File "<__array_function__ internals>", line 5, in solve
+  File "/home4/jimartin/.conda/envs/kepler-workflow/lib/python3.8/site-packages/numpy/linalg/linalg.py", line 393, in solve
+    r = gufunc(a, b, signature=signature, extobj=extobj)
+  File "/home4/jimartin/.conda/envs/kepler-workflow/lib/python3.8/site-packages/numpy/linalg/linalg.py", line 88, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "make_lightcurves.py", line 1079, in <module>
+    do_lcs(**kwargs, compute_node=compute_node)
+  File "make_lightcurves.py", line 526, in do_lcs
+    machine.build_shape_model(plot=False)
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/machine.py", line 1058, in build_shape_model
+    self._update_source_mask_remove_bkg_pixels(
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/machine.py", line 1135, in _update_source_mask_remove_bkg_pixels
+    self._get_normalized_mean_model()
+  File "/home4/jimartin/ADAP/psfmachine/src/psfmachine/machine.py", line 1163, in _get_normalized_mean_model
+    r_hd = np.linspace(0, r.max(), npoints)
+  File "/home4/jimartin/.conda/envs/kepler-workflow/lib/python3.8/site-packages/numpy/core/_methods.py", line 39, in _amax
+    return umr_maximum(a, axis, None, out, keepdims, initial, where)
+ValueError: zero-size array to reduction operation maximum which has no identity

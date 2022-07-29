@@ -1,0 +1,164 @@
+qsub -I -lselect=1:ncpus=20:mem=30G:model=ivy,walltime=2:00:00 -q devel
+
+
+ls -1 /nobackupp19/jimartin/ADAP/data/kepler/tpf | xargs -n 1 -I {} -P 4 python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder {} --quarter 5 --tar-tpfs --log 20
+
+seq 1 17 | xargs -n 1 -I {} -P 4 python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder 0041 --quarter {} --tar-tpfs --log 20
+
+
+python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder 0041 --quarter 0 --tar-tpfs --log 20
+
+
+for q in 8 9 10 11 12 13 14 15 16 17
+do
+  ls -1 /nobackupp19/jimartin/ADAP/data/kepler/tpf/ | head -90 | tail -58 | xargs -n 1 -I {} -P 4 python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder {} --quarter $q --tar-tpfs --log 20
+done
+
+for q in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+do
+  seq 1 84 | xargs -n 1 -I {} -P 5 python create_gaia_background_catalog.py --channel {} --quarter $q --tar-tpfs
+done
+
+for q in 4 5 6 7 8 9 10 11 13 14 15 16 17
+do
+  seq 1 84 | xargs -n 1 -I {} -P 4 python concat_batch_files.py --channel {} --quarter $q --remove
+done
+
+ls -1 /nobackupp19/jimartin/ADAP/data/kepler/tpf/ | head -30 | xargs -n 1 -I {} -P 4 python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder {} --quarter 9 --tar-tpfs --log 20
+
+
+
+qsub -I -lselect=1:ncpus=10:mem=50G:model=ivy,walltime=0:20:00 -q devel
+
+
+do_lcs(quarter=5, channel=31, batch_size=200, batch_number=1, plot=True, dry_run=False, tar_lcs=True, tar_tpfs=True, fit_va=True, quiet=False)
+
+
+
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 5 --channel 42 --batch-size 215 --batch-number {} --tar-tpfs --tar-lcs --plot --fit-va --log 20
+
+
+
+
+quarter 1 channel 42
+quarter 2 channel 43
+quarter 3 channel 44
+quarter 4 channel 41
+quarter 5 channel 42
+quarter 6 channel 43
+quarter 7 channel 44
+quarter 8 channel 41
+quarter 9 channel 42
+quarter 10 channel 43
+quarter 11 channel 44
+quarter 12 channel 41
+quarter 13 channel 42
+quarter 14 channel 43
+quarter 15 channel 44
+quarter 16 channel 41
+quarter 17 channel 42
+
+
+seq 1 10 | xargs -n 1 -I {} -P 10 python make_lightcurves.py --quarter 6 --channel 43 --batch-size 236 --batch-number {} --tar-tpfs --tar-lcs --plot --fit-va --log 20
+
+mprof run --python python  make_lightcurves.py --quarter 6 --channel 43 --batch-size 236 --batch-number 3 --tar-tpfs --tar-lcs --plot --fit-va --log 20
+
+
+python make_lightcurves.py --quarter 9 --channel 42 --batch-number 1 --batch-size 200 --log 20 --tar-tpfs --tar-lcs
+
+seq 1 5 | xargs -n 1 -I {} -P 5 python make_prf_model.py --mission kepler --quarter 17 --channel {} --log info --plot
+
+
+
+ls -1 /nobackupp19/jimartin/ADAP/data/kepler/tpf/ | xargs -n 1 -I {} -P 4 python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder {} --quarter 7 --tar-tpfs --log 20
+
+python make_lightcurves_new.py --quarter 5 --channel 44 --batch-number 4 --batch-size 200 --log 20 --tar-tpfs --tar-lcs --fit-va --log 20 --force-log --plot
+
+
+python make_lightcurves_new.py --quarter 5 --batch-index 1 --tar-tpfs --tar-lcs --fit-va --augment-bkg --log 20
+
+seq 1 20 | xargs -n 1 -I {} -P 10 python make_lightcurves_new.py --quarter 5 --batch-index {} --tar-tpfs --tar-lcs --fit-va --augment-bkg --log 20 --force-log
+
+
+mprof run python make_lightcurves_new.py --quarter 5 --batch-index 5 --tar-tpfs --tar-lcs --fit-va --augment-bkg --log 20 --force-log
+
+
+seq 1 8 | xargs -n 1 -I {} -P 8 python make_lightcurves_new.py --quarter 5 --channel 17 --batch-number {} --batch-size 200 --log 20 --tar-tpfs --tar-lcs --fit-va --log 20 --plot
+
+python make_lightcurves_new.py --quarter 5 --channel 44 --batch-number 5 --batch-size 200 --log 20 --tar-tpfs --tar-lcs --fit-va --log 20 --force-log --plot --augment-bkg
+
+
+grep -rnw make_lightcurve_* -e "batch_index" | cut -d ":" -f6 | sed 's/^ *//g' > ../../data/support/done_batch_index_quarter5.dat
+
+
+tar czvf kbonus-bkg_ch8s_q05_poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz ch8*/q05/kbonus-bkgd_ch8*_q05_v1.0_lc_*_poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz
+
+tar cvf kbonus-bkg_chs_q05_poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz kbonus-bkg_ch*s_q05_poscorr_sqrt_tk6_tp100_fvaT_bkgT_augT.tar.gz
+
+
+
+qsub -v "qu=0,ch=44,bs=200,bn=3" pbs_quarter_channel.sh
+
+
+
+
+
+
+qsub -v 'quarter=3,batch_start=21,batch_end=31' pbs_quarter_batch.sh
+
+
+
+qsub -v 'quarter=7,batch_start=1,batch_end=20' pbs_quarter_batch.sh
+
+qsub -v 'quarter=5,batch_start=679,batch_end=684' pbs_quarter_batch.sh
+qsub -v 'quarter=5,batch_start=685,batch_end=691' pbs_quarter_batch.sh
+qsub -v 'quarter=5,batch_start=692,batch_end=699' pbs_quarter_batch.sh
+
+
+qsub -v 'quarter=4,batch_start=684,batch_end=688' pbs_quarter_batch.sh
+qsub -v 'quarter=4,batch_start=689,batch_end=693' pbs_quarter_batch.sh
+qsub -v 'quarter=4,batch_start=734,batch_end=738' pbs_quarter_batch.sh
+qsub -v 'quarter=4,batch_start=750,batch_end=754' pbs_quarter_batch.sh
+
+qsub -v 'quarter=10,batch_start=2,batch_end=8' pbs_quarter_batch.sh
+qsub -v 'quarter=10,batch_start=9,batch_end=14' pbs_quarter_batch.sh
+qsub -v 'quarter=10,batch_start=82,batch_end=88' pbs_quarter_batch.sh
+qsub -v 'quarter=10,batch_start=89,batch_end=84' pbs_quarter_batch.sh
+qsub -v 'quarter=10,batch_start=85,batch_end=90' pbs_quarter_batch.sh
+qsub -v 'quarter=10,batch_start=91,batch_end=95' pbs_quarter_batch.sh
+qsub -v 'quarter=10,batch_start=96,batch_end=99' pbs_quarter_batch.sh
+
+
+
+
+tar czvf make_files_20220521_21.tar.gz make_lightcurve_20220521_20* make_lightcurve_20220521_21*
+
+rm make_lightcurve_20220521_20*info make_lightcurve_20220521_21*info
+
+
+cp -v /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/kbonus-kepler-bkg_q10_fits.tar.gz
+
+
+ python make_lightcurves_new.py --quarter 15 --channel 53 --batch-size 200 --batch-number 2 --tar-tpfs --tar-lcs --fit-va --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log
+
+
+
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q10_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q11_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q12_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q13_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q14_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q15_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q16_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+shiftc /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/bkp/kbonus-kepler-bkg_q17_feathers_1.tar.gz lou:/u/jimartin/ADAP/kbonus/lcs/kepler/202205_run/
+
+
+
+cat ../data/support/missing_bkg_cone_search.csv | xargs -n 2 -P 5 sh -c 'python create_gaia_background_catalog.py --quarter $1 --channel $2 --tar-tpfs' argv0
+
+
+seq 0 17 | xargs -n 1 -P 4 -I {} python check_batch_jobs_finish.py --mode check_archive --quarter {} --ext tar.gz
+
+
+
+python make_lightcurves.py --quarter 10 --channel 84 --batch-number 7 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log
