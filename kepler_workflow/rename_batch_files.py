@@ -21,6 +21,6 @@ for ch in channels:
     print(f"Total files {len(in_files)}")
     for fi in tqdm(in_files, total=len(in_files)):
         fo = fi.replace("bkgF", "bkgT")
-        print(f"{fi} -> {fo}")
-        # os.rename(fi, fo)
+        # print(f"{fi} -> {fo}")
+        os.rename(fi, fo)
     print("Done!")
