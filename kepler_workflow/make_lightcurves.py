@@ -538,8 +538,10 @@ def do_lcs(
         return
 
     elif machine.sources.shape[0] > 1000:
+        logg.info("Splitting Source table in 2")
         part1 = machine.sources.sample(frac=0.5, replace=False)
         part2 = machine.sources.drop(part1.index)
+        logg.info(f"Source table sizes are: {part1.shape[0]}, {part2.shape[0]}")
         do_lcs(
             quarter=quarter,
             channel=channel,
