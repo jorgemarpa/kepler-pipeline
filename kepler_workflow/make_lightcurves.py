@@ -422,6 +422,9 @@ def do_lcs(
     save_arrays="feather",
     iter_neg=True,
     use_cbv=True,
+    source_cat=None,
+    tpfs=None,
+    batch_part="",
 ):
 
     ##############################################################################
@@ -442,11 +445,13 @@ def do_lcs(
     if dry_run:
         logg.info("Dry run!")
         sys.exit()
-    # load TPFs
-    logg.info("Loading TPFs from disk")
+
     if socket.gethostname().startswith("r"):
         sleep(np.random.randint(1, 30))
-    tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
+    # load TPFs
+    if tpfs is None:
+        logg.info("Loading TPFs from disk")
+        tpfs = get_tpfs(fname_list, tar_tpfs=tar_tpfs)
     logg.info(f"Working with {len(tpfs)} TPFs")
 
     ##############################################################################
@@ -454,7 +459,8 @@ def do_lcs(
     ##############################################################################
 
     logg.info("Initializing PSFMachine")
-    machine = pm.TPFMachine.from_TPFs(tpfs, **config["init"])
+    logg.info(f"Is source catalog input? {isinstance(source_cat, pd.DataFrame)}")
+    machine = pm.TPFMachine.from_TPFs(tpfs, **config["init"], sources=source_cat)
     if not compute_node:
         machine.quiet = quiet
     else:
@@ -462,9 +468,121 @@ def do_lcs(
         quiet = True
     logg.info("PSFMachine config:")
     logg.info(print_dict(config["init"]))
+    logg.info(machine)
+
+    if machine.sources.shape[0] > 1800:
+        logg.info("Splitting Source table in 3")
+        part1 = machine.sources.sample(frac=0.34, replace=False)
+        part2 = machine.sources.drop(part1.index).sample(frac=0.5, replace=False)
+        part3 = machine.sources.drop(part1.index).drop(part2.index)
+        logg.info(
+            f"Source table sizes are: {part1.shape[0]}, {part2.shape[0]}, {part3.shape[0]}"
+        )
+        do_lcs(
+            quarter=quarter,
+            channel=channel,
+            batch_number=batch_number,
+            plot=plot,
+            dry_run=dry_run,
+            tar_lcs=tar_lcs,
+            tar_tpfs=tar_tpfs,
+            fit_va=fit_va,
+            quiet=quiet,
+            compute_node=compute_node,
+            augment_bkg=augment_bkg,
+            save_arrays=save_arrays,
+            iter_neg=iter_neg,
+            use_cbv=use_cbv,
+            source_cat=part1.reset_index(drop=True),
+            tpfs=tpfs,
+            batch_part=".1",
+        )
+        do_lcs(
+            quarter=quarter,
+            channel=channel,
+            batch_number=batch_number,
+            plot=plot,
+            dry_run=dry_run,
+            tar_lcs=tar_lcs,
+            tar_tpfs=tar_tpfs,
+            fit_va=fit_va,
+            quiet=quiet,
+            compute_node=compute_node,
+            augment_bkg=augment_bkg,
+            save_arrays=save_arrays,
+            iter_neg=iter_neg,
+            use_cbv=use_cbv,
+            source_cat=part2.reset_index(drop=True),
+            tpfs=tpfs,
+            batch_part=".2",
+        )
+        do_lcs(
+            quarter=quarter,
+            channel=channel,
+            batch_number=batch_number,
+            plot=plot,
+            dry_run=dry_run,
+            tar_lcs=tar_lcs,
+            tar_tpfs=tar_tpfs,
+            fit_va=fit_va,
+            quiet=quiet,
+            compute_node=compute_node,
+            augment_bkg=augment_bkg,
+            save_arrays=save_arrays,
+            iter_neg=iter_neg,
+            use_cbv=use_cbv,
+            source_cat=part3.reset_index(drop=True),
+            tpfs=tpfs,
+            batch_part=".3",
+        )
+        return
+
+    elif machine.sources.shape[0] > 1000:
+        part1 = machine.sources.sample(frac=0.5, replace=False)
+        part2 = machine.sources.drop(part1.index)
+        do_lcs(
+            quarter=quarter,
+            channel=channel,
+            batch_number=batch_number,
+            plot=plot,
+            dry_run=dry_run,
+            tar_lcs=tar_lcs,
+            tar_tpfs=tar_tpfs,
+            fit_va=fit_va,
+            quiet=quiet,
+            compute_node=compute_node,
+            augment_bkg=augment_bkg,
+            save_arrays=save_arrays,
+            iter_neg=iter_neg,
+            use_cbv=use_cbv,
+            source_cat=part1.reset_index(drop=True),
+            tpfs=tpfs,
+            batch_part=".1",
+        )
+        do_lcs(
+            quarter=quarter,
+            channel=channel,
+            batch_number=batch_number,
+            plot=plot,
+            dry_run=dry_run,
+            tar_lcs=tar_lcs,
+            tar_tpfs=tar_tpfs,
+            fit_va=fit_va,
+            quiet=quiet,
+            compute_node=compute_node,
+            augment_bkg=augment_bkg,
+            save_arrays=save_arrays,
+            iter_neg=iter_neg,
+            use_cbv=use_cbv,
+            source_cat=part2.reset_index(drop=True),
+            tpfs=tpfs,
+            batch_part=".2",
+        )
+        return
+    else:
+        pass
 
     del tpfs
-    logg.info(machine)
     logg.info("PSFMachine time model config")
     logg.info(print_dict(config["time_model"]))
 
@@ -685,28 +803,28 @@ def do_lcs(
         machine.row,
     )
 
+    # global name pattern
+    global_name = "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_bn%02i%s_fva%s_bkg%s_aug%s_sgm%s_ite%s_cbv%s" % (
+        machine.tpf_meta["mission"][0].lower(),
+        channel,
+        quarter,
+        lc_version,
+        batch_number,
+        batch_part,
+        str(fit_va)[0],
+        "T" if quarter in [2, 12] else str(config["init"]["renormalize_tpf_bkg"])[0],
+        str(augment_bkg)[0],
+        str(config["time_model"]["segments"])[0],
+        str(iter_neg)[0],
+        str(use_cbv)[0],
+    )
+    print(global_name)
+    # sys.exit()
+
     ##############################################################################
     ################################## save plots ################################
     ##############################################################################
 
-    global_name = (
-        "kbonus-%s-bkg_ch%02i_q%02i_v%s_lcs_bn%02i_fva%s_bkg%s_aug%s_sgm%s_ite%s_cbv%s"
-        % (
-            machine.tpf_meta["mission"][0].lower(),
-            channel,
-            quarter,
-            lc_version,
-            batch_number,
-            str(fit_va)[0],
-            "T"
-            if quarter in [2, 12]
-            else str(config["init"]["renormalize_tpf_bkg"])[0],
-            str(augment_bkg)[0],
-            str(config["time_model"]["segments"])[0],
-            str(iter_neg)[0],
-            str(use_cbv)[0],
-        )
-    )
     if not plot:
         plot = np.random.choice([False] * 25 + [True])
 
@@ -916,6 +1034,7 @@ def do_lcs(
                 df.reset_index().to_feather(fname)
     else:
         raise ValueError("Wrong type of array files.")
+    return
 
 
 if __name__ == "__main__":
