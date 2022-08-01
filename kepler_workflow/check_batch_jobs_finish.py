@@ -115,7 +115,7 @@ def check_quarter_archive(
 
         batches = np.arange(1, batch_numer_org.iloc[quarter, ch] + 1)
         if len(archive_path) > 0:
-            batch_done = [int(x.split("_")[5][-2:]) for x in archive_path]
+            batch_done = np.unique([int(x.split("_")[5][2:4]) for x in archive_path])
             missing = batches[~np.isin(batches, batch_done)]
         else:
             missing = batches
@@ -126,10 +126,10 @@ def check_quarter_archive(
         # if len(archive_path) > 0:
         missing_idexes.extend(index_map_aux["#n"].values)
 
-        if len(archive_path) == batch_numer_org.iloc[quarter, ch]:
+        if len(batch_done) == batch_numer_org.iloc[quarter, ch]:
             color = "green"
             txt = "Done"
-        elif len(archive_path) == 0:
+        elif len(batch_done) == 0:
             color = "red"
             txt = "Fail"
         else:
@@ -146,11 +146,11 @@ def check_quarter_archive(
         #     color=color,
         # )
         text = colored(
-            f"{txt} {len(archive_path):02} / {batch_numer_org.iloc[quarter, ch]:02}",
+            f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
         )
         print(text)
-        if run and len(archive_path) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
+        if run and len(batch_done) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
             main(channel=ch, quarter=quarter, print_info=False, run=run)
 
     missing_idexes = np.unique(missing_idexes)
