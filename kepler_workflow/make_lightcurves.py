@@ -406,6 +406,27 @@ def plot_residuals_dash(mac):
     return fig
 
 
+def get_partitions(sources):
+    size = sources.shape[0]
+    npart = int(np.round(size / 900) + 1)
+    part_size = int(size / npart)
+    print(size, npart, part_size)
+    partitions = []
+    indices = sources.index.values
+    for k in range(npart):
+        print("---------------")
+        if k == npart - 1:
+            idx = indices
+        else:
+            idx = np.random.choice(indices, size=part_size, replace=False)
+        print(idx.shape)
+        partitions.append(sources.iloc[idx])
+        indices = indices[~np.isin(indices, idx)]
+        print(indices.shape)
+        print("---------------")
+    return partitions
+
+
 # @profile
 def do_lcs(
     quarter=5,
@@ -470,116 +491,30 @@ def do_lcs(
     logg.info(print_dict(config["init"]))
     logg.info(machine)
 
-    if machine.sources.shape[0] > 1800:
-        logg.info("Splitting Source table in 3")
-        part1 = machine.sources.sample(frac=0.34, replace=False)
-        part2 = machine.sources.drop(part1.index).sample(frac=0.5, replace=False)
-        part3 = machine.sources.drop(part1.index).drop(part2.index)
-        logg.info(
-            f"Source table sizes are: {part1.shape[0]}, {part2.shape[0]}, {part3.shape[0]}"
-        )
-        do_lcs(
-            quarter=quarter,
-            channel=channel,
-            batch_number=batch_number,
-            plot=plot,
-            dry_run=dry_run,
-            tar_lcs=tar_lcs,
-            tar_tpfs=tar_tpfs,
-            fit_va=fit_va,
-            quiet=quiet,
-            compute_node=compute_node,
-            augment_bkg=augment_bkg,
-            save_arrays=save_arrays,
-            iter_neg=iter_neg,
-            use_cbv=use_cbv,
-            source_cat=part1.reset_index(drop=True),
-            tpfs=tpfs,
-            batch_part=".1",
-        )
-        do_lcs(
-            quarter=quarter,
-            channel=channel,
-            batch_number=batch_number,
-            plot=plot,
-            dry_run=dry_run,
-            tar_lcs=tar_lcs,
-            tar_tpfs=tar_tpfs,
-            fit_va=fit_va,
-            quiet=quiet,
-            compute_node=compute_node,
-            augment_bkg=augment_bkg,
-            save_arrays=save_arrays,
-            iter_neg=iter_neg,
-            use_cbv=use_cbv,
-            source_cat=part2.reset_index(drop=True),
-            tpfs=tpfs,
-            batch_part=".2",
-        )
-        do_lcs(
-            quarter=quarter,
-            channel=channel,
-            batch_number=batch_number,
-            plot=plot,
-            dry_run=dry_run,
-            tar_lcs=tar_lcs,
-            tar_tpfs=tar_tpfs,
-            fit_va=fit_va,
-            quiet=quiet,
-            compute_node=compute_node,
-            augment_bkg=augment_bkg,
-            save_arrays=save_arrays,
-            iter_neg=iter_neg,
-            use_cbv=use_cbv,
-            source_cat=part3.reset_index(drop=True),
-            tpfs=tpfs,
-            batch_part=".3",
-        )
-        return
-
-    elif machine.sources.shape[0] > 1000:
-        logg.info("Splitting Source table in 2")
-        part1 = machine.sources.sample(frac=0.5, replace=False)
-        part2 = machine.sources.drop(part1.index)
-        logg.info(f"Source table sizes are: {part1.shape[0]}, {part2.shape[0]}")
-        do_lcs(
-            quarter=quarter,
-            channel=channel,
-            batch_number=batch_number,
-            plot=plot,
-            dry_run=dry_run,
-            tar_lcs=tar_lcs,
-            tar_tpfs=tar_tpfs,
-            fit_va=fit_va,
-            quiet=quiet,
-            compute_node=compute_node,
-            augment_bkg=augment_bkg,
-            save_arrays=save_arrays,
-            iter_neg=iter_neg,
-            use_cbv=use_cbv,
-            source_cat=part1.reset_index(drop=True),
-            tpfs=tpfs,
-            batch_part=".1",
-        )
-        do_lcs(
-            quarter=quarter,
-            channel=channel,
-            batch_number=batch_number,
-            plot=plot,
-            dry_run=dry_run,
-            tar_lcs=tar_lcs,
-            tar_tpfs=tar_tpfs,
-            fit_va=fit_va,
-            quiet=quiet,
-            compute_node=compute_node,
-            augment_bkg=augment_bkg,
-            save_arrays=save_arrays,
-            iter_neg=iter_neg,
-            use_cbv=use_cbv,
-            source_cat=part2.reset_index(drop=True),
-            tpfs=tpfs,
-            batch_part=".2",
-        )
+    if machine.sources.shape[0] > 1000:
+        partitions = get_partitions(machine.sources)
+        logg.info(f"Splitting Source table in {len(partitions)}")
+        logg.info(f"Source table sizes are: {[len(x) for x in partitions]}")
+        for k, part in enumerate(partitions):
+            do_lcs(
+                quarter=quarter,
+                channel=channel,
+                batch_number=batch_number,
+                plot=plot,
+                dry_run=dry_run,
+                tar_lcs=tar_lcs,
+                tar_tpfs=tar_tpfs,
+                fit_va=fit_va,
+                quiet=quiet,
+                compute_node=compute_node,
+                augment_bkg=augment_bkg,
+                save_arrays=save_arrays,
+                iter_neg=iter_neg,
+                use_cbv=use_cbv,
+                source_cat=part.reset_index(drop=True),
+                tpfs=tpfs,
+                batch_part=f".{k+1}",
+            )
         return
     else:
         pass
