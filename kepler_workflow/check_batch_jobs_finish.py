@@ -155,7 +155,7 @@ def check_quarter_archive(
             else "",
             color=color,
         )
-        print(text)
+        print(f"Ch {ch:02} {text}" if info else text)
         if run and len(batch_done) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
             main(channel=ch, quarter=quarter, print_info=False, run=run)
 
