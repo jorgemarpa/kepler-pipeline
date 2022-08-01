@@ -118,6 +118,7 @@ def check_quarter_archive(
             batch_done = np.unique([int(x.split("_")[5][2:4]) for x in archive_path])
             missing = batches[~np.isin(batches, batch_done)]
         else:
+            batch_done = []
             missing = batches
 
         index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
