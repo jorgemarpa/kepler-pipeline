@@ -90,7 +90,7 @@ def check_channel_archive(channel, suffix="fvaT_bkgT_augT_sgmT_iteT", ext="tar.g
 
 
 def check_quarter_archive(
-    quarter, suffix="fvaT_bkgT_augT_sgmF_iteT_cbvT", ext="tar.gz", run=False
+    quarter, suffix="fvaT_bkgT_augT_sgmF_iteT_cbvT", ext="tar.gz", run=False, info=False
 ):
 
     batch_numer_org = pd.read_csv(
@@ -104,6 +104,7 @@ def check_quarter_archive(
 
     channels = np.arange(1, 85)
     missing_idexes = []
+    batch_missing = {}
     for ch in channels:
         archive_path = sorted(
             glob(f"{LCS_PATH}/kepler/ch{ch:02}/q{quarter:02}/*_lcs_*{suffix}*.{ext}")
@@ -121,6 +122,7 @@ def check_quarter_archive(
             batch_done = []
             missing = batches
 
+        batch_missing[ch] = missing
         index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
             np.isin(batches, missing)
         ]
@@ -147,7 +149,10 @@ def check_quarter_archive(
         #     color=color,
         # )
         text = colored(
-            f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}",
+            f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}"
+            f": {missing}"
+            if info
+            else "",
             color=color,
         )
         print(text)
@@ -155,7 +160,7 @@ def check_quarter_archive(
             main(channel=ch, quarter=quarter, print_info=False, run=run)
 
     missing_idexes = np.unique(missing_idexes)
-    nof = missing_idexes[::25].shape[0]
+    nof = missing_idexes[::5].shape[0]
     np.savetxt(
         f"{PACKAGEDIR}/data/support/fail_batch_index_quarter{quarter}.dat",
         missing_idexes,
@@ -207,6 +212,13 @@ if __name__ == "__main__":
         default=False,
         help="Execute PBS job.",
     )
+    parser.add_argument(
+        "--info",
+        dest="info",
+        action="store_true",
+        default=False,
+        help="Print missing batches.",
+    )
     args = parser.parse_args()
     kwargs = vars(args)
 
@@ -216,4 +228,6 @@ if __name__ == "__main__":
         if args.channel is not None:
             check_channel_archive(args.channel, ext=args.ext)
         if args.quarter is not None:
-            check_quarter_archive(args.quarter, ext=args.ext, run=args.run)
+            check_quarter_archive(
+                args.quarter, ext=args.ext, run=args.run, info=args.info
+            )
