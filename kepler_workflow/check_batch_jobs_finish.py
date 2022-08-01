@@ -149,11 +149,11 @@ def check_quarter_archive(
         #     color=color,
         # )
         text = colored(
-            f"Ch {ch} "
+            f"Ch {ch:02} "
             if info
             else ""
-            f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}"
-            f": {missing}"
+            + f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}"
+            + f": {missing}"
             if info
             else "",
             color=color,
