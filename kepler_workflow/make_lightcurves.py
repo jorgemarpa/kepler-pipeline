@@ -410,20 +410,15 @@ def get_partitions(sources):
     size = sources.shape[0]
     npart = int(np.round(size / 900) + 1)
     part_size = int(size / npart)
-    print(size, npart, part_size)
     partitions = []
     indices = sources.index.values
     for k in range(npart):
-        print("---------------")
         if k == npart - 1:
             idx = indices
         else:
             idx = np.random.choice(indices, size=part_size, replace=False)
-        print(idx.shape)
         partitions.append(sources.iloc[idx])
         indices = indices[~np.isin(indices, idx)]
-        print(indices.shape)
-        print("---------------")
     return partitions
 
 
