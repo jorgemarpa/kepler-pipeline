@@ -149,13 +149,14 @@ def check_quarter_archive(
         #     color=color,
         # )
         text = colored(
-            f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}"
-            f": {missing} {index_map_aux['#n'].values}"
-            if info
-            else "",
+            f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}",
             color=color,
         )
-        print(f"Ch {ch:02} {text}" if info else text)
+        print(
+            f"Ch {ch:02} {text} : {missing} {index_map_aux['#n'].values}"
+            if info
+            else text
+        )
         if run and len(batch_done) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
             main(channel=ch, quarter=quarter, print_info=False, run=run)
 
