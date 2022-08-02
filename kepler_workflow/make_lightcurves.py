@@ -486,7 +486,7 @@ def do_lcs(
     logg.info(print_dict(config["init"]))
     logg.info(machine)
 
-    if machine.sources.shape[0] > 1000:
+    if machine.sources.shape[0] > 1000 and machine.npixels < 12000:
         partitions = get_partitions(machine.sources)
         logg.info(f"Splitting Source table in {len(partitions)}")
         logg.info(f"Source table sizes are: {[len(x) for x in partitions]}")
@@ -508,6 +508,35 @@ def do_lcs(
                 use_cbv=use_cbv,
                 source_cat=part.reset_index(drop=True),
                 tpfs=tpfs,
+                batch_part=f".{k+1}",
+            )
+        return
+    elif machine.sources.shape[0] > 1000 and machine.npixels > 12000:
+        end = int(len(tpfs) / 2)
+        tpfs_part = [
+            lk.TargetPixelFileCollection(tpfs[:end]),
+            lk.TargetPixelFileCollection(tpfs[end:]),
+        ]
+        logg.info(f"Splitting TPF batch in 2")
+        logg.info(f"TPF partitions are: {[len(x) for x in tpfs_part]}")
+        for k, part in enumerate(tpfs_part):
+            do_lcs(
+                quarter=quarter,
+                channel=channel,
+                batch_number=batch_number,
+                plot=plot,
+                dry_run=dry_run,
+                tar_lcs=tar_lcs,
+                tar_tpfs=tar_tpfs,
+                fit_va=fit_va,
+                quiet=quiet,
+                compute_node=compute_node,
+                augment_bkg=augment_bkg,
+                save_arrays=save_arrays,
+                iter_neg=iter_neg,
+                use_cbv=use_cbv,
+                source_cat=None,
+                tpfs=part,
                 batch_part=f".{k+1}",
             )
         return

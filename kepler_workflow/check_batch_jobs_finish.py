@@ -150,7 +150,7 @@ def check_quarter_archive(
         # )
         text = colored(
             f"{txt} {len(batch_done):02} / {batch_numer_org.iloc[quarter, ch]:02}"
-            f": {missing}"
+            f": {missing} {index_map_aux['#n'].values}"
             if info
             else "",
             color=color,
