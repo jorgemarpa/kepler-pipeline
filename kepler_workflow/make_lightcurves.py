@@ -1137,10 +1137,10 @@ if __name__ == "__main__":
         )
         logg.info(f"Batch info file {batch_info}")
         params = np.loadtxt(batch_info, dtype=int, delimiter=" ", comments="#")
-        args.quarter = params[args.batch_index - 1, 1]
-        args.channel = params[args.batch_index - 1, 2]
-        args.batch_total = params[args.batch_index - 1, 3]
-        args.batch_number = params[args.batch_index - 1, 4]
+        args.quarter = params[args.batch_index, 1]
+        args.channel = params[args.batch_index, 2]
+        args.batch_total = params[args.batch_index, 3]
+        args.batch_number = params[args.batch_index, 4]
 
     logg.info("Program config")
     logg.info(print_dict(vars(args)))
