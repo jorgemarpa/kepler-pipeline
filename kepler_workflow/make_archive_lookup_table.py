@@ -46,19 +46,24 @@ def do_lookup_table(
 ):
 
     if not tar_archive:
-        tpfs = np.sort(
+        print(
+            "%s/%s/*/kplr*-%s_lpd-targ.fits.gz"
+            % (fits_path, folder, str(qd_map[quarter]))
+        )
+        tpfs_ = np.sort(
             glob.glob(
                 "%s/%s/*/kplr*-%s_lpd-targ.fits.gz"
                 % (fits_path, folder, str(qd_map[quarter]))
             )
         )
-        log.info(f"Total number of TPFs in {folder}: {tpfs.shape[0]}")
-        if len(tpfs) == 0:
+        log.info(f"Total number of TPFs in {folder}: {tpfs_.shape[0]}")
+        if len(tpfs_) == 0:
             raise ValueError("No TPFs for selected quarter %i" % quarter)
 
-        channels, quarters, ras, decs, cols, rows = np.array(
+        tpfs, channels, quarters, ras, decs, cols, rows = np.array(
             [
                 [
+                    f.split("tpf/")[-1],
                     fits.getheader(f, ext=0)["CHANNEL"],
                     fits.getheader(f, ext=0)["QUARTER"],
                     fits.getheader(f, ext=0)["RA_OBJ"],
@@ -66,7 +71,7 @@ def do_lookup_table(
                     fits.getheader(f, ext=1)["1CRV5P"],
                     fits.getheader(f, ext=1)["2CRV5P"],
                 ]
-                for f in tpfs
+                for f in tpfs_
             ]
         ).T
     else:
@@ -313,7 +318,7 @@ if __name__ == "__main__":
         "--path",
         dest="path",
         type=str,
-        default="/Users/jorgemarpa/Work/BAERI/ADAP/data/kepler/tpf",
+        default="/Volumes/jorge-marpa-personal/work/data/kepler/tpf",
         help="Kepler archive path.",
     )
     parser.add_argument(
