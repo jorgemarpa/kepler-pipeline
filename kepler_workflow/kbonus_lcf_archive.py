@@ -180,7 +180,7 @@ if __name__ == "__main__":
         "--suffix",
         dest="suffix",
         type=str,
-        default="fvaT_bkgT_augT_sgmT_iteT",
+        default="fvaT_bkgT_augT_sgmF_iteT_cbvT",
         help="File prefix",
     )
     parser.add_argument(

@@ -139,7 +139,7 @@ def channel_feather(
     print(f"Total batches: {len(bfiles)} / {batch_numer_org.iloc[quarter, channel]}")
     if len(bfiles) != batch_numer_org.iloc[quarter, channel]:
         print("Channel is uncompleted, concatenation aborted")
-        sys.exit()
+        # sys.exit()
 
     (
         coord,
