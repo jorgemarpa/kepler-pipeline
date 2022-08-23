@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import argparse
 import numpy as np
@@ -10,10 +11,11 @@ from tqdm import tqdm
 from paths import *
 
 
-def main(dir, quarter):
+def main(dir, quarter, version="1.1.1"):
     print(f"Working on {dir}")
     lcfs = glob.glob(
-        f"{LCS_PATH}/kepler/{dir}/*/hlsp_kbonus-bkg_kepler_kepler*_lc.fits"
+        f"{LCS_PATH}/kepler/{dir}/*/"
+        f"hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_kepler_v{version}_lc.fits"
     )
     print(len(lcfs))
     kics, gids = [], []
@@ -21,7 +23,7 @@ def main(dir, quarter):
     column, row = [], []
     sap_flux, sap_flux_err = [], []
     psf_flux, psf_flux_err = [], []
-    FLFRCSAP, CROWDSAP, NPIXSAP = [], [], []
+    FLFRCSAP, CROWDSAP, NPIXSAP, PSFFRAC, PERTRATI, PERTSTD = [], [], [], [], [], []
     channel = []
     gmag, rpmag, bpmag = [], [], []
 
@@ -35,6 +37,9 @@ def main(dir, quarter):
         FLFRCSAP.append(fitsio.read_header(f)["FLFRCSAP"])
         CROWDSAP.append(fitsio.read_header(f)["CROWDSAP"])
         NPIXSAP.append(fitsio.read_header(f)["NPIXSAP"])
+        PSFFRAC.append(fitsio.read_header(f)["NPIXSAP"])
+        PERTRATI.append(fitsio.read_header(f)["NPIXSAP"])
+        PERTSTD.append(fitsio.read_header(f)["NPIXSAP"])
         channel.append(fitsio.read_header(f)["CHANNEL"])
         gmag.append(fitsio.read_header(f)["GMAG"])
         rpmag.append(fitsio.read_header(f)["RPMAG"])
@@ -70,6 +75,9 @@ def main(dir, quarter):
             "flfrcsap": FLFRCSAP,
             "crowdsap": CROWDSAP,
             "npixsap": NPIXSAP,
+            "psffrac": PSFFRAC,
+            "pertrati": PERTRATI,
+            "pertstd": PERTSTD,
         }
     )
     dirname = f"{PACKAGEDIR}/data/catalogs/tpf/"
