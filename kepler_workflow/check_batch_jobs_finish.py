@@ -127,7 +127,8 @@ def check_quarter_archive(
             batch_done = []
             missing = batches
 
-        batch_missing[ch] = missing
+        if len(missing) > 0:
+            batch_missing[ch] = missing
         index_map_aux = index_map.query(f"q == {quarter} and ch == {ch}")[
             np.isin(batches, missing)
         ]
