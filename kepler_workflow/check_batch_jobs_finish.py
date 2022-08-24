@@ -9,6 +9,9 @@ from give_me_batch_info import main
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
+def print_dict(dictionary):
+    for k in sorted(dictionary.keys()):
+        logg.info(f"{k:<22}: {dictionary[k]}")
 
 def check_make_files():
     info_list = sorted(glob(f"{PACKAGEDIR}/logs/make_lightcurve_*.info"))
@@ -160,6 +163,8 @@ def check_quarter_archive(
         if run and len(batch_done) == 0 and batch_numer_org.iloc[quarter, ch] > 0:
             main(channel=ch, quarter=quarter, print_info=False, run=run)
 
+    if info:
+        print_dict(batch_missing)
     missing_idexes = np.unique(missing_idexes)
     nof = missing_idexes[::5].shape[0]
     np.savetxt(
