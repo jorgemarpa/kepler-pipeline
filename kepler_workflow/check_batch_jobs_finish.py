@@ -9,9 +9,11 @@ from give_me_batch_info import main
 
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 
+
 def print_dict(dictionary):
     for k in sorted(dictionary.keys()):
-        logg.info(f"{k:<22}: {dictionary[k]}")
+        print(f"{k:<22}: {dictionary[k]}")
+
 
 def check_make_files():
     info_list = sorted(glob(f"{PACKAGEDIR}/logs/make_lightcurve_*.info"))
