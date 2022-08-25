@@ -486,7 +486,11 @@ def do_lcs(
     logg.info(print_dict(config["init"]))
     logg.info(machine)
 
-    if machine.sources.shape[0] > 1000 and machine.npixels > 15000:
+    if (
+        len(tpfs) > 130 and machine.sources.shape[0] > 1500 and machine.npixels > 10000
+    ) or (
+        len(tpfs) > 220 and machine.sources.shape[0] > 1500 and machine.npixels > 7500
+    ):
         end = int(len(tpfs) / 2)
         tpfs_part = [
             lk.TargetPixelFileCollection(tpfs[:end]),
