@@ -661,22 +661,22 @@ def do_lcs(
 
         # get sources with neg lightcurves
         negative_sources = (machine.ws_va < 0).sum(axis=0)  # > (0.02 * machine.nt)
+        if len(negative_sources) > 0:
+            narrow_prior = find_neg_nns(np.where(negative_sources)[0])
+            prior_sigma = (
+                np.ones(machine.mean_model.shape[0])
+                * 5
+                * np.abs(machine.source_flux_estimates) ** 0.5
+            )
+            # we narrow the prior for negatives and their NNs
+            prior_sigma[narrow_prior] /= 10
+            machine.fit_model(fit_va=fit_va, prior_sigma=prior_sigma)
 
-        narrow_prior = find_neg_nns(np.where(negative_sources)[0])
-        prior_sigma = (
-            np.ones(machine.mean_model.shape[0])
-            * 5
-            * np.abs(machine.source_flux_estimates) ** 0.5
-        )
-        # we narrow the prior for negatives and their NNs
-        prior_sigma[narrow_prior] /= 10
-        machine.fit_model(fit_va=fit_va, prior_sigma=prior_sigma)
-
-        # find remaining negatives and set them to zero.
-        negative_sources = np.where((machine.ws_va < 0).sum(axis=0))[0]
-        machine.ws_va[:, negative_sources] *= np.nan
-        negative_sources = np.where((machine.ws < 0).sum(axis=0))[0]
-        machine.ws[:, negative_sources] *= np.nan
+            # find remaining negatives and set them to zero.
+            negative_sources = np.where((machine.ws_va < 0).sum(axis=0))[0]
+            machine.ws_va[:, negative_sources] *= np.nan
+            negative_sources = np.where((machine.ws < 0).sum(axis=0))[0]
+            machine.ws[:, negative_sources] *= np.nan
 
     # compute source centroids
     machine.get_source_centroids(**config["get_source_centroids"])
