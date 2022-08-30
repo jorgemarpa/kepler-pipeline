@@ -217,11 +217,11 @@ if __name__ == "__main__":
         help="File prefix",
     )
     parser.add_argument(
-        "--apply-zp",
-        dest="apply_zp",
+        "--do-tar",
+        dest="do_tarball",
         action="store_true",
         default=False,
-        help="Applyt ZP ccorrection to PSFMachine photometry",
+        help="Tarball archive",
     )
     args = parser.parse_args()
     if args.quarter is not None and args.channel is not None:
@@ -229,4 +229,6 @@ if __name__ == "__main__":
 
     if args.dir:
         drop_duplicates(args.dir)
+        make_tarball_archive(folders=args.dir)
+    if args.do_tarball:
         make_tarball_archive(folders=args.dir)
