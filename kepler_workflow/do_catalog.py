@@ -2,6 +2,8 @@ import os
 import sys
 import glob
 import argparse
+import tarfile
+import tempfile
 import numpy as np
 import pandas as pd
 import lightkurve as lk
@@ -11,13 +13,21 @@ from tqdm import tqdm
 from paths import *
 
 
-def main(dir, quarter, version="1.1.1"):
+def main(dir, quarter, version="1.1.1", archive_tar=False):
     print(f"Working on {dir}")
-    lcfs = glob.glob(
-        f"{LCS_PATH}/kepler/{dir}/*/"
-        f"hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_kepler_v{version}_lc.fits"
-    )
-    print(len(lcfs))
+    if archive_tar:
+        print("Archive is tarball")
+        tarname = f"{LCS_PATH}/kepler/{dir}.tar"
+        tar = tarfile.open(tarname, mode="r")
+        lcfs = tar.getnames()
+        lcfs = [x for x in lcfs if f"q{quarter:02}" in x]
+        tmpdir = tempfile.TemporaryDirectory(prefix="temp_fits")
+    else:
+        lcfs = glob.glob(
+            f"{LCS_PATH}/kepler/{dir}/*/"
+            f"hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_kepler_v{version}_lc.fits"
+        )
+    print(f"Total files {len(lcfs)}")
     kics, gids = [], []
     ras, decs = [], []
     column, row = [], []
@@ -28,6 +38,10 @@ def main(dir, quarter, version="1.1.1"):
     gmag, rpmag, bpmag = [], [], []
 
     for k, f in tqdm(enumerate(lcfs), total=len(lcfs), desc="FITS"):
+        if archive_tar:
+            tar.extract(f, tmpdir.name)
+            f = f"{tmpdir.name}/{f}"
+
         gids.append(fitsio.read_header(f)["GAIAID"])
         kics.append(fitsio.read_header(f)["KEPLERID"])
         ras.append(fitsio.read_header(f)["RA_OBJ"])
@@ -55,6 +69,10 @@ def main(dir, quarter, version="1.1.1"):
         psf_flux_err.append(
             np.sqrt(np.nansum(fitsio.read(f, ext=1, columns="FLUX_ERR") ** 2)) / nt
         )
+        os.remove(f)
+    if archive_tar:
+        tar.close()
+        tmpdir.cleanup()
 
     df = pd.DataFrame.from_dict(
         {
@@ -123,9 +141,16 @@ if __name__ == "__main__":
         default=False,
         help="Concatenate dir catalogs.",
     )
+    parser.add_argument(
+        "--tar",
+        dest="tar",
+        action="store_true",
+        default=False,
+        help="Tarball archive",
+    )
     args = parser.parse_args()
 
     if args.concat:
         concat_dir_catalogs(args.quarter)
     else:
-        main(args.dir, args.quarter)
+        main(args.dir, args.quarter, archive_tar=args.tar)

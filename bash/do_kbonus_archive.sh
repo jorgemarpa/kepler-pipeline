@@ -37,6 +37,6 @@ cat $kwpath/data/support/kbonus_archive_id4.dat | xargs -n 1 -P 5 -I {} python $
 cat $kwpath/data/support/kbonus_archive_id4.dat | xargs -P 5 -l bash -c 'rm -r /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/$0'
 
 echo "Creating source catalog"
-cat $kwpath/data/support/kbonus_archive_id4.dat | xargs -n 1 -P 5 -I {} python $kwpath/kepler_workflow/do_catalog.py --quarter $quarter --dir {}
+cat $kwpath/data/support/kbonus_archive_id4.dat | xargs -n 1 -P 5 -I {} python $kwpath/kepler_workflow/do_catalog.py --quarter $quarter --dir {} --tar
 
 python $kwpath/kepler_workflow/do_catalog.py --quarter 5 --concat
