@@ -15,7 +15,12 @@ from astropy.io import fits
 from paths import *
 
 
-def do_archive(quarter, channel, suffix="fvaT_bkgT_augT_sgmT_iteT", version="1.1.1"):
+def do_archive(
+    quarter,
+    channel,
+    suffix="fvaT_bkgT_augT_sgmT_iteT",
+    version="1.1.1",
+):
 
     print(
         f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
@@ -113,6 +118,34 @@ def drop_duplicates(dir):
         print("----" * 5)
 
 
+def make_tarball_archive(folders=None, version="1.1.1"):
+
+    if folders is None:
+        folders = sorted(glob.glob(f"{LCS_PATH}/kepler/*"))
+        folders = [x for x in folders if os.path.isdir(x)]
+        folders = [x for x in folders if "ch" not in os.path.basename(x)]
+        folders = [
+            x for x in folders if os.path.basename(x) not in ["bkp", "tmp", "download"]
+        ]
+    else:
+        folders = [f"{folders:04}"]
+
+    print(f"Creating tarball files for {len(folders)} folders...")
+    for dir in tqdm(folders, total=len(folders), desc="Folder"):
+        id4 = os.path.basename(dir)
+        tarf_name = f"{LCS_PATH}/kepler/{id4}.tar"
+        files_in = glob.glob(f"{LCS_PATH}/kepler/{id4}/*/*.fits")
+        with tarfile.open(tarf_name, mode="a") as tar:
+            members = tar.getnames()
+            for file in files_in:
+                arcname = "/".join(file.split("/")[-3:])
+                if version not in os.path.basename(file) or arcname in members:
+                    continue
+                tar.add(file, arcname=arcname)
+
+    print("Done!")
+
+
 def apply_zero_point(dir, quarter):
 
     # list all fits files in dir
@@ -195,7 +228,5 @@ if __name__ == "__main__":
         do_archive(args.quarter, args.channel, suffix=args.suffix)
 
     if args.dir:
-        if args.apply_zp and args.quarter is not None:
-            apply_zero_point(args.dir, args.quarter)
-        else:
-            drop_duplicates(args.dir)
+        drop_duplicates(args.dir)
+        make_tarball_archive(folders=args.dir)
