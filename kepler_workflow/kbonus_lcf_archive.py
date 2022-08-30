@@ -118,7 +118,7 @@ def drop_duplicates(dir):
         print("----" * 5)
 
 
-def make_tarball_archive(folders=None, version="1.1.1"):
+def make_tarball_archive(folders=None, version="1.1.1", delete=False):
 
     if folders is None:
         folders = sorted(glob.glob(f"{LCS_PATH}/kepler/*"))
@@ -142,6 +142,8 @@ def make_tarball_archive(folders=None, version="1.1.1"):
                 if version not in os.path.basename(file) or arcname in members:
                     continue
                 tar.add(file, arcname=arcname)
+                if delete:
+                    os.remove(file)
 
     print("Done!")
 
@@ -223,6 +225,13 @@ if __name__ == "__main__":
         default=False,
         help="Tarball archive",
     )
+    parser.add_argument(
+        "--delete",
+        dest="delete",
+        action="store_true",
+        default=False,
+        help="Delete original fits files after creating tarball",
+    )
     args = parser.parse_args()
     if args.quarter is not None and args.channel is not None:
         do_archive(args.quarter, args.channel, suffix=args.suffix)
@@ -231,4 +240,4 @@ if __name__ == "__main__":
         drop_duplicates(args.dir)
         make_tarball_archive(folders=args.dir)
     if args.do_tarball:
-        make_tarball_archive(folders=args.dir)
+        make_tarball_archive(folders=args.dir, delete=args.delete)
