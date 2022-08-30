@@ -143,6 +143,7 @@ def make_tarball_archive(folders=None, version="1.1.1", delete=False):
                     continue
                 tar.add(file, arcname=arcname)
                 if delete:
+                    print(file)
                     os.remove(file)
 
     print("Done!")
