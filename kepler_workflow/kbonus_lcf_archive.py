@@ -143,7 +143,6 @@ def make_tarball_archive(folders=None, version="1.1.1", delete=False):
                     continue
                 tar.add(file, arcname=arcname)
                 if delete:
-                    print(file)
                     os.remove(file)
 
     print("Done!")
@@ -239,6 +238,6 @@ if __name__ == "__main__":
 
     if args.dir:
         drop_duplicates(args.dir)
-        make_tarball_archive(folders=args.dir)
+        make_tarball_archive(folders=args.dir, delete=args.delete)
     if args.do_tarball:
         make_tarball_archive(folders=args.dir, delete=args.delete)
