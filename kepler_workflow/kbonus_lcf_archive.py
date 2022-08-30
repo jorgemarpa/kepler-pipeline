@@ -132,6 +132,8 @@ def make_tarball_archive(folders=None, version="1.1.1", delete=False):
 
     print(f"Creating tarball files for {len(folders)} folders...")
     for dir in tqdm(folders, total=len(folders), desc="Folder"):
+        if not os.path.isdir(dir):
+            continue
         id4 = os.path.basename(dir)
         tarf_name = f"{LCS_PATH}/kepler/{id4}.tar"
         files_in = glob.glob(f"{LCS_PATH}/kepler/{id4}/*/*.fits")
