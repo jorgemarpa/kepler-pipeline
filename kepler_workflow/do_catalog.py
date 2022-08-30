@@ -18,6 +18,9 @@ def main(dir, quarter, version="1.1.1", archive_tar=False):
     if archive_tar:
         print("Archive is tarball")
         tarname = f"{LCS_PATH}/kepler/{dir}.tar"
+        if not os.path.isfile(tarname):
+            print("Tar file does not exist")
+            sys.exit()
         tar = tarfile.open(tarname, mode="r")
         lcfs = tar.getnames()
         lcfs = [x for x in lcfs if f"q{quarter:02}" in x]
