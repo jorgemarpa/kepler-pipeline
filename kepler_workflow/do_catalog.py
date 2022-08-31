@@ -111,6 +111,8 @@ def concat_dir_catalogs(quarter):
     files = glob.glob(f"{KBONUS_CAT_PATH}/tpf/kbonus_catalog_q{quarter:02}_dir*.csv")
 
     df = pd.concat([pd.read_csv(x) for x in files])
+    for x in files:
+        os.remove(x)
 
     df.reset_index(drop=True).drop("Unnamed: 0", axis=1).to_csv(
         f"{KBONUS_CAT_PATH}/tpf/kbonus_catalog_q{quarter:02}.csv"
