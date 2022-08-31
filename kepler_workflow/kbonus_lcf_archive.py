@@ -125,7 +125,9 @@ def make_tarball_archive(folders=None, version="1.1.1", delete=False):
         folders = [x for x in folders if os.path.isdir(x)]
         folders = [x for x in folders if "ch" not in os.path.basename(x)]
         folders = [
-            x for x in folders if os.path.basename(x) not in ["bkp", "tmp", "download", "tar_files"]
+            x
+            for x in folders
+            if os.path.basename(x) not in ["bkp", "tmp", "download", "tar_files"]
         ]
     else:
         folders = [f"{folders:04}"]
