@@ -30,12 +30,12 @@ def get_lcs_from_archive(
     else:
         quarter = list(quarter)
 
-    for tarname in id4:
+    for tarname in tqdm(id4, desc="Tar files"):
         tarpath = f"{LCS_PATH}/kepler/{tarname}.tar"
         print(f"Unpacking from {tarpath}")
 
         with tarfile.open(tarpath, "r") as tar:
-            for name in tqdm(names):
+            for name in tqdm(names, leave=True):
                 for q in quarter:
                     lc_name = (
                         f"{tarname}/{name}/hlsp_kbonus-bkg_kepler_kepler_kic-"
@@ -56,9 +56,12 @@ def get_lcs_from_archive(
         return
 
 
-def do_bundle(version="1.1.1"):
+def do_bundle(targets="wd", version="1.1.1"):
 
-    fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_wd.csv"
+    if targets == "wd":
+        fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_wd.csv"
+    elif targets == "mstars":
+        fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_mstars.csv"
 
     df = pd.read_csv(fname)
 
