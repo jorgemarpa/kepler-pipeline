@@ -24,6 +24,9 @@ def get_lcs_from_archive(
         tmpdir = tempfile.TemporaryDirectory(prefix="temp_fits")
         out_dir = tmpdir.name
         lks = []
+    else:
+        if not os.path.isdir(out_dir):
+            os.makedirs(dir_out_dirname)
 
     if quarter == "all":
         quarter = np.arange(0, 18)
@@ -79,7 +82,7 @@ def do_bundle(targets="wd", version="1.1.1"):
         quarter="all",
         version="1.1.1",
         return_lkf=False,
-        out_dir=f"{LCS_PATH}/kepler/white_dwarfs",
+        out_dir=f"{LCS_PATH}/kepler/{targets}",
     )
 
     return
