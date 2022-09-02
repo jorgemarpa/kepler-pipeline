@@ -62,6 +62,8 @@ def do_bundle(targets="wd", version="1.1.1"):
         fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_wd.csv"
     elif targets == "mstars":
         fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_mstars.csv"
+    else:
+        raise ("Wong targets")
 
     df = pd.read_csv(fname)
 
