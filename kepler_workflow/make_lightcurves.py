@@ -523,6 +523,7 @@ def do_lcs(
         pass
 
     del tpfs
+    logg.info(f"Soft limiting magnitude {machine.contaminant_mag_limit}")
     logg.info("PSFMachine time model config")
     logg.info(print_dict(config["time_model"]))
 
