@@ -26,7 +26,7 @@ def get_lcs_from_archive(
         lks = []
     else:
         if not os.path.isdir(out_dir):
-            os.makedirs(dir_out_dirname)
+            os.makedirs(out_dir)
 
     if quarter == "all":
         quarter = np.arange(0, 18)
