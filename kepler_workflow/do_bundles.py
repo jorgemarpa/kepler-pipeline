@@ -12,7 +12,12 @@ from paths import *
 
 
 def get_lcs_from_archive(
-    names, quarter="all", version="1.1.1", return_lkf=False, out_dir="./lcs"
+    names,
+    quarter="all",
+    version="1.1.1",
+    return_lkf=False,
+    out_dir="./lcs",
+    save_file_names=False,
 ):
     if isinstance(names, (int, str)):
         names = [names]
@@ -33,33 +38,53 @@ def get_lcs_from_archive(
     else:
         quarter = list(quarter)
 
-    for tarname in tqdm(id4, desc="Tar files"):
-        tarpath = f"{LCS_PATH}/kepler/{tarname}.tar"
-        print(f"Unpacking from {tarpath}")
-
-        with tarfile.open(tarpath, "r") as tar:
-            for name in tqdm(names, leave=True):
-                for q in quarter:
-                    lc_name = (
-                        f"{tarname}/{name}/hlsp_kbonus-bkg_kepler_kepler_kic-"
-                        f"{name}-q{q:02}_kepler_v{version}_lc.fits"
-                    )
-                    try:
-                        # if True:
-                        tar.extract(lc_name, out_dir)
-                    except KeyError:
-                        continue
-                    if return_lkf:
-                        lks.append(lk.KeplerLightCurve.read(f"{out_dir}/{lc_name}"))
-
-    if return_lkf:
-        tmpdir.cleanup()
-        return lk.LightCurveCollection(lks)
+    if save_file_names:
+        for tarname in tqdm(id4):
+            names_in = []
+            for name in names:
+                if name.startswith(tarname):
+                    names_in.append(f"{tarname}/{name}")
+                    # names_in.append(
+                    #     f"{tarname}/{name}/hlsp_kbonus-bkg_kepler_kepler_kic-"
+                    #     f"{name}-q*_kepler_v{version}_lc.fits"
+                    # )
+            cmd = (
+                f"tar -xv --directory /nobackup/jimartin/ADAP/kbonus/lcs/kepler"
+                f"/{os.path.basename(out_dir)} -f {tarname}.tar {' '.join(names_in)}"
+            )
+            np.savetxt(
+                f"lcs_in_{tarname}_{os.path.basename(out_dir)}.sh",
+                np.array([cmd]),
+                fmt="%s",
+            )
     else:
-        return
+        for tarname in tqdm(id4, desc="Tar files"):
+            tarpath = f"{LCS_PATH}/kepler/{tarname}.tar"
+            print(f"Unpacking from {tarpath}")
+
+            with tarfile.open(tarpath, "r") as tar:
+                for name in tqdm(names, leave=True):
+                    for q in quarter:
+                        lc_name = (
+                            f"{tarname}/{name}/hlsp_kbonus-bkg_kepler_kepler_kic-"
+                            f"{name}-q{q:02}_kepler_v{version}_lc.fits"
+                        )
+                        try:
+                            # if True:
+                            tar.extract(lc_name, out_dir)
+                        except KeyError:
+                            continue
+                        if return_lkf:
+                            lks.append(lk.KeplerLightCurve.read(f"{out_dir}/{lc_name}"))
+
+        if return_lkf:
+            tmpdir.cleanup()
+            return lk.LightCurveCollection(lks)
+        else:
+            return
 
 
-def do_bundle(targets="wd", version="1.1.1"):
+def do_bundle(targets="wd", version="1.1.1", save_file_names=False):
 
     if targets == "wd":
         fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_wd.csv"
@@ -83,6 +108,7 @@ def do_bundle(targets="wd", version="1.1.1"):
         version="1.1.1",
         return_lkf=False,
         out_dir=f"{LCS_PATH}/kepler/{targets}",
+        save_file_names=save_file_names,
     )
 
     return
