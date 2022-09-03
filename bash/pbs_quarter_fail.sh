@@ -18,7 +18,8 @@ echo `which python`
 WORKDIR=$(dirname `pwd`)
 
 # get batch info from quarter file
-info="${WORKDIR}/data/support/fail_batch_index_quarter${quarter}_${idx}.dat"
+# info="${WORKDIR}/data/support/fail_batch_index_quarter${quarter}_${idx}.dat"
+info="${WORKDIR}/data/support/missing_channel_batches.txt"
 totallines=`cat "$info" | wc -l | sed 's/^ *//g'`
 
 # change directory
@@ -30,7 +31,10 @@ echo "Total failed batches in quarter $totallines"
 
 # lunch parallel jobs
 echo "Will run the following command:"
-echo "cat ${info} | xargs -n 1 -I {} -P 5 python make_lightcurves.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20"
-cat ${info} | xargs -n 1 -I {} -P 5 python make_lightcurves.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20
+# echo "cat ${info} | xargs -n 1 -I {} -P 5 python make_lightcurves.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20"
+# cat ${info} | xargs -n 1 -I {} -P 5 python make_lightcurves.py --quarter ${quarter} --batch-index {} --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20
+
+echo "cat ${info} | xargs -P 5 -l bash -c 'python make_lightcurves.py --quarter $0 --channel $1 --batch-number $2 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20'"
+cat ${info} | xargs -P 5 -l bash -c 'python make_lightcurves.py --quarter $0 --channel $1 --batch-number $2 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20'
 
 exit 0
