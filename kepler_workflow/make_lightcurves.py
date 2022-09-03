@@ -489,7 +489,7 @@ def do_lcs(
     if (
         len(tpfs) > 130 and machine.sources.shape[0] > 1500 and machine.npixels > 10000
     ) or (
-        len(tpfs) > 220 and machine.sources.shape[0] > 1500 and machine.npixels > 7500
+        len(tpfs) > 190 and machine.sources.shape[0] > 1500 and machine.npixels > 7500
     ):
         end = int(len(tpfs) / 2)
         tpfs_part = [
