@@ -65,7 +65,10 @@ def do_archive(
                 ):
                     dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
                     if not os.path.isdir(dirout):
-                        os.makedirs(dirout)
+                        try:
+                            os.makedirs(dirout)
+                        except FileExistsError:
+                            pass
                     fout = f"{dirout}/{member.name}"
                     if os.path.isfile(fout):
                         tar.extract(member, path=tmpdir)
