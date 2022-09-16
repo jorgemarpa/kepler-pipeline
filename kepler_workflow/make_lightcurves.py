@@ -717,7 +717,7 @@ def do_lcs(
 
     # PSF residual light curves
     chi2_lc = np.zeros((machine.flux.shape[0], machine.nsources))
-    residuals = ((machine.model_flux - machine.flux) / machine.flux_err) ** 2
+    residuals = (machine.model_flux - machine.flux) ** 2 / machine.flux_err
     for sdx in range(len(machine.aperture_mask)):
         chi2_lc[:, sdx] = residuals[:, machine.source_mask[sdx].toarray()[0]].sum(
             axis=1
