@@ -8,9 +8,9 @@ from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
 from make_lightcurves import get_file_list
 
 
-def main(quarter=5, channel=44):
+def main(quarter=5, channel=44, batch_number=-1):
 
-    file_list = get_file_list(quarter, channel, -1, tar_tpfs=True)
+    file_list = get_file_list(quarter, channel, batch_number, tar_tpfs=True)
 
     out_dir = f"{ARCHIVE_PATH}/download/"
     if not os.path.isdir(out_dir):
@@ -38,6 +38,13 @@ if __name__ == "__main__":
         default=None,
         help="Channel number",
     )
+    parser.add_argument(
+        "--bnumber",
+        dest="bnumber",
+        type=int,
+        default=None,
+        help="Batch number",
+    )
     args = parser.parse_args()
-    main(args.quarter, args.channel)
+    main(args.quarter, args.channel, args.bnumber)
     print("Done!")
