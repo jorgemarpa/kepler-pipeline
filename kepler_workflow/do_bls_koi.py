@@ -96,7 +96,7 @@ def fancy_flatten(lc, period=None, t0=None, duration=None, plot=False):
     return clc
 
 
-def do_bls(quarter, dir):
+def do_bls_koi(quarter, dir):
     kbonus = pd.read_csv(
         f"{PACKAGEDIR}/data/catalogs/tpf/kbonus_catalog_q05.csv", index_col=0
     )
@@ -301,4 +301,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    do_bls(args.quarter, args.dir)
+    do_bls_koi(args.quarter, args.dir)
