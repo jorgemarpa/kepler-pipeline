@@ -19,9 +19,9 @@ do
   seq 1 84 | xargs -n 1 -I {} -P 5 python create_gaia_background_catalog.py --channel {} --quarter $q --tar-tpfs
 done
 
-for q in 4 5 6 7 8 9 10 11 13 14 15 16 17
+for q in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
 do
-  seq 1 84 | xargs -n 1 -I {} -P 4 python concat_batch_files.py --channel {} --quarter $q --remove
+  seq 40 48 | xargs -n 1 -I {} -P 4 python concat_batch_files.py --channel {} --quarter $q --remove
 done
 
 ls -1 /nobackupp19/jimartin/ADAP/data/kepler/tpf/ | head -30 | xargs -n 1 -I {} -P 4 python make_archive_lookup_table.py --path /nobackupp19/jimartin/ADAP/data/kepler/tpf/ --folder {} --quarter 9 --tar-tpfs --log 20
@@ -161,4 +161,90 @@ seq 0 17 | xargs -n 1 -P 4 -I {} python check_batch_jobs_finish.py --mode check_
 
 
 
-python make_lightcurves.py --quarter 10 --channel 84 --batch-number 7 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log
+python -m pdb -c continue make_lightcurves.py --quarter 6 --channel 32 --batch-number 4 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log
+
+python make_lightcurves.py --quarter 2 --channel 4 --batch-number 8 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log
+
+python make_lightcurves.py --quarter 4 --batch-index 438 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log --dry-run
+
+
+echo argument1 argument2 argument3 | xargs -l bash -c 'echo this is first:$0 second:$1 third:$2'
+
+
+seq 40 48 | xargs -P 2 -l bash -c 'tar cvf kbonus-kepler-bkg_ch$0_v1.1.1_fvaT_bkgT_augT_sgmF_iteT_cbvT.feather.tar ch$0/q*/*.feather'
+
+
+tar cvf kbonus-kepler-bkg_chq_batch_partitions_lcs.tar.gz ch*/q*/kbonus-kepler-bkg_ch*_q*_v1.1.1_lcs_bn*.*_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+
+tar cvf kbonus-kepler-bkg_q01_incomplete_lcs.tar.gz ch*/q01/kbonus-kepler-bkg_ch*_q01_v1.1.1_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+
+tar czvf kbonus-kepler-bkg_q01_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q01/*feather
+tar czvf kbonus-kepler-bkg_q02_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q02/*feather
+tar czvf kbonus-kepler-bkg_q03_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q03/*feather
+tar czvf kbonus-kepler-bkg_q04_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q04/*feather
+tar czvf kbonus-kepler-bkg_q05_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q05/*feather
+tar czvf kbonus-kepler-bkg_q06_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q06/*feather
+tar czvf kbonus-kepler-bkg_q07_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q07/*feather
+tar czvf kbonus-kepler-bkg_q08_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q08/*feather
+tar czvf kbonus-kepler-bkg_q09_feathers.tar.gz /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/ch*/q09/*feather
+
+
+
+
+head -n 50 $kwpath/data/support/kbonus_archive_id4.dat | xargs -P 5 -l bash -c 'rm -r /nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/$0'
+
+
+
+tar cvf upload_final_batches_lcs.tar  ch*/q09/*.tar.gz ch*/q00/*.tar.gz ch*/q05/*.tar.gz ch*/q07/*.tar.gz ch*/q08/*.tar.gz
+
+
+
+cat dirs.dat | xargs -n 1 -P 5 -I {} python $kwpath/kepler_workflow/do_catalog.py --quarter 13 --dir {} --tar
+
+
+
+tar tvf 2106.tar | grep '2106/2106797942498326016/hlsp_kbonus-bkg_kepler_kepler_kic-2106797942498326016-q*_kepler_v1.1.1_lc.fits'
+
+
+cat missing_channel_batches.txt | xargs -P 6 -l bash -c 'echo python make_lightcurves.py --quarter $0 --channel $1 --batch-number $2 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20'
+
+
+cat ../data/support/missing_channels_all.txt | xargs -l bash -c 'python give_me_batch_info.py --quarter $0 --channel $1 --run'
+
+cat ../data/support/missing_channels_all.txt | xargs -P 4 -l bash -c 'kbonus_lcf_archive.py --quarter $0 --channel $1'
+
+
+cat dirs.dat | xargs -n 1 -P 5 -I {} python $kwpath/kepler_workflow/kbonus_lcf_archive.py --dir {} --delete
+
+cat $kwpath/data/support/missing_channels_all.txt | xargs -P 5 -l bash -c 'python kbonus_lcf_archive.py --quarter $0 --channel $1'
+
+for q in 14 15 16 17
+do
+  cat $kwpath/data/support/kbonus_archive_id4.dat | xargs -n 1 -P 5 -I {} python $kwpath/kepler_workflow/do_catalog.py --quarter $q --dir {} --tar
+done
+
+check q14 lcs in ch 61-70
+
+cat dirs.dat | xargs -n 1 -P 5 -I {} python kbonus_lcf_archive.py --dir {} --delete
+cat dirs.dat | xargs -n 1 -P 5 -I {} python do_catalog.py --quarter 1 --dir {} --tar
+
+cat $kwpath/data/support/kbonus_archive_id4.dat | xargs -n 1 -P 5 -I {} python $kwpath/kepler_workflow/do_catalog.py --quarter 1 --dir {} --tar
+
+
+cat $kwpath/data/support/bad_tar_2129_channels.txt | xargs -P 5 -l bash -c 'python kbonus_lcf_archive.py --quarter $0 --channel $1'
+
+
+
+python make_lightcurves.py --quarter 07 --channel 28 --batch-number 2 --tar-tpfs --tar-lcs --fit-va --use-cbv --augment-bkg --iter-neg --save-arrays feather --log 20 --force-log --plot
+
+
+/nobackup/jimartin/ADAP/kbonus/lcs/kepler/2129/2129663008355266688/hlsp_kbonus-bkg_kepler_kepler_gaia-dr3-2129663008355266688-q14_kepler_v1.1.1_lc.fits
+
+
+mv hlsp_kbonus-bkg_kepler_kepler_gaia-dr3-2129663008355266688-q14_kepler_v1.1.1_lc_2.fits hlsp_kbonus-bkg_kepler_kepler_gaia-dr3-2129663008355266688-q14_kepler_v1.1.1_lc.fits
+
+
+tar -xv -f 0056.tar 0056/005623901 0056/005623915 0056/005623833 0056/005623854 0056/005623852 0056/005623853 0056/005623873 0056/005623930 0056/005623917 0056/005623923
+tar -xv -f 2053.tar 2053/2053539145443677056

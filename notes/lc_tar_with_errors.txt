@@ -1,0 +1,30 @@
+kbonus-kepler-bkg_ch52_q15_v1.1.1_lcs_bn04_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+kbonus-kepler-bkg_ch34_q15_v1.1.1_lcs_bn06_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+kbonus-kepler-bkg_ch11_q14_v1.1.1_lcs_bn15_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+kbonus-kepler-bkg_ch28_q13_v1.1.1_lcs_bn07_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+kbonus-kepler-bkg_ch28_q13_v1.1.1_lcs_bn08_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+kbonus-kepler-bkg_ch23_q12_v1.1.1_lcs_bn01_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+kbonus-kepler-bkg_ch15_q11_v1.1.1_lcs_bn08_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+
+kbonus-kepler-bkg_ch70_q09_v1.1.1_lcs_bn09_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+kbonus-kepler-bkg_ch72_q09_v1.1.1_lcs_bn13.1_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz ** missing bn13.2 ** running local
+
+kbonus-kepler-bkg_ch28_q07_v1.1.1_lcs_bn01_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+kbonus-kepler-bkg_ch16_q07_v1.1.1_lcs_bn03_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+kbonus-kepler-bkg_ch35_q07_v1.1.1_lcs_bn07_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+kbonus-kepler-bkg_ch28_q06_v1.1.1_lcs_bn06_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+
+need to run full do_catalog for quarter 5
+
+kbonus-kepler-bkg_ch05_q02_v1.1.1_lcs_bn03_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
+
+
+
+kbonus-kepler-bkg_ch28_q07_v1.1.1_lcs_bn02_fvaT_bkgT_augT_sgmF_iteT_cbvT.tar.gz
