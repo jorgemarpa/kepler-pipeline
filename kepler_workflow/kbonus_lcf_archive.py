@@ -23,13 +23,13 @@ def do_archive(
 ):
 
     print(
-        f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+        f"{KBONUS_LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
         f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}"
         f"_v{version}_lcs_b*_{suffix}.tar.gz"
     )
     tar_files = sorted(
         glob.glob(
-            f"{LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
+            f"{KBONUS_LCS_PATH}/kepler/ch{channel:02}/q{quarter:02}/"
             f"kbonus-kepler-bkg_ch{channel:02}_q{quarter:02}"
             f"_v{version}_lcs_b*_{suffix}.tar.gz"
         )
@@ -54,7 +54,7 @@ def do_archive(
                 print(dirs)
 
                 for dir in dirs:
-                    dir_path = f"{LCS_PATH}/kepler/{dir}"
+                    dir_path = f"{KBONUS_LCS_PATH}/kepler/{dir}"
                     if not os.path.isdir(dir_path):
                         os.makedirs(dir_path)
 
@@ -63,7 +63,7 @@ def do_archive(
                     total=len(members),
                     desc="Extracting FITS into archive",
                 ):
-                    dirout = f"{LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
+                    dirout = f"{KBONUS_LCS_PATH}/kepler/{ids[k][:4]}/{ids[k]}"
                     if not os.path.isdir(dirout):
                         try:
                             os.makedirs(dirout)
@@ -82,9 +82,11 @@ def do_archive(
 
 def drop_duplicates(dir):
     print(f"Working on {dir:04}")
-    print(f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*_lc_2.fits")
+    print(
+        f"{KBONUS_LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*_lc_2.fits"
+    )
     dupfiles = glob.glob(
-        f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*_lc_2.fits"
+        f"{KBONUS_LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*_lc_2.fits"
     )
     if len(dupfiles) == 0:
         print("No duplicated files")
@@ -124,7 +126,7 @@ def drop_duplicates(dir):
 def make_tarball_archive(folders=None, version="1.1.1", delete=False):
 
     if folders is None:
-        folders = sorted(glob.glob(f"{LCS_PATH}/kepler/*"))
+        folders = sorted(glob.glob(f"{KBONUS_LCS_PATH}/kepler/*"))
         folders = [x for x in folders if os.path.isdir(x)]
         folders = [x for x in folders if "ch" not in os.path.basename(x)]
         folders = [
@@ -138,10 +140,10 @@ def make_tarball_archive(folders=None, version="1.1.1", delete=False):
     print(f"Creating tarball files for {len(folders)} folders...")
     for dir in tqdm(folders, total=len(folders), desc="Folder"):
         id4 = os.path.basename(dir)
-        tarf_name = f"{LCS_PATH}/kepler/{id4}.tar"
-        if not os.path.isdir(f"{LCS_PATH}/kepler/{id4}"):
+        tarf_name = f"{KBONUS_LCS_PATH}/kepler/{id4}.tar"
+        if not os.path.isdir(f"{KBONUS_LCS_PATH}/kepler/{id4}"):
             continue
-        files_in = glob.glob(f"{LCS_PATH}/kepler/{id4}/*/*.fits")
+        files_in = glob.glob(f"{KBONUS_LCS_PATH}/kepler/{id4}/*/*.fits")
         with tarfile.open(tarf_name, mode="a") as tar:
             members = tar.getnames()
             for file in files_in:
@@ -160,7 +162,7 @@ def apply_zero_point(dir, quarter):
     # list all fits files in dir
     print(f"Working on {dir:04}")
     files = glob.glob(
-        f"{LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_*_lc.fits"
+        f"{KBONUS_LCS_PATH}/kepler/{dir:04}/*/hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_*_lc.fits"
     )
     print(f"Total files {len(files)}")
 
@@ -245,6 +247,6 @@ if __name__ == "__main__":
 
     if args.dir:
         drop_duplicates(args.dir)
-        make_tarball_archive(folders=args.dir, delete=args.delete)
+        # make_tarball_archive(folders=args.dir, delete=args.delete)
     if args.do_tarball:
         make_tarball_archive(folders=args.dir, delete=args.delete)
