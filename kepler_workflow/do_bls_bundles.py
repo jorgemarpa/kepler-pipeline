@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 from glob import glob
 import lightkurve as lk
 from astropy.io import fits
+import astropy.units as u
 
 sys.path.append(f"{os.path.dirname(os.getcwd())}/kepler_workflow/")
 from paths import ARCHIVE_PATH, OUTPUT_PATH, LCS_PATH, PACKAGEDIR
@@ -105,7 +106,14 @@ def fancy_flatten(
     return clc
 
 
-def get_lc(name, bundle="mstars", quarter="all", force_phot_column=True):
+def get_lc(
+    name,
+    bundle="mstars",
+    quarter="all",
+    force_phot_column=True,
+    correction="div",
+    drop=[],
+):
     if quarter == "all":
         lc_files = sorted(
             glob(
@@ -123,6 +131,8 @@ def get_lc(name, bundle="mstars", quarter="all", force_phot_column=True):
     if len(lc_files) == 0:
         return None, None, None
     lc = lk.LightCurveCollection([lk.KeplerLightCurve.read(x) for x in lc_files])
+    if len(drop) > 0:
+        lc = lk.LightCurveCollection([x for x in lc if x.quarter not in drop])
     _phot = "psf"
 
     if force_phot_column:
@@ -146,9 +156,14 @@ def get_lc(name, bundle="mstars", quarter="all", force_phot_column=True):
     if len(lc) == 0:
         return None, None, None
 
-    lc_flat = lk.LightCurveCollection(
-        [fancy_flatten(x, correction="div").normalize() for x in lc]
-    )
+    lc_flat = []
+    for x in lc:
+        try:
+            aux = fancy_flatten(x, correction=correction).normalize()
+        except:
+            aux = x.flatten()
+        lc_flat.append(aux)
+    lc_flat = lk.LightCurveCollection(lc_flat)
 
     return lc.stitch(), lc_flat.stitch(), _phot
 
@@ -227,7 +242,11 @@ def do_bls_quarter(
     for k, nam in tqdm(enumerate(names), total=len(names), desc="BLS"):
 
         lc, lc_flat, _phot = get_lc(
-            nam, bundle=bundle, quarter=quarter, force_phot_column=force_phot_column
+            nam,
+            bundle=bundle,
+            quarter=quarter,
+            force_phot_column=force_phot_column,
+            drop=[2],
         )
         if lc is None:
             continue
@@ -246,13 +265,17 @@ def do_bls_quarter(
         gaia_designation.append(lc.GAIAID)
         phot.append(_phot)
         best_periods.append(periodogram.period_at_max_power.value)
-        depth_aux = periodogram.compute_stats(
-            periodogram.period_at_max_power,
-            periodogram.duration_at_max_power,
-            periodogram.transit_time_at_max_power,
-        )["depth"]
-        best_depth.append(depth_aux[0].value)
-        best_depth_e.append(depth_aux[1].value)
+        try:
+            depth_aux = periodogram.compute_stats(
+                periodogram.period_at_max_power,
+                periodogram.duration_at_max_power,
+                periodogram.transit_time_at_max_power,
+            )["depth"]
+            best_depth.append(depth_aux[0].value)
+            best_depth_e.append(depth_aux[1].value)
+        except:
+            best_depth.append(periodogram.depth_at_max_power.value)
+            best_depth_e.append(np.nan)
 
         periods_snr.append(periodogram.snr[np.argmax(periodogram.power)].value)
         best_duration.append(periodogram.duration_at_max_power.value)
