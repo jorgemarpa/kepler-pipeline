@@ -124,7 +124,7 @@ def fancy_flatten(
     else:
         poscorr = fitsio.read(
             f"{ARCHIVE_PATH}/data/kepler/bkg/"
-            f"{year[:4]}/kplr{module}{output}-{year}_bkg.fits.gz",
+            f"{year[:4]}/kplr{module:02}{output}-{year}_bkg.fits.gz",
             columns=["CADENCENO", "POS_CORR1", "POS_CORR2"],
             ext=1,
         )
