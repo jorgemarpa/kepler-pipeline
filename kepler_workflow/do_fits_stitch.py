@@ -415,7 +415,6 @@ def make_fits(name, lc_stitch, quarter_mask=None):
         if k == 0:
             primhdu = aux[0].copy()
             for kw in per_quarter:
-                # print(kw, primhdu.header[kw],primhdu.header.comments[kw])
                 aux[1].header.set(
                     kw,
                     value=primhdu.header[kw],
@@ -424,6 +423,13 @@ def make_fits(name, lc_stitch, quarter_mask=None):
                 )
                 primhdu.header.remove(kw)
             hduls.append(primhdu)
+        for kw in per_quarter:
+            aux[1].header.set(
+                kw,
+                value=aux[0].header[kw],
+                comment=aux[0].header.comments[kw],
+                before="EXTNAME",
+            )
         aux[1].header["EXTNAME"] = f"LIGHTCURVE_Q{aux[0].header['QUARTER']}"
         try:
             aux[2].header["EXTNAME"] = f"APERTURE_Q{aux[0].header['QUARTER']}"
