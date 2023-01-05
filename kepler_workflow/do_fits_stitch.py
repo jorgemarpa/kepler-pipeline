@@ -114,7 +114,7 @@ def fancy_flatten(
     year = str(qd_map[quarter])
     dmc_name = f"{quarter:02}_{channel:02}_{'-'.join(comp)}"
     if len(lc.remove_nans()) == 0:
-        # print("LC has all-nan values in PSF column")
+        print("LC has all-nan values in PSF column")
         return lc
     else:
         lc = lc.remove_nans()
@@ -130,8 +130,8 @@ def fancy_flatten(
         )
         cad, mpc1, mpc2 = (
             poscorr["CADENCENO"],
-            poscorr["POS_CORR1"][:, 4184],
-            poscorr["POS_CORR2"][:, 4184],
+            poscorr["POS_CORR1"][:, 2000],
+            poscorr["POS_CORR2"][:, 2000],
         )
         mask = np.in1d(cad, lc.cadenceno.value)
         cad, mpc1, mpc2 = cad[mask], mpc1[mask], mpc2[mask]
@@ -290,7 +290,7 @@ def get_lc(name, force=False):
         if (
             len(
                 glob(
-                    f"{LCS_PATH}/kepler/mstars/{name[:4]}/{name}/"
+                    f"{KBONUS_LCS_PATH}/bundles/kois_nns/{name[:4]}/{name}/"
                     f"hlsp_kbonus-bkg_kepler_kepler_*-{name}_kepler_v1.1.1_lc.fits"
                 )
             )
@@ -299,7 +299,7 @@ def get_lc(name, force=False):
             return None
     lc_files = sorted(
         glob(
-            f"{LCS_PATH}/kepler/mstars/{name[:4]}/{name}/"
+            f"{KBONUS_LCS_PATH}/bundles/kois_nns/{name[:4]}/{name}/"
             f"hlsp_kbonus-bkg_kepler_kepler_*-{name}-q*_lc.fits"
         )
     )
@@ -400,7 +400,7 @@ def process_and_stitch(lc, do_flat=True, do_align=True):
 def make_fits(name, lc_stitch, quarter_mask=None):
     lc_files = sorted(
         glob(
-            f"{LCS_PATH}/kepler/mstars/{name[:4]}/{name}/"
+            f"{KBONUS_LCS_PATH}/bundles/kois_nns/{name[:4]}/{name}/"
             f"hlsp_kbonus-bkg_kepler_kepler_*-{name}-q*_lc.fits"
         )
     )
@@ -476,10 +476,19 @@ def make_fits(name, lc_stitch, quarter_mask=None):
 
 
 def get_bkg_file_names(lc):
-    bkg_files = [
-        f"{str(qd_map[x.quarter])[:4]}/kplr{x.module}{x.output}-{str(qd_map[x.quarter])}_bkg.fits.gz"
-        for x in lc
-    ]
+    bkg_files = []
+    for x in lc:
+        bkfname = (
+            f"{ARCHIVE_PATH}/data/kepler/bkg/"
+            f"{str(qd_map[x.quarter])[:4]}/"
+            f"kplr{x.module:02}{x.output}-{str(qd_map[x.quarter])}_bkg.fits.gz"
+        )
+        if not os.path.isfile(bkfname):
+            bkg_files.append(
+                f"{str(qd_map[x.quarter])[:4]}"
+                f"/kplr{x.module:02}{x.output}-{str(qd_map[x.quarter])}_bkg.fits.gz"
+            )
+
     return np.array(bkg_files)
 
 
@@ -493,15 +502,25 @@ if __name__ == '__main__':
         help="Directory 4 digit string",
     )
     args = parser.parse_args()
-    source_names = np.array(os.listdir(f"{LCS_PATH}/kepler/mstars/{args.dir}")).ravel()
+    source_names = np.array(
+        os.listdir(f"{KBONUS_LCS_PATH}/bundles/kois_nns/{args.dir}")
+    ).ravel()
 
     fails = []
-    for k, fname in tqdm(enumerate(source_names), total=len(source_names)):
-        lc = get_lc(fname, force=True)
+    bkg_files = []
+    for k, fname in tqdm(
+        enumerate(source_names), total=len(source_names), desc=f"Dir {args.dir}"
+    ):
+        lc = get_lc(fname, force=False)
         if lc is None:
             continue
         # bkg_files.extend(get_bkg_file_names(lc))
-        lc_flat, quarter_mask = process_and_stitch(lc, do_flat=True, do_align=True)
+        try:
+            lc_flat, quarter_mask = process_and_stitch(lc, do_flat=True, do_align=True)
+        except IndexError:
+            fails.append(fname)
+            print(f"{fname} failes with IndexError in POS_CORR vector.")
+            continue
         try:
             make_fits(fname, lc_flat, quarter_mask=quarter_mask)
         except KeyError:
@@ -509,12 +528,23 @@ if __name__ == '__main__':
             print(f"{fname} failes with Keyword 'QUARTER' not found.")
             continue
 
+    # np.savetxt(
+    #     f"{KBONUS_LCS_PATH}/bundles/kois_nns/bkg_files_names_dir_{args.dir}.txt",
+    #     np.unique(np.vstack(bkg_files)),
+    #     fmt="%s",
+    # )
+
     print(fails)
     print("Done!")
 
 
 '''
 Failed:
+
+module 13
 ['009462617']
 ['2126348255678300928', '2126621656115682048']
+
+m-starts
+002974627 003101896
 '''
