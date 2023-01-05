@@ -39,6 +39,7 @@ def get_lcs_from_archive(
         quarter = list(quarter)
 
     if save_file_names:
+        cmds = []
         for tarname in tqdm(id4):
             names_in = []
             for name in names:
@@ -52,11 +53,13 @@ def get_lcs_from_archive(
                 f"tar -xv --directory /nobackup/jimartin/ADAP/kbonus/lcs/kepler"
                 f"/{os.path.basename(out_dir)} -f {tarname}.tar {' '.join(names_in)}"
             )
-            np.savetxt(
-                f"lcs_in_{tarname}_{os.path.basename(out_dir)}.sh",
-                np.array([cmd]),
-                fmt="%s",
-            )
+            # np.savetxt(
+            #     f"lcs_in_{tarname}_{os.path.basename(out_dir)}.sh",
+            #     np.array([cmd]),
+            #     fmt="%s",
+            # )
+            cmds.append(cmd)
+        return cmds
     else:
         for tarname in tqdm(id4, desc="Tar files"):
             tarpath = f"{LCS_PATH}/kepler/{tarname}.tar"
@@ -84,16 +87,19 @@ def get_lcs_from_archive(
             return
 
 
-def do_bundle(targets="wd", version="1.1.1", save_file_names=False):
+def do_bundle(catalog=None, targets="wd", version="1.1.1", save_file_names=False):
 
-    if targets == "wd":
-        fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_wd.csv"
-    elif targets == "mstars":
-        fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_mstars.csv"
+    if catalog is None:
+        if targets == "wd":
+            fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_wd.csv"
+        elif targets == "mstars":
+            fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v{version}_source_catalog_mstars.csv"
+        else:
+            raise ("Wong targets")
+
+        df = pd.read_csv(fname)
     else:
-        raise ("Wong targets")
-
-    df = pd.read_csv(fname)
+        df = catalog
 
     names = []
     for k, row in df.iterrows():
@@ -102,7 +108,7 @@ def do_bundle(targets="wd", version="1.1.1", save_file_names=False):
         else:
             names.append(int(row.gaia_designation.split(" ")[-1]))
 
-    get_lcs_from_archive(
+    out = get_lcs_from_archive(
         names,
         quarter="all",
         version="1.1.1",
@@ -111,4 +117,4 @@ def do_bundle(targets="wd", version="1.1.1", save_file_names=False):
         save_file_names=save_file_names,
     )
 
-    return
+    return out
