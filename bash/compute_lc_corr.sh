@@ -6,7 +6,7 @@
 #PBS -j oe
 #PBS -m e
 #PBS -V
-#PBS -o pfe21:/home4/jimartin/ADAP/kepler-workflow/logs/
+#PBS -o pfe:/home4/jimartin/ADAP/kepler-workflow/logs/
 
 # change directory
 cd /home4/jimartin/ADAP/kepler-workflow/kepler_workflow
