@@ -76,27 +76,29 @@ def get_lcs_from_tar_dir(dir_name, source_names, quarter=5):
 
 
 def main(quarter=5, cone_dist=60):
-    print("Loading KBonus catalog...")
-    fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus-bkg_kepler_v1.1.1_source_catalog_aug.csv"
-    sources = pd.read_csv(fname, index_col=0)
 
     print("Loading KBonus quarter catalog...")
-    fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus_catalog_q{quarter:02}.csv"
-    sourcesq = pd.read_csv(fname, index_col=0)
+    fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus_catalog_q{quarter:02}_simple.csv"
+    sourcesq = pd.read_csv(
+        fname,
+        index_col=0,
+        dtype={
+            "kic": float,
+            "gaia_designation": str,
+            "ra": float,
+            "dec": float,
+            "gmag": float,
+            "rpmag": float,
+            "bpmag": float,
+            "channel": int,
+            "fname": str,
+            "phot_variable_flag": str,
+        },
+    )
 
-    print("Computing file names...")
-    names = []
-    for k, row in sourcesq.iterrows():
-        if row.kic < 1.000000e20:
-            names.append(int(row.kic))
-        else:
-            names.append(int(row.gaia_designation.split(" ")[-1]))
-    names = [f"{x:09}" if x < 22934493 else str(x) for x in names]
-    sourcesq["fname"] = names
-    sourcesq["phot_variable_flag"] = sources.loc[
-        sourcesq.gaia_designation, 'phot_variable_flag'
-    ].values
+    print("Finding Gaia Variables...")
     variables = sourcesq.query("phot_variable_flag == 'VARIABLE'")
+    variables = variables.sort_values("fname").head(500)
 
     kbonus_coord = SkyCoord(
         ra=sourcesq["ra"].values,
@@ -173,9 +175,7 @@ def main(quarter=5, cone_dist=60):
             ids_in_dir = np.array(
                 [x for x in ids_in_dir if x not in lcs_dict[row.fname[:4]].keys()]
             )
-            if len(ids_in_dir) == 0:
-                continue
-            else:
+            if len(ids_in_dir) > 0:
                 lcs_dict[row.fname[:4]].update(
                     get_lcs_from_tar_dir(
                         row.fname[:4],
@@ -311,10 +311,10 @@ def main(quarter=5, cone_dist=60):
         ],
     )
 
-    metrics_all["gaia_designation"] = sources.iloc[
+    metrics_all["gaia_designation"] = sourcesq.iloc[
         [int(x.split("_")[-1]) for x in metrics_all.index]
-    ].index
-    metrics_all["kic"] = sources.iloc[
+    ].gaia_designation.values
+    metrics_all["kic"] = sourcesq.iloc[
         [int(x.split("_")[-1]) for x in metrics_all.index]
     ].kic.values
     metrics_all["gaia_corr_origen"] = variables.iloc[
