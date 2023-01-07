@@ -98,7 +98,7 @@ def main(quarter=5, cone_dist=60):
 
     print("Finding Gaia Variables...")
     variables = sourcesq.query("phot_variable_flag == 'VARIABLE'")
-    variables = variables.sort_values("fname").head(500)
+    variables = variables.sort_values("fname")
 
     kbonus_coord = SkyCoord(
         ra=sourcesq["ra"].values,
