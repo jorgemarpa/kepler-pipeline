@@ -290,7 +290,7 @@ def get_lc(name, force=False):
         if (
             len(
                 glob(
-                    f"{KBONUS_LCS_PATH}/bundles/kois_nns/{name[:4]}/{name}/"
+                    f"{KBONUS_LCS_PATH}/bundles/bright_new/{name[:4]}/{name}/"
                     f"hlsp_kbonus-bkg_kepler_kepler_*-{name}_kepler_v1.1.1_lc.fits"
                 )
             )
@@ -299,7 +299,7 @@ def get_lc(name, force=False):
             return None
     lc_files = sorted(
         glob(
-            f"{KBONUS_LCS_PATH}/bundles/kois_nns/{name[:4]}/{name}/"
+            f"{KBONUS_LCS_PATH}/bundles/bright_new/{name[:4]}/{name}/"
             f"hlsp_kbonus-bkg_kepler_kepler_*-{name}-q*_lc.fits"
         )
     )
@@ -400,7 +400,7 @@ def process_and_stitch(lc, do_flat=True, do_align=True):
 def make_fits(name, lc_stitch, quarter_mask=None):
     lc_files = sorted(
         glob(
-            f"{KBONUS_LCS_PATH}/bundles/kois_nns/{name[:4]}/{name}/"
+            f"{KBONUS_LCS_PATH}/bundles/bright_new/{name[:4]}/{name}/"
             f"hlsp_kbonus-bkg_kepler_kepler_*-{name}-q*_lc.fits"
         )
     )
@@ -503,7 +503,7 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     source_names = np.array(
-        os.listdir(f"{KBONUS_LCS_PATH}/bundles/kois_nns/{args.dir}")
+        os.listdir(f"{KBONUS_LCS_PATH}/bundles/bright_new/{args.dir}")
     ).ravel()
 
     fails = []
@@ -529,7 +529,7 @@ if __name__ == '__main__':
             continue
 
     # np.savetxt(
-    #     f"{KBONUS_LCS_PATH}/bundles/kois_nns/bkg_files_names_dir_{args.dir}.txt",
+    #     f"{KBONUS_LCS_PATH}/bundles/bright_new/bkg_files_names_dir_{args.dir}.txt",
     #     np.unique(np.vstack(bkg_files)),
     #     fmt="%s",
     # )
