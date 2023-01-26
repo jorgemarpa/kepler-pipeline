@@ -8,7 +8,7 @@ if socket.gethostname() in ["NASAs-MacBook-Pro.local", "NASAs-MacBook-Pro-2.loca
     ARCHIVE_PATH = "/Volumes/jorge-marpa/Work/BAERI"
     OUTPUT_PATH = f"{PACKAGEDIR}/data"
     LCS_PATH = f"{PACKAGEDIR}/data/lcs"
-    KBONUS_LCS_PATH = "/Volumes/jorge-marpa-personal/work/kbonus/lcs"
+    KBONUS_LCS_PATH = "/Volumes/ADAP-KBonus/work/kbonus/lcs"
     KBONUS_CAT_PATH = f"{PACKAGEDIR}/data/catalogs"
 
 else:
