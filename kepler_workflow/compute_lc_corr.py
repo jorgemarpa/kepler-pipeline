@@ -49,33 +49,48 @@ def detrend_time_poly(time, flux, flux_err, poly_deg=3, plot=False):
     return clc.flux.value
 
 
-def get_lcs_from_tar_dir(dir_name, source_names, quarter=5):
+def get_lcs_from_tar_dir(dir_name, source_names, quarter=5, is_tar=True):
 
-    tar_name = f"{KBONUS_LCS_PATH}/kepler/{dir_name}.tar"
-    print(f"Loading {len(source_names)} LCs from {tar_name}")
-    tar = tarfile.open(tar_name, mode="r")
-    members = tar.getnames()
-    members = np.array([x for x in members if f"q{quarter:02}" in x])
-    members_id = np.array([x.split("/")[1] for x in members])
+    if is_tar:
+        tar_name = f"{KBONUS_LCS_PATH}/kepler/q{quarter:02}/{dir_name}.tar"
+        print(f"Loading {len(source_names)} LCs from {tar_name}")
+        tar = tarfile.open(tar_name, mode="r")
+        members = tar.getnames()
+        members = np.array([x for x in members if f"q{quarter:02}" in x])
+        members_id = np.array([x.split("/")[1] for x in members])
 
-    tmpdir = tempfile.TemporaryDirectory(prefix="temp_fits")
+        tmpdir = tempfile.TemporaryDirectory(prefix="temp_fits")
 
-    lcs_dict = {}
-    for name in source_names:
-        if name in members_id:
-            file_name = members[members_id == name][0]
-            tar.extract(file_name, tmpdir.name)
-            file_name = f"{tmpdir.name}/{file_name}"
-
-            lc = fitsio.read(file_name, columns=["TIME", "FLUX", "FLUX_ERR"], ext=1)
-            lcs_dict[name] = lc
-        else:
-            lcs_dict[name] = None
+        lcs_dict = {}
+        for name in source_names:
+            if name in members_id:
+                file_name = members[members_id == name][0]
+                tar.extract(file_name, tmpdir.name)
+                file_name = f"{tmpdir.name}/{file_name}"
+                lc = fitsio.read(file_name, columns=["TIME", "FLUX", "FLUX_ERR"], ext=1)
+                lcs_dict[name] = lc
+            else:
+                lcs_dict[name] = None
+    else:
+        lcs_dict = {}
+        for name in source_names:
+            file_name = glob(
+                f"{KBONUS_LCS_PATH}/kepler/q{quarter:02}/{dir_name}/{name}"
+                f"/hlsp_kbonus-bkg_kepler_kepler_*-q{quarter:02}_kepler_v1.1.1_lc.fits"
+            )
+            if len(file_name) > 0:
+                lc = fitsio.read(
+                    file_name[0], columns=["TIME", "FLUX", "FLUX_ERR"], ext=1
+                )
+                lcs_dict[name] = lc
+            else:
+                print(f"WARNING: No file for {name}")
+                lcs_dict[name] = None
 
     return lcs_dict
 
 
-def main(quarter=5, cone_dist=60):
+def main(quarter=5, cone_dist=60, is_tar=True):
 
     print("Loading KBonus quarter catalog...")
     fname = f"{PACKAGEDIR}/data/catalogs/tpf/kbonus_catalog_q{quarter:02}_simple.csv"
@@ -167,6 +182,7 @@ def main(quarter=5, cone_dist=60):
                 row.fname[:4],
                 ids_in_dir,
                 quarter=quarter,
+                is_tar=is_tar,
             )
         else:
             var_ids_in_dir = [x for x in variables.fname if x.startswith(row.fname[:4])]
@@ -181,6 +197,7 @@ def main(quarter=5, cone_dist=60):
                         row.fname[:4],
                         ids_in_dir,
                         quarter=quarter,
+                        is_tar=is_tar,
                     )
                 )
 
@@ -213,6 +230,7 @@ def main(quarter=5, cone_dist=60):
                     ds,
                     np.unique(nns_ids_in_dir),
                     quarter=quarter,
+                    is_tar=is_tar,
                 )
             else:
                 nns_ids_in_dir = [x for x in nns_ids if x.startswith(ds)]
@@ -227,6 +245,7 @@ def main(quarter=5, cone_dist=60):
                         ds,
                         np.unique(nns_ids_in_dir),
                         quarter=quarter,
+                        is_tar=is_tar,
                     )
                 )
         # print(lcs_dict.keys())
@@ -338,7 +357,14 @@ if __name__ == "__main__":
         default=None,
         help="Quarter number.",
     )
+    parser.add_argument(
+        "--tar",
+        dest="tar",
+        action="store_true",
+        default=False,
+        help="Tar archive.",
+    )
     parser.add_argument("--log", dest="log", default=0, help="Logging level")
     args = parser.parse_args()
 
-    main(quarter=args.quarter)
+    main(quarter=args.quarter, is_tar=args.tar)
