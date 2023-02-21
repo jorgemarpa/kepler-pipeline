@@ -20,13 +20,6 @@ import warnings
 warnings.filterwarnings("ignore", category=lk.LightkurveWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-if socket.gethostname() in ["NASAs-MacBook-Pro.local", "NASAs-MacBook-Pro-2.local"]:
-    ssd_kbonus = "/Volumes/jorge-marpa-personal/work/kbonus"
-    ssd_kepler = "/Volumes/jorge-marpa/Work/BAERI/data/kepler"
-else:
-    ssd_kbonus = "/Volumes/jorge-marpa-personal/work/kbonus"
-    ssd_kepler = "/Volumes/jorge-marpa/Work/BAERI/data/kepler"
-
 dmcs = {}
 typedir = {
     int: "J",
@@ -114,7 +107,11 @@ def fancy_flatten(
     output = lc.output
     year = str(qd_map[quarter])
     dmc_name = f"{quarter:02}_{channel:02}_{'-'.join(comp)}"
-    if len(lc.remove_nans()) == 0:
+    lc = lc.remove_nans()
+    # lc = lc[lc.flux > 0]
+    # lc = lc[lc.flux_err > 0]
+    # lc = lc[(lc.time.bkjd > 0) & (lc.time.bkjd < 1e5)]
+    if len(lc) == 0:
         print("LC has all-nan values in PSF column")
         if copy:
             return lk.LightCurve(
@@ -125,15 +122,22 @@ def fancy_flatten(
             )
         else:
             return lc
-    else:
-        lc = lc.remove_nans()
+
     times = lc.time.bkjd
     if dmc_name in dmcs.keys() and not force:
         dmc, breaks, _breaks = dmcs[dmc_name]
     else:
-        poscorr = fitsio.read(
+        bkg_file = (
             f"{ARCHIVE_PATH}/data/kepler/bkg/"
-            f"{year[:4]}/kplr{module:02}{output}-{year}_bkg.fits.gz",
+            f"{year[:4]}/kplr{module:02}{output}-{year}_bkg.fits.gz"
+        )
+        if not os.path.isfile(bkg_file):
+            print("BKG file doesn't exist:")
+            print(bkg_file)
+            sys.exit(1)
+
+        poscorr = fitsio.read(
+            bkg_file,
             columns=["CADENCENO", "POS_CORR1", "POS_CORR2"],
             ext=1,
         )
@@ -238,21 +242,26 @@ def fancy_flatten(
             )[0]
             cadence_mask[idx] = False
             n += 1
-    # print(f"Masking total cadences {(~cadence_mask).sum()} {(cadence_mask).sum()}")
+
     rc = lk.RegressionCorrector(lc)
     try:
         clc = rc.correct(dmc, sigma=3, cadence_mask=cadence_mask, propagate_errors=True)
-    except np.linalg.LinAlgError:
+    except (np.linalg.LinAlgError, IndexError):
         try:
             clc = rc.correct(dmc, sigma=3, cadence_mask=None, propagate_errors=True)
-        except np.linalg.LinAlgError:
+        except (np.linalg.LinAlgError, IndexError):
             print(
                 f"Warning: flattening failed with Singular matrix for "
-                f"source {lc.TARGETID} quarter {quarter}. Skipping"
+                f"source {lc.TARGETID} quarter {quarter}."
             )
-            clc = lc.flatten(window_length=101, polyorder=2)
-            clc.flux *= np.nanmedian(lc.flux)
-            clc.flux_err = lc.flux_err
+            if "spline" in comp:
+                print("Using .flatten()")
+                clc = lc.flatten(window_length=101, polyorder=2)
+                clc.flux *= np.nanmedian(lc.flux)
+                clc.flux_err = lc.flux_err
+            else:
+                print("Using original LC")
+                clc = lc.copy()
 
     if correction == "div":
         clc = lc.copy()
@@ -298,16 +307,13 @@ def fancy_flatten(
 def get_lc(name, force=False, skip_qs=[]):
 
     if not force:
-        if (
-            len(
-                glob(
-                    f"{KBONUS_LCS_PATH}/kepler/{name[:4]}/{name}/"
-                    f"hlsp_kbonus-bkg_kepler_kepler_*-{name}_kepler_v1.1.1_lc.fits"
-                )
-            )
-            != 0
-        ):
-            return None
+        stitched_file = glob(
+            f"{KBONUS_LCS_PATH}/kepler/{name[:4]}_s/{name}/"
+            f"hlsp_kbonus-bkg_kepler_kepler_*-{name}*_lc.fits"
+        )
+        if len(stitched_file) > 0:
+            return None, None
+
     lc_files = sorted(
         glob(
             f"{KBONUS_LCS_PATH}/kepler/{name[:4]}/{name}/"
@@ -315,7 +321,7 @@ def get_lc(name, force=False, skip_qs=[]):
         )
     )
     if len(lc_files) == 0:
-        return None
+        return None, None
     qs = np.array([x.split("/")[-1].split("-")[-1][1:3] for x in lc_files], dtype=int)
 
     # check for crrelated LCs to skip
@@ -323,7 +329,7 @@ def get_lc(name, force=False, skip_qs=[]):
         [lk.KeplerLightCurve.read(x) for x, q in zip(lc_files, qs) if q not in skip_qs]
     )
     if len(lc) == 0:
-        return None
+        return None, None
 
     return lc, lc_files
 
@@ -335,7 +341,12 @@ def process_and_stitch(lc, do_flat=True, do_align=True):
     lc_psf_align, lc_sap_align = [], []
     mean_flux_psf = []
     mean_flux_sap = []
+    q_mask = np.zeros(len(lc), dtype=bool)
     for i, x in enumerate(lc):
+        # check the times are ok
+        # if np.abs(x.time[1:].bkjd - x.time[:-1].bkjd).max() > 20:
+        #     print("WARNING: Times are wrong for ", x.meta["FILENAME"])
+        #     continue
         if do_flat:
             if x.meta["PSFFRAC"] <= psf_frac:
                 flat = lk.LightCurve(
@@ -394,6 +405,7 @@ def process_and_stitch(lc, do_flat=True, do_align=True):
             lc_psf_align.append(align_psf)
             lc_sap_align.append(align_sap)
             mean_flux_sap.extend(x.sap_flux.value)
+            q_mask[i] = True
 
     mean_flux_psf = np.nanmean(mean_flux_psf)
     mean_flux_sap = np.nanmean(mean_flux_sap)
@@ -551,17 +563,18 @@ if __name__ == '__main__':
     for k, fname in tqdm(
         enumerate(source_names), total=len(source_names), desc=f"Dir {args.dir}"
     ):
-        print(fname)
         skip_qs = correlated.query(f"fname == '{fname}'").quarter.values
         lc, lc_files = get_lc(fname, force=False, skip_qs=skip_qs)
         if lc is None:
             continue
-        # try:
-        lc_flat = process_and_stitch(lc, do_flat=True, do_align=True)
-        # except IndexError:
-        #     fails.append(fname)
-        #     print(f"{fname} failed with IndexError in POS_CORR vector.")
-        #     continue
+        try:
+            lc_flat = process_and_stitch(lc, do_flat=True, do_align=True)
+        except ValueError:
+            try:
+                lc_flat = process_and_stitch(lc, do_flat=True, do_align=True)
+            except:
+                fails.append(fname)
+                continue
         try:
             _ = make_fits(fname, lc_flat, lc_files=lc_files, quarter_skip=skip_qs)
         except KeyError:
@@ -572,7 +585,7 @@ if __name__ == '__main__':
     print(fails)
     np.savetxt(
         f"{PACKAGEDIR}/data/support/failed_stitch_{args.dir}.txt",
-        np.array(fails),
+        np.array([f"{x[:4]}/{x}" for x in fails]),
         fmt="%s",
     )
     print("Done!")

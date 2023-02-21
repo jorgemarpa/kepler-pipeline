@@ -11,6 +11,12 @@ tar xvf $dir.tar
 cd "/Users/jorgemarpa/Work/BAERI/ADAP/kepler-workflow/kepler_workflow"
 echo `pwd`
 python do_fits_stitch_nas.py --dir $dir
+exit_status=$?
+if [ "${exit_status}" -ne 0 ];
+then
+    echo "Got Failure Exit Code: $exit_status"
+    exit 1
+fi
 
 # cd "/nobackupp19/jimartin/ADAP/kbonus/lcs/kepler/"
 cd "/Users/jorgemarpa/Work/BAERI/ADAP/kepler-workflow/data/lcs/kepler"
