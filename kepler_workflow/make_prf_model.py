@@ -20,8 +20,11 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 log = logging.getLogger(__name__)
-ARCHIVE_PATH = "/Volumes/Jorge MarPa/Work/BAERI"
-# ARCHIVE_PATH = "/Users/jorgemarpa/Work/BAERI/ADAP"
+
+
+def print_dict(dictionary):
+    for k in sorted(dictionary.keys()):
+        log.info(f"{k:<22}: {dictionary[k]}")
 
 
 def do_FFI(
@@ -37,6 +40,7 @@ def do_FFI(
 
     if mission in ["Kepler", "kepler", "ktwo", "K2", "k2"] and not quarter in [1, 17]:
         if mission in ["Kepler", "kepler"]:
+            print(f"{ARCHIVE_PATH}/data/kepler/ffi/kplr*_ffi-cal.fits")
             ffi_files = np.sort(
                 glob.glob(f"{ARCHIVE_PATH}/data/kepler/ffi/kplr*_ffi-cal.fits")
             )
@@ -56,12 +60,23 @@ def do_FFI(
         ffi_q_fnames = [f for f in ffi_q_fnames if not "kplr2009170043915" in f]
         log.info(f"Using FFI files: {ffi_q_fnames}")
 
+        # load config file for FFI
+        with open(
+            "%s/kepler_workflow/config/ffimachine_keplerFFIs_config_2.0.yaml"
+            % (PACKAGEDIR),
+            "r",
+        ) as f:
+            config = yaml.safe_load(f)
+        log.info("FFIMachine config:")
+        log.info(print_dict(config["init"]))
+
         ffi = pm.FFIMachine.from_file(
             ffi_q_fnames,
             extension=channel,
-            cutout_size=400 if cut_out else None,
+            cutout_size=500 if cut_out else None,
             cutout_origin=[300, 300],
             correct_offsets=False,
+            **config["init"],
         )
     else:
         epoch_kw = "QUARTER"
@@ -70,21 +85,24 @@ def do_FFI(
         tpfs = get_tpfs(fname_list, tar_tpfs=True)
         # load config file for TPFs
         with open(
-            "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml"
+            "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config_2.0.yaml"
             % (PACKAGEDIR),
             "r",
         ) as f:
             config = yaml.safe_load(f)
-        ffi = pm.TPFMachine.from_TPFs(tpfs, **config)
+        log.info("FFIMachine config:")
+        log.info(print_dict(config["init"]))
+        ffi = pm.TPFMachine.from_TPFs(tpfs, **config["init"])
         ffi.meta = {}
         ffi.meta["MISSION"] = ffi.tpf_meta["mission"][0]
     ffi.quiet = quiet
     log.info(ffi)
 
     log.info("Building shape model...")
-    ax_shape = ffi.build_shape_model(plot=plot)
+    ffi.build_shape_model(**config["build_shape_model"], plot=False)
     if plot:
-        dir_name = "%s/figures/ffi_new/ch%02i" % (OUTPUT_PATH, channel)
+        fig = ffi.plot_shape_model(show_guidelines=True)
+        dir_name = "%s/figures/ffi_may2022/ch%02i" % (OUTPUT_PATH, channel)
         log.info(f"Saving diagnostic plots into: {dir_name}")
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
@@ -110,7 +128,7 @@ def do_FFI(
             plt.savefig(file_name, bbox_inches="tight")
             plt.close()
 
-    dir_name = "%s/shape_models/ffi_new/ch%02i" % (OUTPUT_PATH, channel)
+    dir_name = "%s/shape_models/ffi_may2022/ch%02i" % (OUTPUT_PATH, channel)
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
     file_name = "%s/%s_ffi_shape_model_ch%02i_%s%02i.fits" % (
