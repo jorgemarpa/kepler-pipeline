@@ -5,11 +5,16 @@ PACKAGEDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 if socket.gethostname() in ["NASAs-MacBook-Pro.local"]:
     # ARCHIVE_PATH = "/Users/jorgemarpa/Work/BAERI/ADAP"
-    ARCHIVE_PATH = "/Volumes/jorge-marpa/Work/BAERI"
+    ARCHIVE_PATH = "/Volumes/ADAP-Kepler/Work/BAERI"
     OUTPUT_PATH = f"{PACKAGEDIR}/data"
     LCS_PATH = f"{PACKAGEDIR}/data/lcs"
-    # KBONUS_LCS_PATH = "/Volumes/ADAP-KBonus/work/kbonus/lcs"
-    KBONUS_LCS_PATH = f"{PACKAGEDIR}/data/lcs/"
+    # KBONUS_LCS_PATH = "/Volumes/ADAP-KBonus-1/work/kbonus/lcs"
+    # KBONUS_LCS_PATH = "/Volumes/ADAP-KBonus-2/work/kbonus/lcs"
+    # KBONUS_LCS_PATH = "/Volumes/ADAP-Kepler/Work/BAERI/kbonus/lcs"
+    KBONUS_LCS_PATH = (
+        "/Users/jorgemarpa/Work/BAERI/ADAP/kepler-workflow/data/lcs/rename"
+    )
+    # KBONUS_LCS_PATH = f"{PACKAGEDIR}/data/lcs/"
     KBONUS_CAT_PATH = f"{PACKAGEDIR}/data/catalogs"
 
 else:
