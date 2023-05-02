@@ -5,6 +5,7 @@ data/lcs
 data/support
 data/shape_models/ffi/*/K2*
 data/shape_models/ffi_new
+data/shape_models/ffi_may2022
 data/bls
 notebooks/.*
 notebooks/<ipython*
