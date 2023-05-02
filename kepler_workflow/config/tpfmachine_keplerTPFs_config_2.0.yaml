@@ -5,6 +5,7 @@ init:
     limit_radius: 24.0
     n_r_knots: 15
     n_phi_knots: 25
+    cut_r: 4
     time_nknots: 7
     time_resolution: 50
     time_radius: 9

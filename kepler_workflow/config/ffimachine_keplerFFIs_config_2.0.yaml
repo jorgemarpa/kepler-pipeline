@@ -1,11 +1,17 @@
-magnitude_limit: 18
-dr: 3
-apply_focus_mask: False
-limit_radius: 24.0
-n_r_knots: 15
-n_phi_knots: 25
-time_nknots: 10
-time_resolution: 200
-time_radius: 9
-rmin: 1
-rmax: 16
+init:
+  magnitude_limit: 18
+  dr: 3
+  limit_radius: 24.0
+  n_r_knots: 15
+  n_phi_knots: 25
+  cut_r: 4
+  time_nknots: 10
+  time_resolution: 200
+  time_radius: 9
+  rmin: 1
+  rmax: 16
+
+build_shape_model:
+    flux_cut_off: 1
+    frame_index: "mean"
+    bin_data: False
