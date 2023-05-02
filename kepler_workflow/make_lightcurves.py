@@ -38,13 +38,16 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=sparse.SparseEfficiencyWarning)
 
 logg = logging.getLogger("Make LCs")
-lc_version = "1.1.1"
+lc_version = "1.2.0"
+bkjd0 = 2454833
+mjd0 = 2400000.5
 
 typedir = {
     int: "J",
     str: "A",
     float: "D",
     bool: "L",
+    np.int16: "I",
     np.int32: "J",
     np.int64: "K",
     np.float32: "E",
@@ -104,6 +107,15 @@ def get_file_list(quarter, channel, batch_number=-1, tar_tpfs=True):
 # @profile
 def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
     meta = {
+        "DOI": (
+            "10.17909/7jbr-w430",
+            "Digital Object Identifier for the HLSP data collection",
+        ),
+        "HLSPID": ("KBONUS-BKG", "HLSP Name"),
+        "HLSPLEAD": ("Jorge martinez-Palomera", "HLSP Author"),
+        "HLSPVER": ("V1.0", "HLSP version"),
+        "LICENSE": ("CC BY 4.0", "License"),
+        "LICENURL": ("https://creativecommons.org/licenses/by/4.0/", "License URL"),
         "ORIGIN": (lc_meta["ORIGIN"], "Program used for photometry"),
         "VERSION": (pm.__version__, "Version of ORIGIN"),
         "APERTURE": (lc_meta["APERTURE"], "Type of photometry in file"),
@@ -111,12 +123,17 @@ def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
         "MISSION": (lc_meta["MISSION"], "Mission"),
         "TELESCOP": (extra_meta["TELESCOP"], "Telescope name"),
         "INSTRUME": (extra_meta["INSTRUME"], "Telescope instrument"),
+        "FILTER": ("KEPLER", "Telescope filter"),
+        "TIMESYS": ("TDB", "Time scale"),
         "OBSMODE": (extra_meta["OBSMODE"], "Observation mode"),
         "SEASON": (extra_meta["SEASON"], "Observation season"),
         "CHANNEL": (lc_meta["CHANNEL"], "CCD channel"),
         "MODULE": (lc_meta["MODULE"], "CCD module"),
         "OUTPUT": (extra_meta["OUTPUT"], "CCD module output"),
         "QUARTER": (lc_meta["QUARTER"], "Observation quarter"),
+        "XPOSURE": (29.4244 * 60, "Exposure time [s]"),
+        "MJD-BEG": (data["time"][0] - mjd0, "Begining of observation [mjd]"),
+        "MJD-END": (data["time"][0] - mjd0, "End of observation [mjd]"),
         # "CAMPAIGN": lc_meta["CAMPAIGN"],
         # objct info
         "LABEL": (
@@ -125,7 +142,12 @@ def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
             else extra_meta["GAIA_DES"],
             "Object label",
         ),
-        "TARGETID": (lc_meta["TARGETID"], "Kepler target identifier"),
+        "TARGETID": (
+            extra_meta['KEPLERID']
+            if extra_meta["KEPLERID"] != 0
+            else extra_meta["GAIA_DES"].split(" ")[-1],
+            "Kepler target identifier",
+        ),
         "RA_OBJ": (lc_meta["RA"], "Right ascension [deg]"),
         "DEC_OBJ": (lc_meta["DEC"], "Declination [deg]"),
         "EQUINOX": (extra_meta["EQUINOX"], "Coordinate equinox"),
@@ -140,7 +162,7 @@ def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
         ),
         "TPFORG": (extra_meta["TPFORG"], "TPF id of object origin"),
         # gaia catalog info
-        "GAIAID": (extra_meta["GAIA_DES"], "Gaia identifier"),
+        "GAIAID": (extra_meta["GAIA_DES"], "Gaia designation"),
         "PMRA": (
             lc_meta["PMRA"] if np.isfinite(lc_meta["PMRA"]) else "",
             "Gaia RA proper motion [mas/yr]",
@@ -199,7 +221,7 @@ def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
     }
     lc_dct = {
         "cadenceno": data["cadenceno"],
-        "time": data["time"] - 2454833,
+        "time": data["time"] - bkjd0,
         "flux": data["flux"],
         "flux_err": data["flux_err"],
         "sap_flux": data["sap_flux"],
@@ -226,10 +248,10 @@ def make_hdul(data, lc_meta, extra_meta, aperture_mask=None):
         arr = data
         arr_unit = ""
         arr_type = typedir[data.dtype.type]
-        if "flux" in key:
+        if "flux" in key or "bkg" in key:
             arr_unit = "e-/s"
         elif "time" == key:
-            arr_unit = "jd"
+            arr_unit = "BJD - 2454833"
         elif "centroid" in key:
             arr_unit = "pix"
         coldefs.append(
@@ -348,6 +370,7 @@ def plot_residuals_dash(mac):
         cut_r=mac.cut_r,
         n_r_knots=mac.n_r_knots,
         n_phi_knots=mac.n_phi_knots,
+        degree=mac.polar_bspline_degree,
     )
     mean_f = 10 ** mean_f
     model = 10 ** A.dot(mac.psf_w)
@@ -448,7 +471,8 @@ def do_lcs(
     ##############################################################################
 
     with open(
-        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config.yaml" % (PACKAGEDIR),
+        "%s/kepler_workflow/config/tpfmachine_keplerTPFs_config_2.0.yaml"
+        % (PACKAGEDIR),
         "r",
     ) as f:
         config = yaml.safe_load(f)
@@ -882,7 +906,8 @@ def do_lcs(
             "OBSMODE": machine.tpfs[0].meta["OBSMODE"],
             "OUTPUT": machine.tpfs[0].meta["OUTPUT"],
             "SEASON": machine.tpfs[0].meta["SEASON"],
-            "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
+            # "EQUINOX": machine.tpfs[0].meta["EQUINOX"],
+            "EQUINOX": 2016.5,
             "GAIA_DES": srow.designation,
             "PSFFRAC": machine.source_psf_fraction[idx],
             "PERRATIO": machine.perturbed_ratio_mean[idx],
