@@ -22,9 +22,9 @@ def main(dir, quarter, version="1.0", archive_tar=False, tar_gz=False):
     print(f"Working on {dir}")
     if archive_tar:
         print("Archive is tarball")
-        tarname = f"{LCS_PATH}/kepler/{dir}.tar{'.gz' if tar_gz else ''}"
+        tarname = f"{KBONUS_LCS_PATH}/kepler/{dir}.tar{'.gz' if tar_gz else ''}"
         if not os.path.isfile(tarname):
-            print("Tar file does not exist")
+            print(f"Tar file does not exist {tarname}")
             sys.exit()
         tar = tarfile.open(tarname, mode="r:gz" if tar_gz else "r")
         lcfs = tar.getnames()
@@ -36,12 +36,12 @@ def main(dir, quarter, version="1.0", archive_tar=False, tar_gz=False):
     else:
         if quarter == "all":
             lcfs = glob.glob(
-                f"{LCS_PATH}/kepler/{dir}/*/"
+                f"{KBONUS_LCS_PATH}/kepler/{dir}/*/"
                 f"hlsp_kbonus-bkg_kepler_kepler_*_kepler_v{version}_lc.fits"
             )
         else:
             lcfs = glob.glob(
-                f"{LCS_PATH}/kepler/{dir}/*/"
+                f"{KBONUS_LCS_PATH}/kepler/{dir}/*/"
                 f"hlsp_kbonus-bkg_kepler_kepler_*-q{int(quarter):02}_kepler_v{version}_lc.fits"
             )
     print(f"Total files {len(lcfs)}")
@@ -53,14 +53,21 @@ def main(dir, quarter, version="1.0", archive_tar=False, tar_gz=False):
     FLFRCSAP, CROWDSAP, NPIXSAP, PSFFRAC, PERTRATI, PERTSTD = [], [], [], [], [], []
     PSF_AVAIL, SAP_AVAIL, QDETECT = [], [], []
     PSF_CDPP, SAP_CDPP, SAP_PPP, PSF_PPP = [], [], [], []
+    failed = []
 
     for k, f in tqdm(enumerate(lcfs), total=len(lcfs), desc="FITS"):
         if archive_tar:
             tar.extract(f, tmpdir.name)
             f = f"{tmpdir.name}/{f}"
 
+        try:
+            gids.append(fitsio.read_header(f, ext=0)["GAIAID"])
+        except:
+            failed.append(f.split("/")[-1])
+            print(f"# WARNING: Corrupted FITS file {f.split('/')[-1]}")
+            continue
+
         fname.append(f.split("_")[-4])
-        gids.append(fitsio.read_header(f, ext=0)["GAIAID"])
         kics.append(fitsio.read_header(f, ext=0)["KEPLERID"])
         ras.append(fitsio.read_header(f, ext=0)["RA_OBJ"])
         decs.append(fitsio.read_header(f, ext=0)["DEC_OBJ"])
@@ -144,8 +151,8 @@ def main(dir, quarter, version="1.0", archive_tar=False, tar_gz=False):
             PSFFRAC.append(np.nanmin(PSFFRAC_aux))
             PERTRATI.append(np.nanmedian(PERTRATI_aux))
             PERTSTD.append(np.nanmin(PERTSTD_aux))
-            PSF_AVAIL.append(''.join([str(x) for x in psf_av]))
-            SAP_AVAIL.append(''.join([str(x) for x in sap_av]))
+            PSF_AVAIL.append("".join([str(x) for x in psf_av]))
+            SAP_AVAIL.append("".join([str(x) for x in sap_av]))
 
         else:
             FLFRCSAP.append(fitsio.read_header(f)["FLFRCSAP"])
@@ -202,6 +209,11 @@ def main(dir, quarter, version="1.0", archive_tar=False, tar_gz=False):
         df.to_csv(
             f"{KBONUS_CAT_PATH}/tpf/kbonus_catalog_q{int(quarter):02}_dir{dir}.csv"
         )
+    np.savetxt(
+        f"{PACKAGEDIR}/data/support/corruped_stitched_files.txt",
+        np.array(failed),
+        fmt="%s",
+    )
 
 
 def concat_dir_catalogs(quarter):
